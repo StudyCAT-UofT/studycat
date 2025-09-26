@@ -70,9 +70,17 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 The database is hosted on a local PostgreSQL server using Docker. The database credentials are stored in the `.env` file.
 
-The database schema is defined in the `prisma/schema.prisma` file. The database is migrated and the Prisma client is generated using the `prisma` CLI.
+When the server is running, you can view the database and the tables using Prisma Studio:
 
-When making changes to the database schema, you need to migrate the database and generate the Prisma client:
+```bash
+pnpm prisma studio
+```
+
+Open [http://localhost:5555](http://localhost:5555) with your browser to see the result.
+
+### Migrations
+
+When making changes to the database schema, you need to create a new migration file for the changes and give it a descriptive name. This is done using the `prisma` CLI:
 
 ```bash
 pnpm prisma migrate dev --name <descriptive_name>
