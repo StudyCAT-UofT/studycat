@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Container, Stack, Text, Title, Card, Button, Loader, Center } from '@mantine/core'
 import { getCurrentUser, User } from '@/lib/client-auth'
+import { AuthenticatedLayout } from './AuthenticatedLayout'
 
 interface ProtectedRouteProps {
     children: React.ReactNode
@@ -68,5 +69,5 @@ export const ProtectedRoute = ({ children, fallback }: ProtectedRouteProps) => {
         )
     }
 
-    return <>{children}</>
+    return <AuthenticatedLayout user={user}>{children}</AuthenticatedLayout>
 }
