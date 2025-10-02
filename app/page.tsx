@@ -1,67 +1,82 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { Button, Container, Group, Stack, Text, TextInput, Title, Card } from '@mantine/core'
-
-type User = { id: string; email: string; name?: string | null; createdAt: string }
+import { useEffect, useState, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
+import { Button, Container, Group, Stack, Text, Title, Card, Loader, Center } from '@mantine/core'
+import { logout, getCurrentUser, User } from '@/lib/client-auth'
 
 export default function HomePage() {
-    const [users, setUsers] = useState<User[]>([])
-    const [email, setEmail] = useState('')
-    const [name, setName] = useState('')
+    const [user, setUser] = useState<User | null>(null)
+    const [loading, setLoading] = useState(false)
+    const [checkingSession, setCheckingSession] = useState(true)
+    const router = useRouter()
 
-    const fetchUsers = async () => {
-        const res = await fetch('/api/users', { cache: 'no-store' })
-        const data = await res.json()
-        setUsers(data.users ?? [])
-    }
+    const handleLogout = async () => {
+        setLoading(true)
+        const result = await logout()
 
-    const createUser = async () => {
-        const res = await fetch('/api/users', {
-            method: 'POST',
-            body: JSON.stringify({ email, name }),
-            headers: { 'Content-Type': 'application/json' },
-        })
-        if (res.ok) {
-            setEmail('')
-            setName('')
-            fetchUsers()
+        if ('error' in result) {
+            console.error('Logout error:', result.error)
         } else {
-            alert('Failed to create user')
+            // Redirect to login page after logout
+            router.push('/login')
         }
+
+        setLoading(false)
     }
+
+    const checkSession = useCallback(async () => {
+        const currentUser = await getCurrentUser()
+        setUser(currentUser)
+        setCheckingSession(false)
+
+        // If no user found, redirect to login
+        if (!currentUser) {
+            router.push('/login')
+        }
+    }, [router])
 
     useEffect(() => {
-        fetchUsers()
-    }, [])
+        checkSession()
+    }, [checkSession])
+
+    // Show loading spinner while checking session
+    if (checkingSession) {
+        return (
+            <Container size="sm" py="xl">
+                <Center h={400}>
+                    <Stack align="center" gap="md">
+                        <Loader size="lg" />
+                        <Text>Loading...</Text>
+                    </Stack>
+                </Center>
+            </Container>
+        )
+    }
+
+    // This should only render if user is authenticated
+    // (redirect happens in checkSession if not authenticated)
+    if (!user) {
+        return null // Will redirect to login
+    }
 
     return (
         <Container size="sm" py="xl">
             <Stack gap="lg">
-                <Title order={2}>StudyCAT</Title>
+                <Group justify="space-between">
+                    <Title order={2}>StudyCAT</Title>
+                    <Button variant="light" onClick={handleLogout} loading={loading}>
+                        Logout
+                    </Button>
+                </Group>
+
                 <Card withBorder padding="lg" radius="md">
                     <Stack>
-                        <TextInput label="Email" placeholder="Enter your email" value={email} onChange={(e) => setEmail(e.currentTarget.value)} />
-                        <TextInput label="Name" placeholder="Enter your name" value={name} onChange={(e) => setName(e.currentTarget.value)} />
-                        <Group>
-                            <Button onClick={createUser}>Create user</Button>
-                            <Button variant="light" onClick={fetchUsers}>Refresh</Button>
-                        </Group>
+                        <Text size="lg" fw={600}>Welcome back!</Text>
+                        <Text>Username: <Text span fw={500}>{user.username}</Text></Text>
+                        <Text>Role: <Text span fw={500}>{user.role}</Text></Text>
                     </Stack>
                 </Card>
-
-                <Stack gap="sm">
-                    <Text fw={600}>Users</Text>
-                    {users.length === 0 && <Text c="dimmed">No users yet.</Text>}
-                    {users.map((u) => (
-                        <Card key={u.id} withBorder padding="md" radius="md">
-                            <Group justify="space-between">
-                                <Text>{u.name ?? 'Unnamed'}</Text>
-                                <Text c="dimmed">{u.email}</Text>
-                            </Group>
-                        </Card>
-                    ))}
-                </Stack>
             </Stack>
         </Container>
     )
