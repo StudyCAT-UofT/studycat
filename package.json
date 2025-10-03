@@ -12,6 +12,7 @@
     "@mantine/core": "^8.3.2",
     "@mantine/hooks": "^8.3.2",
     "@prisma/client": "^6.16.2",
+    "@tabler/icons-react": "^3.35.0",
     "@types/js-cookie": "^3.0.6",
     "@types/jsonwebtoken": "^9.0.10",
     "js-cookie": "^3.0.5",

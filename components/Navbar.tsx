@@ -11,20 +11,19 @@ import {
     Select,
     Skeleton,
 } from '@mantine/core'
-import { logout, User } from '@/lib/client-auth'
+import { logout } from '@/lib/client-auth'
 import { useCourse } from '@/lib/course-context'
+import { useAuth } from '@/lib/auth-context'
 
-interface NavbarProps {
-    user: User
-}
-
-export const Navbar = ({ user }: NavbarProps) => {
+export const Navbar = () => {
     const router = useRouter()
+    const { user, refreshUser } = useAuth()
     const { selectedCourseOffering, setSelectedCourseOffering, courseOfferings, loading } = useCourse()
 
     const handleLogout = async () => {
         const result = await logout()
         if ('success' in result) {
+            await refreshUser()
             router.push('/login')
         }
     }
@@ -76,9 +75,9 @@ export const Navbar = ({ user }: NavbarProps) => {
                         <Menu.Target>
                             <UnstyledButton>
                                 <Group gap="xs">
-                                    <Avatar size="sm" name={user.username} color="initials" />
+                                    <Avatar size="sm" name={user?.username} color="initials" />
                                     <Text size="sm" fw={500}>
-                                        {user.username}
+                                        {user?.username}
                                     </Text>
                                 </Group>
                             </UnstyledButton>

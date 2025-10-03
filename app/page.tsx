@@ -2,19 +2,10 @@
 
 import { Container, Stack, Text, Title, Card } from '@mantine/core'
 import { ProtectedRoute } from '@/components'
-import { getCurrentUser, User } from '@/lib/client-auth'
-import { useEffect, useState } from 'react'
+import { useAuth } from '@/lib/auth-context'
 
 export default function HomePage() {
-    const [user, setUser] = useState<User | null>(null)
-
-    useEffect(() => {
-        const fetchUser = async () => {
-            const currentUser = await getCurrentUser()
-            setUser(currentUser)
-        }
-        fetchUser()
-    }, [])
+    const { user } = useAuth()
 
     return (
         <ProtectedRoute>
