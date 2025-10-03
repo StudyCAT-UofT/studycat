@@ -60,3 +60,35 @@ export const getCurrentUser = async (): Promise<User | null> => {
     return null
   }
 }
+
+export interface CourseOffering {
+  id: string
+  display: string
+  course: {
+    id: string
+    code: string
+    title: string
+  }
+  term: {
+    id: string
+    name: string
+  }
+  role: string
+}
+
+export const getEnrollments = async (): Promise<CourseOffering[]> => {
+  try {
+    const response = await fetch('/api/enrollments')
+    const data = await response.json()
+
+    if (!response.ok) {
+      console.error('Enrollments API error:', data)
+      return []
+    }
+
+    return data.courseOfferings || []
+  } catch (error) {
+    console.error('Enrollments fetch error:', error)
+    return []
+  }
+}
