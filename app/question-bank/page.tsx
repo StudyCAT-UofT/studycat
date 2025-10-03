@@ -1,6 +1,6 @@
 'use client'
 
-import { Container, Stack, Text, Title, Card, Table, Badge, ScrollArea, Skeleton } from '@mantine/core'
+import { Container, Stack, Text, Title, Card, Table, Badge, ScrollArea, Skeleton, Group } from '@mantine/core'
 import { ProtectedRoute, RoleBasedRoute } from '@/components'
 import { useCourse } from '@/lib/course-context'
 import { useEffect, useState } from 'react'
@@ -79,7 +79,14 @@ const QuestionBankContent = () => {
     return (
         <Container size="md" py="xl">
             <Stack gap="lg">
-                <Title order={2}>Question Bank</Title>
+                <Group gap="md" align="center">
+                    <Title order={2}>Question Bank</Title>
+                    {!loading && !error && (
+                        <Badge size="lg" variant="light">
+                            {items.length} question{items.length !== 1 ? 's' : ''}
+                        </Badge>
+                    )}
+                </Group>
 
                 <Card withBorder padding="lg" radius="md">
                     <Stack>
@@ -135,10 +142,6 @@ const QuestionBankContent = () => {
 
                         {!loading && !error && (
                             <>
-                                <Text c="dimmed">
-                                    {items.length} question{items.length !== 1 ? 's' : ''} in the question bank
-                                </Text>
-
                                 {items.length > 0 ? (
                                     <ScrollArea>
                                         <Table striped highlightOnHover>
