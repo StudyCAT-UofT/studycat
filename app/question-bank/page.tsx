@@ -1,6 +1,6 @@
 'use client'
 
-import { Container, Stack, Text, Title, Card, Table, Badge, ScrollArea } from '@mantine/core'
+import { Container, Stack, Text, Title, Card, Table, Badge, ScrollArea, Skeleton } from '@mantine/core'
 import { ProtectedRoute, RoleBasedRoute } from '@/components'
 import { useCourse } from '@/lib/course-context'
 import { useEffect, useState } from 'react'
@@ -83,7 +83,49 @@ const QuestionBankContent = () => {
 
                 <Card withBorder padding="lg" radius="md">
                     <Stack>
-                        {loading && <Text c="dimmed">Loading items...</Text>}
+                        {loading && (
+                            <ScrollArea>
+                                <Table striped>
+                                    <Table.Thead>
+                                        <Table.Tr>
+                                            <Table.Th>ID</Table.Th>
+                                            <Table.Th>Module</Table.Th>
+                                            <Table.Th>Bloom&apos;s</Table.Th>
+                                            <Table.Th>Question Stem</Table.Th>
+                                            <Table.Th>Options</Table.Th>
+                                            <Table.Th>Stats</Table.Th>
+                                        </Table.Tr>
+                                    </Table.Thead>
+                                    <Table.Tbody>
+                                        {Array.from({ length: 5 }).map((_, index) => (
+                                            <Table.Tr key={index}>
+                                                <Table.Td>
+                                                    <Skeleton height={20} width={60} />
+                                                </Table.Td>
+                                                <Table.Td>
+                                                    <Skeleton height={20} width={80} />
+                                                </Table.Td>
+                                                <Table.Td>
+                                                    <Skeleton height={24} width={70} radius="xl" />
+                                                </Table.Td>
+                                                <Table.Td>
+                                                    <Skeleton height={20} width={300} />
+                                                </Table.Td>
+                                                <Table.Td>
+                                                    <Skeleton height={16} width={50} />
+                                                </Table.Td>
+                                                <Table.Td>
+                                                    <Stack gap={2}>
+                                                        <Skeleton height={14} width={60} />
+                                                        <Skeleton height={14} width={80} />
+                                                    </Stack>
+                                                </Table.Td>
+                                            </Table.Tr>
+                                        ))}
+                                    </Table.Tbody>
+                                </Table>
+                            </ScrollArea>
+                        )}
 
                         {error && (
                             <Text c="red" size="sm">
