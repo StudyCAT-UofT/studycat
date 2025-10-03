@@ -1,4 +1,5 @@
 export { ProtectedRoute } from './ProtectedRoute'
+export { RoleBasedRoute } from './RoleBasedRoute'
 export { Navbar } from './Navbar'
 export { AuthenticatedLayout } from './AuthenticatedLayout'
 export { InstructorTabs } from './InstructorTabs'
