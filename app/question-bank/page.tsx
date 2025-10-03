@@ -1,45 +1,11 @@
 'use client'
 
-import { Container, Stack, Text, Title, Card, Alert } from '@mantine/core'
-// import { IconInfoCircle } from '@tabler/icons-react'
-import { ProtectedRoute } from '@/components'
+import { Container, Stack, Text, Title, Card } from '@mantine/core'
+import { ProtectedRoute, RoleBasedRoute } from '@/components'
 import { useCourse } from '@/lib/course-context'
-import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 
 const QuestionBankContent = () => {
-    const { selectedCourseOffering, loading } = useCourse()
-    const router = useRouter()
-
-    // Check authorization directly without state
-    const isAuthorized = selectedCourseOffering?.role === 'INSTRUCTOR' || selectedCourseOffering?.role === 'TA'
-
-    // Redirect unauthorized users immediately when course data is loaded
-    useEffect(() => {
-        if (!loading && selectedCourseOffering && !isAuthorized) {
-            router.push('/')
-        }
-    }, [loading, selectedCourseOffering, isAuthorized, router])
-
-    // Show loading state while course data is loading
-    if (loading || !selectedCourseOffering) {
-        return (
-            <Container size="md" py="xl">
-                <Text>Loading...</Text>
-            </Container>
-        )
-    }
-
-    // This should not render for unauthorized users, but just in case
-    if (!isAuthorized) {
-        return (
-            <Container size="md" py="xl">
-                <Alert title="Access Denied" color="red">
-                    You do not have permission to access the question bank. Only instructors and TAs can view this page.
-                </Alert>
-            </Container>
-        )
-    }
+    const { selectedCourseOffering } = useCourse()
 
     return (
         <Container size="md" py="xl">
@@ -89,7 +55,14 @@ const QuestionBankContent = () => {
 export default function QuestionBankPage() {
     return (
         <ProtectedRoute>
-            <QuestionBankContent />
+            <RoleBasedRoute
+                permissions={{
+                    requireAnyRole: ['INSTRUCTOR', 'TA']
+                }}
+                unauthorizedMessage="Only instructors and TAs can access the question bank."
+            >
+                <QuestionBankContent />
+            </RoleBasedRoute>
         </ProtectedRoute>
     )
 }

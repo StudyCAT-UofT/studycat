@@ -9,7 +9,7 @@ export default function HomePage() {
 
     return (
         <ProtectedRoute>
-            <Container size="sm" py="xl">
+            <Container size="md" py="xl">
                 <Stack gap="lg">
                     <Title order={2}>Dashboard</Title>
 
