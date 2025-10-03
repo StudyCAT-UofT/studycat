@@ -2,24 +2,25 @@
 
 import { AppShell } from '@mantine/core'
 import { Navbar } from './Navbar'
-import { User } from '@/lib/client-auth'
+import { InstructorTabs } from './InstructorTabs'
 import { CourseProvider } from '@/lib/course-context'
 
 interface AuthenticatedLayoutProps {
     children: React.ReactNode
-    user: User
 }
 
-export const AuthenticatedLayout = ({ children, user }: AuthenticatedLayoutProps) => {
+export const AuthenticatedLayout = ({ children }: AuthenticatedLayoutProps) => {
     return (
         <CourseProvider>
             <AppShell
                 header={{ height: 60 }}
                 padding="md"
             >
-                <Navbar user={user} />
+                <Navbar />
                 <AppShell.Main>
-                    {children}
+                    <InstructorTabs>
+                        {children}
+                    </InstructorTabs>
                 </AppShell.Main>
             </AppShell>
         </CourseProvider>

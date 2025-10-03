@@ -1,6 +1,7 @@
 import '@mantine/core/styles.css';
 
 import { ColorSchemeScript, MantineProvider, mantineHtmlProps } from '@mantine/core';
+import { AuthProvider } from '@/lib/auth-context';
 
 export const metadata = {
     title: 'StudyCAT',
@@ -18,7 +19,11 @@ export default function RootLayout({
                 <ColorSchemeScript defaultColorScheme="light" />
             </head>
             <body>
-                <MantineProvider defaultColorScheme="light">{children}</MantineProvider>
+                <MantineProvider defaultColorScheme="light">
+                    <AuthProvider requireAuth={false}>
+                        {children}
+                    </AuthProvider>
+                </MantineProvider>
             </body>
         </html>
     );

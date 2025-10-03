@@ -1,9 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { Container, Stack, Text, Title, Card, Button, Loader, Center } from '@mantine/core'
-import { getCurrentUser, User } from '@/lib/client-auth'
+import { useAuth } from '@/lib/auth-context'
 import { AuthenticatedLayout } from './AuthenticatedLayout'
 
 interface ProtectedRouteProps {
@@ -12,24 +10,7 @@ interface ProtectedRouteProps {
 }
 
 export const ProtectedRoute = ({ children, fallback }: ProtectedRouteProps) => {
-    const [user, setUser] = useState<User | null>(null)
-    const [loading, setLoading] = useState(true)
-    const router = useRouter()
-
-    useEffect(() => {
-        const checkAuth = async () => {
-            const currentUser = await getCurrentUser()
-            setUser(currentUser)
-            setLoading(false)
-
-            // If no user found, redirect to login
-            if (!currentUser) {
-                router.push('/login')
-            }
-        }
-
-        checkAuth()
-    }, [router])
+    const { user, loading, isAuthenticated } = useAuth()
 
     if (loading) {
         return (
@@ -43,7 +24,7 @@ export const ProtectedRoute = ({ children, fallback }: ProtectedRouteProps) => {
         )
     }
 
-    if (!user) {
+    if (!isAuthenticated || !user) {
         if (fallback) {
             return <>{fallback}</>
         }
@@ -69,5 +50,5 @@ export const ProtectedRoute = ({ children, fallback }: ProtectedRouteProps) => {
         )
     }
 
-    return <AuthenticatedLayout user={user}>{children}</AuthenticatedLayout>
+    return <AuthenticatedLayout>{children}</AuthenticatedLayout>
 }

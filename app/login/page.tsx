@@ -1,16 +1,17 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button, Container, Stack, Text, TextInput, Title, Card, Alert } from '@mantine/core'
-import { login, getCurrentUser } from '@/lib/client-auth'
+import { login } from '@/lib/client-auth'
+import { useAuth } from '@/lib/auth-context'
 
 export default function LoginPage() {
     const [username, setUsername] = useState('')
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
-    const [checkingSession, setCheckingSession] = useState(true)
     const router = useRouter()
+    const { user, loading: authLoading, refreshUser } = useAuth()
 
     const handleLogin = async () => {
         if (!username.trim()) {
@@ -26,28 +27,22 @@ export default function LoginPage() {
         if ('error' in result) {
             setError(result.error)
         } else {
-            // Redirect to home page after successful login
+            // Refresh user state and redirect to home page after successful login
+            await refreshUser()
             router.push('/')
         }
 
         setLoading(false)
     }
 
-    const checkExistingSession = useCallback(async () => {
-        const currentUser = await getCurrentUser()
-        if (currentUser) {
-            // User is already logged in, redirect to home
-            router.push('/')
-        } else {
-            setCheckingSession(false)
-        }
-    }, [router])
-
+    // Redirect if user is already authenticated
     useEffect(() => {
-        checkExistingSession()
-    }, [checkExistingSession])
+        if (!authLoading && user) {
+            router.push('/')
+        }
+    }, [user, authLoading, router])
 
-    if (checkingSession) {
+    if (authLoading) {
         return (
             <Container size="sm" py="xl">
                 <Stack align="center" gap="md">
@@ -55,6 +50,11 @@ export default function LoginPage() {
                 </Stack>
             </Container>
         )
+    }
+
+    // Don't render login form if user is authenticated
+    if (user) {
+        return null
     }
 
     return (
