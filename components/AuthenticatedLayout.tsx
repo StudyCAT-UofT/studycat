@@ -14,7 +14,6 @@ export const AuthenticatedLayout = ({ children }: AuthenticatedLayoutProps) => {
         <CourseProvider>
             <AppShell
                 header={{ height: 60 }}
-                padding="md"
             >
                 <Navbar />
                 <AppShell.Main>
