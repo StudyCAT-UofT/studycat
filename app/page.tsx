@@ -19,7 +19,6 @@ export default function HomePage() {
                             {user && (
                                 <>
                                     <Text>Username: <Text span fw={500}>{user.username}</Text></Text>
-                                    <Text>Role: <Text span fw={500}>{user.role}</Text></Text>
                                 </>
                             )}
                         </Stack>
