@@ -9,7 +9,7 @@ import {
     UnstyledButton,
     Avatar,
     Select,
-    Loader,
+    Skeleton,
 } from '@mantine/core'
 import { logout, User } from '@/lib/client-auth'
 import { useCourse } from '@/lib/course-context'
@@ -43,7 +43,7 @@ export const Navbar = ({ user }: NavbarProps) => {
                 <Group gap="md">
                     {/* Course offering selector */}
                     {loading ? (
-                        <Loader size="sm" />
+                        <Skeleton height={36} width={300} radius="sm" />
                     ) : courseOfferings.length > 0 ? (
                         <Select
                             value={selectedCourseOffering?.id || null}

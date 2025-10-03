@@ -37,7 +37,6 @@ export const CourseProvider = ({ children }: { children: ReactNode }) => {
     // Load course offerings when user is available
     useEffect(() => {
         if (!user) {
-            setLoading(false)
             return
         }
 
