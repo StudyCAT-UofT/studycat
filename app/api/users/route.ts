@@ -31,11 +31,10 @@ export async function GET() {
  * POST /api/users
  * 
  * Creates a new user in the system.
- * Requires username and role; other fields are optional.
+ * Requires username; roles are now managed at the course offering level.
  * 
  * Request Body:
  * - username (required): User's unique username
- * - role (required): User's role (STUDENT, TA, INSTRUCTOR)
  * 
  * Returns:
  * - 201: Created user object
@@ -45,22 +44,17 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     // Parse request body to extract user data
-    const { username, role } = await request.json()
+    const { username } = await request.json()
     
     // Validate required fields
     if (!username) {
       return NextResponse.json({ error: 'Username required' }, { status: 400 })
     }
-    
-    if (!role) {
-      return NextResponse.json({ error: 'Role required' }, { status: 400 })
-    }
 
     // Create new user in database
     const user = await prisma.user.create({ 
       data: { 
-        username, 
-        role 
+        username
       } 
     })
     

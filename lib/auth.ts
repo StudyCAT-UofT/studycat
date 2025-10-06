@@ -6,7 +6,6 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-producti
 export interface UserSession {
   userId: string
   username: string
-  role: string
 }
 
 export const createToken = (user: UserSession): string => {

@@ -3,7 +3,6 @@
 export interface User {
   id: string
   username: string
-  role: string
 }
 
 export const login = async (username: string): Promise<{ user: User } | { error: string }> => {
