@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { getCurrentUser, User } from './client-auth'
 
@@ -23,7 +23,7 @@ export const AuthProvider = ({ children, requireAuth = false }: AuthProviderProp
     const [loading, setLoading] = useState(true)
     const router = useRouter()
 
-    const refreshUser = async () => {
+    const refreshUser = useCallback(async () => {
         try {
             const currentUser = await getCurrentUser()
             setUser(currentUser)
@@ -42,11 +42,11 @@ export const AuthProvider = ({ children, requireAuth = false }: AuthProviderProp
         } finally {
             setLoading(false)
         }
-    }
+    }, [requireAuth, router])
 
     useEffect(() => {
         refreshUser()
-    }, [])
+    }, [refreshUser])
 
     const value: AuthContextType = {
         user,
