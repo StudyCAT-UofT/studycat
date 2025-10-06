@@ -25,7 +25,6 @@ export async function POST(request: NextRequest) {
     const token = createToken({
       userId: user.id,
       username: user.username,
-      role: user.role
     })
 
     // Set session cookie
@@ -35,7 +34,6 @@ export async function POST(request: NextRequest) {
       user: {
         id: user.id,
         username: user.username,
-        role: user.role
       }
     })
   } catch (error) {
