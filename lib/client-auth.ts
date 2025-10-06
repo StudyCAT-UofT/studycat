@@ -23,7 +23,7 @@ export const login = async (username: string): Promise<{ user: User } | { error:
     }
 
     return { user: data.user }
-  } catch (error) {
+  } catch {
     return { error: 'Network error' }
   }
 }
@@ -41,7 +41,7 @@ export const logout = async (): Promise<{ success: boolean } | { error: string }
     }
 
     return { success: true }
-  } catch (error) {
+  } catch {
     return { error: 'Network error' }
   }
 }
@@ -56,7 +56,7 @@ export const getCurrentUser = async (): Promise<User | null> => {
     }
 
     return data.user
-  } catch (error) {
+  } catch {
     return null
   }
 }
