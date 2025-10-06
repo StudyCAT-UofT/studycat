@@ -27,12 +27,17 @@ export const InstructorTabs = ({ children }: InstructorTabsProps) => {
         if (pathname.includes('/question-bank')) {
             return 'question-bank'
         }
+        if (pathname.includes('/quizzes')) {
+            return 'quizzes'
+        }
         return 'dashboard'
     }
 
     const handleTabChange = (value: string | null) => {
         if (value === 'question-bank') {
             router.push('/question-bank')
+        } else if (value === 'quizzes') {
+            router.push('/quizzes')
         } else {
             router.push('/')
         }
@@ -43,6 +48,7 @@ export const InstructorTabs = ({ children }: InstructorTabsProps) => {
             <Tabs.List>
                 <Tabs.Tab value="dashboard">Dashboard</Tabs.Tab>
                 <Tabs.Tab value="question-bank">Question Bank</Tabs.Tab>
+                <Tabs.Tab value="quizzes">Quizzes</Tabs.Tab>
             </Tabs.List>
             <Tabs.Panel value={getCurrentTab()} pt="md">
                 {children}
