@@ -3,27 +3,44 @@ import { prisma } from '@/lib/prisma'
 
 export const runtime = 'nodejs'
 
+/**
+ * GET /api/quizzes
+ * 
+ * Fetches all active quizzes for a specific course offering with comprehensive statistics.
+ * 
+ * Query Parameters:
+ * - courseOfferingId (required): The ID of the course offering to fetch quizzes for
+ * 
+ * Returns:
+ * - 200: Array of quizzes with statistics
+ * - 400: Missing course offering ID
+ * - 500: Server error
+ */
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
     const courseOfferingId = searchParams.get('courseOfferingId')
 
+    // Validate required parameter
     if (!courseOfferingId) {
       return NextResponse.json({ error: 'Course offering ID is required' }, { status: 400 })
     }
 
+    // Fetch quizzes with related data for statistics calculation
     const quizzes = await prisma.quiz.findMany({
       where: {
         offeringId: courseOfferingId,
-        active: true
+        active: true // Only fetch active quizzes
       },
       include: {
+        // Include creator information for display
         createdBy: {
           select: {
             id: true,
             username: true
           }
         },
+        // Include attempt data for statistics
         attempts: {
           select: {
             id: true,
@@ -37,6 +54,7 @@ export async function GET(request: Request) {
             }
           }
         },
+        // Include quiz items to determine modules and question count
         quizItems: {
           include: {
             item: {
@@ -50,16 +68,17 @@ export async function GET(request: Request) {
         }
       },
       orderBy: [
-        { createdAt: 'desc' }
+        { createdAt: 'desc' } // Show newest quizzes first
       ]
     })
 
-    // Calculate statistics for each quiz
+    // Transform quiz data and calculate comprehensive statistics
     const quizzesWithStats = quizzes.map(quiz => {
+      // Filter for completed attempts to calculate meaningful statistics
       const completedAttempts = quiz.attempts.filter(attempt => attempt.status === 'COMPLETED')
       const totalAttempts = quiz.attempts.length
       
-      // Calculate average score for completed attempts
+      // Calculate average score percentage for completed attempts only
       let averageScore = null
       if (completedAttempts.length > 0) {
         const totalCorrect = completedAttempts.reduce((sum, attempt) => {
@@ -70,23 +89,24 @@ export async function GET(request: Request) {
         averageScore = totalResponses > 0 ? (totalCorrect / totalResponses) * 100 : null
       }
 
-      // Calculate completion rate
+      // Calculate completion rate (completed attempts / total attempts)
       const completionRate = totalAttempts > 0 ? (completedAttempts.length / totalAttempts) * 100 : null
 
-      // Get unique modules from quiz items
-      const modules = [...new Set(quiz.quizItems.map(qi => qi.item.module))]
+      // Extract unique modules from quiz items for display
+      const modules = Array.from(new Set(quiz.quizItems.map(qi => qi.item.module)))
 
+      // Return standardized quiz object with calculated statistics
       return {
         id: quiz.id,
         title: quiz.title,
-        description: null, // Not in schema, but keeping for compatibility
+        description: null, // Not in current schema, but kept for API compatibility
         modules: modules,
-        module: modules.length > 0 ? modules[0] : 'Unknown', // Primary module for display
+        module: modules.length > 0 ? modules[0] : 'Unknown', // Primary module for table display
         fixedLength: quiz.fixedLength,
-        timeLimit: null, // Not in schema, but keeping for compatibility
-        maxAttempts: null, // Not in schema, but keeping for compatibility
+        timeLimit: null, // Not in current schema, but kept for API compatibility
+        maxAttempts: null, // Not in current schema, but kept for API compatibility
         isActive: quiz.active,
-        dueDate: null, // Not in schema, but keeping for compatibility
+        dueDate: null, // Not in current schema, but kept for API compatibility
         createdAt: quiz.createdAt.toISOString(),
         updatedAt: quiz.updatedAt.toISOString(),
         createdBy: quiz.createdBy?.username || 'Unknown',
@@ -101,8 +121,9 @@ export async function GET(request: Request) {
     })
 
     return NextResponse.json({ quizzes: quizzesWithStats })
-  } catch (e) {
-    console.error('Failed to fetch quizzes:', e)
+  } catch (error) {
+    // Log error for debugging while keeping client response generic
+    console.error('Failed to fetch quizzes:', error)
     return NextResponse.json({ error: 'Failed to fetch quizzes' }, { status: 500 })
   }
 }
