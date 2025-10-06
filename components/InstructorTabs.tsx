@@ -8,21 +8,30 @@ interface InstructorTabsProps {
     children: React.ReactNode
 }
 
+/**
+ * Navigation tabs component for instructor/TA interface
+ * 
+ * Provides tabbed navigation between Dashboard, Question Bank, and Quizzes.
+ * Only renders for users with instructor or TA roles for the selected course.
+ */
 export const InstructorTabs = ({ children }: InstructorTabsProps) => {
     const router = useRouter()
     const pathname = usePathname()
     const { selectedCourseOffering, loading } = useCourse()
 
-    // Check if current user is instructor or TA for the selected course offering
+    // Check if current user has instructor or TA role for the selected course offering
     const isInstructorOrTA = selectedCourseOffering?.role === 'INSTRUCTOR' || selectedCourseOffering?.role === 'TA'
 
     // Don't render tabs if user is not instructor/TA or no course is selected
-    // But only after loading is complete to prevent flashing
+    // Wait for loading to complete to prevent UI flashing
     if (!loading && (!isInstructorOrTA || !selectedCourseOffering)) {
         return <>{children}</>
     }
 
-    // Determine current tab based on pathname
+    /**
+     * Determines the current active tab based on the current pathname
+     * @returns The tab value that should be active
+     */
     const getCurrentTab = () => {
         if (pathname.includes('/question-bank')) {
             return 'question-bank'
@@ -33,6 +42,10 @@ export const InstructorTabs = ({ children }: InstructorTabsProps) => {
         return 'dashboard'
     }
 
+    /**
+     * Handles tab change events and navigates to the appropriate route
+     * @param value - The tab value that was selected
+     */
     const handleTabChange = (value: string | null) => {
         if (value === 'question-bank') {
             router.push('/question-bank')
