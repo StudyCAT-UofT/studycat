@@ -46,6 +46,50 @@ const getBloomColor = (bloom: string) => {
 }
 
 export const QuestionBankTable = ({ items, loading, error }: QuestionBankTableProps) => {
+    const getTableRows = (items: Item[]) => {
+        return items.map((item) => (
+            <Table.Tr key={item.id}>
+                <Table.Td>
+                    <Text size="sm" fw={500}>
+                        {item.externalQuestionId}
+                    </Text>
+                </Table.Td>
+                <Table.Td>
+                    <Text size="sm">{item.module}</Text>
+                </Table.Td>
+                <Table.Td>
+                    <Badge color={getBloomColor(item.bloom)} size="sm">
+                        {item.bloom}
+                    </Badge>
+                </Table.Td>
+                <Table.Td>
+                    <Text size="sm" lineClamp={2} style={{ maxWidth: 300 }}>
+                        {item.stem}
+                    </Text>
+                </Table.Td>
+                <Table.Td>
+                    <Text size="xs" c="dimmed">
+                        {item.options.length} option{item.options.length !== 1 ? 's' : ''}
+                    </Text>
+                </Table.Td>
+                <Table.Td>
+                    <Stack gap={2}>
+                        {item.average && (
+                            <Text size="xs" c="dimmed">
+                                Avg: {item.average.toFixed(2)}
+                            </Text>
+                        )}
+                        {item.attemptsCount && (
+                            <Text size="xs" c="dimmed">
+                                Attempts: {item.attemptsCount}
+                            </Text>
+                        )}
+                    </Stack>
+                </Table.Td>
+            </Table.Tr>
+        ))
+    }
+
     return (
         <Card withBorder padding="lg" radius="md">
             <Stack>
@@ -115,47 +159,7 @@ export const QuestionBankTable = ({ items, loading, error }: QuestionBankTablePr
                                         </Table.Tr>
                                     </Table.Thead>
                                     <Table.Tbody>
-                                        {items.map((item) => (
-                                            <Table.Tr key={item.id}>
-                                                <Table.Td>
-                                                    <Text size="sm" fw={500}>
-                                                        {item.externalQuestionId}
-                                                    </Text>
-                                                </Table.Td>
-                                                <Table.Td>
-                                                    <Text size="sm">{item.module}</Text>
-                                                </Table.Td>
-                                                <Table.Td>
-                                                    <Badge color={getBloomColor(item.bloom)} size="sm">
-                                                        {item.bloom}
-                                                    </Badge>
-                                                </Table.Td>
-                                                <Table.Td>
-                                                    <Text size="sm" lineClamp={2} style={{ maxWidth: 300 }}>
-                                                        {item.stem}
-                                                    </Text>
-                                                </Table.Td>
-                                                <Table.Td>
-                                                    <Text size="xs" c="dimmed">
-                                                        {item.options.length} option{item.options.length !== 1 ? 's' : ''}
-                                                    </Text>
-                                                </Table.Td>
-                                                <Table.Td>
-                                                    <Stack gap={2}>
-                                                        {item.average && (
-                                                            <Text size="xs" c="dimmed">
-                                                                Avg: {item.average.toFixed(2)}
-                                                            </Text>
-                                                        )}
-                                                        {item.attemptsCount && (
-                                                            <Text size="xs" c="dimmed">
-                                                                Attempts: {item.attemptsCount}
-                                                            </Text>
-                                                        )}
-                                                    </Stack>
-                                                </Table.Td>
-                                            </Table.Tr>
-                                        ))}
+                                        {getTableRows(items)}
                                     </Table.Tbody>
                                 </Table>
                             </ScrollArea>
