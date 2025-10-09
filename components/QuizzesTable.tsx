@@ -37,6 +37,71 @@ export const QuizzesTable = ({ quizzes, loading, error }: QuizzesTableProps) => 
         return isActive ? 'green' : 'gray'
     }, [])
 
+    const getTableRows = (quizzes: Quiz[]) => {
+        return quizzes.map((quiz) => (
+            <Table.Tr key={quiz.id}>
+                <Table.Td>
+                    <Stack gap={2}>
+                        <Text size="sm" fw={500}>
+                            {quiz.title}
+                        </Text>
+                        {quiz.description && (
+                            <Text size="xs" c="dimmed" lineClamp={1}>
+                                {quiz.description}
+                            </Text>
+                        )}
+                    </Stack>
+                </Table.Td>
+                <Table.Td>
+                    <Text size="sm">{quiz.module}</Text>
+                    {quiz.modules.length > 1 && (
+                        <Text size="xs" c="dimmed">
+                            +{quiz.modules.length - 1} more
+                        </Text>
+                    )}
+                </Table.Td>
+                <Table.Td>
+                    <Badge color={getStatusColor(quiz.isActive)} size="sm">
+                        {quiz.isActive ? 'Active' : 'Inactive'}
+                    </Badge>
+                </Table.Td>
+                <Table.Td>
+                    <Text size="sm">{quiz.fixedLength}</Text>
+                </Table.Td>
+                <Table.Td>
+                    <Text size="sm">
+                        {new Date(quiz.createdAt).toLocaleDateString()}
+                    </Text>
+                </Table.Td>
+                <Table.Td>
+                    <Stack gap={2}>
+                        {quiz.stats.totalAttempts > 0 ? (
+                            <>
+                                <Text size="xs" c="dimmed">
+                                    Attempts: {quiz.stats.totalAttempts}
+                                </Text>
+                                {quiz.stats.averageScore && (
+                                    <Text size="xs" c="dimmed">
+                                        Avg: {quiz.stats.averageScore.toFixed(1)}%
+                                    </Text>
+                                )}
+                                {quiz.stats.completionRate && (
+                                    <Text size="xs" c="dimmed">
+                                        Complete: {quiz.stats.completionRate.toFixed(1)}%
+                                    </Text>
+                                )}
+                            </>
+                        ) : (
+                            <Text size="xs" c="dimmed">
+                                No attempts yet
+                            </Text>
+                        )}
+                    </Stack>
+                </Table.Td>
+            </Table.Tr>
+        ))
+    }
+
     const skeletonRows = useMemo(() =>
         Array.from({ length: 3 }).map((_, index) => (
             <Table.Tr key={index}>
@@ -109,68 +174,7 @@ export const QuizzesTable = ({ quizzes, loading, error }: QuizzesTableProps) => 
                                         </Table.Tr>
                                     </Table.Thead>
                                     <Table.Tbody>
-                                        {quizzes.map((quiz) => (
-                                            <Table.Tr key={quiz.id}>
-                                                <Table.Td>
-                                                    <Stack gap={2}>
-                                                        <Text size="sm" fw={500}>
-                                                            {quiz.title}
-                                                        </Text>
-                                                        {quiz.description && (
-                                                            <Text size="xs" c="dimmed" lineClamp={1}>
-                                                                {quiz.description}
-                                                            </Text>
-                                                        )}
-                                                    </Stack>
-                                                </Table.Td>
-                                                <Table.Td>
-                                                    <Text size="sm">{quiz.module}</Text>
-                                                    {quiz.modules.length > 1 && (
-                                                        <Text size="xs" c="dimmed">
-                                                            +{quiz.modules.length - 1} more
-                                                        </Text>
-                                                    )}
-                                                </Table.Td>
-                                                <Table.Td>
-                                                    <Badge color={getStatusColor(quiz.isActive)} size="sm">
-                                                        {quiz.isActive ? 'Active' : 'Inactive'}
-                                                    </Badge>
-                                                </Table.Td>
-                                                <Table.Td>
-                                                    <Text size="sm">{quiz.fixedLength}</Text>
-                                                </Table.Td>
-                                                <Table.Td>
-                                                    <Text size="sm">
-                                                        {new Date(quiz.createdAt).toLocaleDateString()}
-                                                    </Text>
-                                                </Table.Td>
-                                                <Table.Td>
-                                                    <Stack gap={2}>
-                                                        {quiz.stats.totalAttempts > 0 ? (
-                                                            <>
-                                                                <Text size="xs" c="dimmed">
-                                                                    Attempts: {quiz.stats.totalAttempts}
-                                                                </Text>
-                                                                {quiz.stats.averageScore && (
-                                                                    <Text size="xs" c="dimmed">
-                                                                        Avg: {quiz.stats.averageScore.toFixed(1)}%
-                                                                    </Text>
-                                                                )}
-                                                                {quiz.stats.completionRate && (
-                                                                    <Text size="xs" c="dimmed">
-                                                                        Complete: {quiz.stats.completionRate.toFixed(1)}%
-                                                                    </Text>
-                                                                )}
-                                                            </>
-                                                        ) : (
-                                                            <Text size="xs" c="dimmed">
-                                                                No attempts yet
-                                                            </Text>
-                                                        )}
-                                                    </Stack>
-                                                </Table.Td>
-                                            </Table.Tr>
-                                        ))}
+                                        {getTableRows(quizzes)}
                                     </Table.Tbody>
                                 </Table>
                             </ScrollArea>
