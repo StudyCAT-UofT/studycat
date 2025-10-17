@@ -178,6 +178,16 @@ export async function PUT(
       )
     }
 
+    // Validate option text content is unique (no duplicate answer options)
+    const optionTexts = options.map(opt => opt.text.trim().toLowerCase())
+    const uniqueTexts = new Set(optionTexts)
+    if (optionTexts.length !== uniqueTexts.size) {
+      return NextResponse.json(
+        { error: 'Answer options must be unique - no duplicate text content allowed' },
+        { status: 400 }
+      )
+    }
+
     // Use a transaction to update the item and its options
     const updatedItem = await prisma.$transaction(async (tx) => {
       // Update the item

@@ -164,6 +164,16 @@ export async function POST(request: Request) {
       )
     }
 
+    // Validate option text content is unique (no duplicate answer options)
+    const optionTexts = options.map(opt => opt.text.trim().toLowerCase())
+    const uniqueTexts = new Set(optionTexts)
+    if (optionTexts.length !== uniqueTexts.size) {
+      return NextResponse.json(
+        { error: 'Answer options must be unique - no duplicate text content allowed' },
+        { status: 400 }
+      )
+    }
+
     // Use a transaction to create the item and its options
     const newItem = await prisma.$transaction(async (tx) => {
       // Create the item
