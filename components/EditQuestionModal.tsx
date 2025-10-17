@@ -37,43 +37,45 @@ const EditQuestionModal = ({
     const [error, setError] = useState<string | null>(null)
     const [success, setSuccess] = useState(false)
 
-    // Update form data when item changes or when creating new item
+    // Reset state and form data when modal opens
     useEffect(() => {
-        if (isCreating) {
-            // Reset form for new question
-            setFormData({
-                externalQuestionId: '',
-                module: '',
-                bloom: '',
-                stem: '',
-                reference: '',
-                figureUrl: '',
-                options: [
-                    { id: 'temp-1', label: 'A', text: '', justification: '', isCorrect: false },
-                    { id: 'temp-2', label: 'B', text: '', justification: '', isCorrect: false },
-                    { id: 'temp-3', label: 'C', text: '', justification: '', isCorrect: false },
-                    { id: 'temp-4', label: 'D', text: '', justification: '', isCorrect: false }
-                ]
-            })
+        if (opened) {
             setError(null)
             setSuccess(false)
-        } else if (item) {
-            setFormData({
-                externalQuestionId: item.externalQuestionId,
-                module: item.module,
-                bloom: item.bloom,
-                stem: item.stem,
-                reference: item.reference || '',
-                figureUrl: item.figureUrl || '',
-                options: item.options.map(opt => ({
-                    ...opt,
-                    justification: opt.justification || ''
-                }))
-            })
-            setError(null)
-            setSuccess(false)
+            setLoading(false)
+
+            if (isCreating) {
+                // Reset form for new question
+                setFormData({
+                    externalQuestionId: '',
+                    module: '',
+                    bloom: '',
+                    stem: '',
+                    reference: '',
+                    figureUrl: '',
+                    options: [
+                        { id: 'temp-1', label: 'A', text: '', justification: '', isCorrect: false },
+                        { id: 'temp-2', label: 'B', text: '', justification: '', isCorrect: false },
+                        { id: 'temp-3', label: 'C', text: '', justification: '', isCorrect: false },
+                        { id: 'temp-4', label: 'D', text: '', justification: '', isCorrect: false }
+                    ]
+                })
+            } else if (item) {
+                setFormData({
+                    externalQuestionId: item.externalQuestionId,
+                    module: item.module,
+                    bloom: item.bloom,
+                    stem: item.stem,
+                    reference: item.reference || '',
+                    figureUrl: item.figureUrl || '',
+                    options: item.options.map(opt => ({
+                        ...opt,
+                        justification: opt.justification || ''
+                    }))
+                })
+            }
         }
-    }, [item, isCreating])
+    }, [opened, isCreating, item])
 
     const handleSave = async () => {
         if (!isCreating && !item) return
