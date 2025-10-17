@@ -52,8 +52,8 @@ docker compose up -d
 Migrate the database and generate the Prisma client:
 
 ```bash
-pnpm prisma migrate dev
-pnpm prisma generate
+pnpm db:migrate
+pnpm db:generate
 ```
 
 Then, run the development server:
@@ -73,7 +73,7 @@ The database is hosted on a local PostgreSQL server using Docker. The database c
 When the server is running, you can view the database and the tables using Prisma Studio:
 
 ```bash
-pnpm prisma studio
+pnpm db:studio
 ```
 
 Open [http://localhost:5555](http://localhost:5555) with your browser to see the result.
@@ -83,15 +83,48 @@ Open [http://localhost:5555](http://localhost:5555) with your browser to see the
 When making changes to the database schema, you need to create a new migration file for the changes and give it a descriptive name. This is done using the `prisma` CLI:
 
 ```bash
-pnpm prisma migrate dev --name <descriptive_name>
+pnpm db:migrate --name <descriptive_name>
 ```
 
-This creates a new migration file in the `prisma/migrations` directory, which you commit to the repository. Do not manually modify any existing migration files.
+This creates a new migration file in the `external/studycat-schema/migrations` directory, which you commit to the repository. Do not manually modify any existing migration files.
 
 When pulling changes from the repository that have new migrations, you need to apply the migrations to the database:
 
 ```bash
-pnpm prisma migrate dev
+pnpm db:migrate
+```
+
+## Working with the Schema Submodule
+
+The Prisma schema and migrations are located in a submodule at `external/studycat-schema/`. This allows for a single source of truth for the database schema across multiple StudyCAT repositories.
+
+### Available Database Scripts
+
+The following pnpm scripts are available for working with the database:
+
+- `pnpm db:generate` - Generate the Prisma client
+- `pnpm db:migrate` - Run migrations in development mode
+- `pnpm db:migrate:deploy` - Deploy migrations in production
+- `pnpm db:migrate:reset` - Reset the database and run all migrations
+- `pnpm db:studio` - Open Prisma Studio
+- `pnpm db:status` - Check migration status
+- `pnpm db:seed` - Seed the database with initial test data
+
+### Updating the Schema Submodule
+
+When the schema repository is updated, you need to update the submodule:
+
+```bash
+# Update the submodule to the latest commit
+git submodule update --remote external/studycat-schema
+
+# Or update to a specific tag
+cd external/studycat-schema
+git fetch --tags
+git checkout --detach tags/v0.2.0
+cd ../../
+git add external/studycat-schema
+git commit -m "chore: update schema submodule to v0.2.0"
 ```
 
 ## Deploying
