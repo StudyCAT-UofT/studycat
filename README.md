@@ -31,6 +31,12 @@ git clone https://github.com/StudyCAT-UofT/studycat.git
 cd studycat
 ```
 
+Then, initialize the submodule:
+
+```bash
+git submodule update --init
+```
+
 Then, install the dependencies:
 
 ```bash
