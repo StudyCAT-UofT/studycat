@@ -3,12 +3,12 @@
 import { useState, useMemo } from 'react'
 import {
     Card,
-    Stack,
     Text,
     Badge,
     Group,
     ActionIcon,
-    Box
+    Box,
+    Flex
 } from '@mantine/core'
 import { DataTable, DataTableSortStatus } from 'mantine-datatable'
 import { IconEdit } from '@tabler/icons-react'
@@ -183,7 +183,7 @@ export const QuestionBankTable = ({ items, loading, error }: QuestionBankTablePr
     const expandedRowContent = ({ record }: { record: Item }) => (
         <Box p="md" style={{ backgroundColor: '#f8f9fa' }}>
             <Text fw={500} mb="sm">Question Options:</Text>
-            <Stack gap="sm">
+            <Flex direction="row" gap="sm">
                 {record.options.map((option) => (
                     <Box
                         key={option.id}
@@ -212,7 +212,7 @@ export const QuestionBankTable = ({ items, loading, error }: QuestionBankTablePr
                         )}
                     </Box>
                 ))}
-            </Stack>
+            </Flex>
         </Box>
     )
 
