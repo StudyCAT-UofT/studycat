@@ -7,7 +7,13 @@
     "build": "next build --turbopack",
     "start": "next start",
     "lint": "eslint",
-    "db:seed": "tsx prisma/seed.ts"
+    "db:seed": "tsx scripts/seed.ts",
+    "db:generate": "prisma generate --schema=external/studycat-schema/schema.prisma",
+    "db:migrate": "prisma migrate dev --schema=external/studycat-schema/schema.prisma",
+    "db:migrate:deploy": "prisma migrate deploy --schema=external/studycat-schema/schema.prisma",
+    "db:migrate:reset": "prisma migrate reset --schema=external/studycat-schema/schema.prisma",
+    "db:studio": "prisma studio --schema=external/studycat-schema/schema.prisma",
+    "db:status": "prisma migrate status --schema=external/studycat-schema/schema.prisma"
   },
   "dependencies": {
     "@mantine/core": "^8.3.2",
