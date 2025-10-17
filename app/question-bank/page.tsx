@@ -1,8 +1,8 @@
 'use client'
 
 import { Container, Stack, Title, Group, TextInput, MultiSelect, Button, Card, Flex } from '@mantine/core'
-import { IconSearch, IconFilter, IconX } from '@tabler/icons-react'
-import { ProtectedRoute, RoleBasedRoute, QuestionBankTable } from '@/components'
+import { IconSearch, IconFilter, IconX, IconPlus } from '@tabler/icons-react'
+import { ProtectedRoute, RoleBasedRoute, QuestionBankTable, EditQuestionModal } from '@/components'
 import { useCourse } from '@/lib/course-context'
 import { useEffect, useState, useMemo, useCallback } from 'react'
 
@@ -42,6 +42,9 @@ const QuestionBankContent = () => {
     const [selectedModules, setSelectedModules] = useState<string[]>([])
     const [selectedBlooms, setSelectedBlooms] = useState<string[]>([])
     const [showFilters, setShowFilters] = useState(false)
+
+    // Modal state
+    const [isNewQuestionModalOpen, setIsNewQuestionModalOpen] = useState(false)
 
     const fetchItems = useCallback(async () => {
         if (!selectedCourseOffering?.course?.id) {
@@ -120,8 +123,15 @@ const QuestionBankContent = () => {
     return (
         <Container size="xl" py="xl">
             <Stack gap="lg">
-                <Group gap="md" align="center">
+                <Group gap="md" align="center" justify="space-between">
                     <Title order={2}>Question Bank</Title>
+                    <Button
+                        leftSection={<IconPlus size={16} />}
+                        onClick={() => setIsNewQuestionModalOpen(true)}
+                        disabled={!selectedCourseOffering?.course?.id}
+                    >
+                        New Question
+                    </Button>
                 </Group>
 
                 {/* Search Bar */}
@@ -193,6 +203,16 @@ const QuestionBankContent = () => {
                     loading={loading}
                     error={error}
                     onRefresh={fetchItems}
+                />
+
+                {/* New Question Modal */}
+                <EditQuestionModal
+                    item={null}
+                    opened={isNewQuestionModalOpen}
+                    onClose={() => setIsNewQuestionModalOpen(false)}
+                    onSave={fetchItems}
+                    isCreating={true}
+                    courseId={selectedCourseOffering?.course?.id}
                 />
             </Stack>
         </Container>

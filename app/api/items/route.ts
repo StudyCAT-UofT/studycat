@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { BloomCategory } from '@prisma/client'
 
 export const runtime = 'nodejs'
 
@@ -50,5 +51,163 @@ export async function GET(request: Request) {
     // Log error for debugging while keeping client response generic
     console.error('Failed to fetch items:', error)
     return NextResponse.json({ error: 'Failed to fetch items' }, { status: 500 })
+  }
+}
+
+/**
+ * POST /api/items
+ * 
+ * Creates a new question item with its options.
+ * 
+ * Request Body:
+ * - courseId: string (required)
+ * - externalQuestionId: string (required)
+ * - module: string (required)
+ * - bloom: BloomCategory (required)
+ * - stem: string (required)
+ * - reference?: string
+ * - figureUrl?: string
+ * - options: Array<{
+ *     label: OptionLabel
+ *     text: string
+ *     justification?: string
+ *     isCorrect: boolean
+ *   }> (required)
+ * 
+ * Returns:
+ * - 201: Created item with options
+ * - 400: Invalid request data
+ * - 500: Server error
+ */
+export async function POST(request: Request) {
+  try {
+    const body = await request.json()
+
+    // Validate required fields
+    const {
+      courseId,
+      externalQuestionId,
+      module,
+      bloom,
+      stem,
+      reference,
+      figureUrl,
+      options
+    } = body
+
+    if (!courseId || !externalQuestionId || !module || !bloom || !stem || !options) {
+      return NextResponse.json(
+        { error: 'Missing required fields: courseId, externalQuestionId, module, bloom, stem, options' },
+        { status: 400 }
+      )
+    }
+
+    // Validate bloom category
+    if (!Object.values(BloomCategory).includes(bloom)) {
+      return NextResponse.json(
+        { error: 'Invalid bloom category' },
+        { status: 400 }
+      )
+    }
+
+    // Validate options
+    if (!Array.isArray(options) || options.length === 0) {
+      return NextResponse.json(
+        { error: 'Options must be a non-empty array' },
+        { status: 400 }
+      )
+    }
+
+    // Check if course exists
+    const course = await prisma.course.findUnique({
+      where: { id: courseId }
+    })
+
+    if (!course) {
+      return NextResponse.json(
+        { error: 'Course not found' },
+        { status: 404 }
+      )
+    }
+
+    // Check for duplicate externalQuestionId within the same course
+    const duplicateItem = await prisma.item.findFirst({
+      where: {
+        courseId,
+        externalQuestionId
+      }
+    })
+
+    if (duplicateItem) {
+      return NextResponse.json(
+        { error: 'A question with this ID already exists in this course' },
+        { status: 400 }
+      )
+    }
+
+    // Validate that at least one option is marked as correct
+    const correctOptions = options.filter(opt => opt.isCorrect)
+    if (correctOptions.length === 0) {
+      return NextResponse.json(
+        { error: 'At least one option must be marked as correct' },
+        { status: 400 }
+      )
+    }
+
+    // Validate option labels are unique
+    const optionLabels = options.map(opt => opt.label)
+    const uniqueLabels = new Set(optionLabels)
+    if (optionLabels.length !== uniqueLabels.size) {
+      return NextResponse.json(
+        { error: 'Option labels must be unique' },
+        { status: 400 }
+      )
+    }
+
+    // Use a transaction to create the item and its options
+    const newItem = await prisma.$transaction(async (tx) => {
+      // Create the item
+      const item = await tx.item.create({
+        data: {
+          courseId,
+          externalQuestionId,
+          module,
+          bloom,
+          stem,
+          reference: reference || null,
+          figureUrl: figureUrl || null,
+          active: true,
+          // Set default IRT parameters
+          irtA: 1.0,
+          irtB: 0.0,
+          irtC: 0.25
+        }
+      })
+
+      // Create options
+      const newOptions = await Promise.all(
+        options.map(option => 
+          tx.itemOption.create({
+            data: {
+              itemId: item.id,
+              label: option.label,
+              text: option.text,
+              justification: option.justification || null,
+              isCorrect: option.isCorrect
+            }
+          })
+        )
+      )
+
+      return { ...item, options: newOptions }
+    })
+
+    return NextResponse.json({ item: newItem }, { status: 201 })
+  } catch (error) {
+    console.error('Failed to create item:', error)
+    return NextResponse.json(
+      { error: 'Failed to create item' },
+      { status: 500 }
+    )
   }
 }
