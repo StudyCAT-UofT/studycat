@@ -196,14 +196,16 @@ export const QuestionBankTable = ({ items, loading, error, onRefresh }: Question
                         }}
                     >
                         <Group justify="space-between" mb="xs">
-                            <Text fw={500} size="sm">
-                                Option {option.label}
+                            <Group gap="xs" align="center">
+                                <Text fw={500} size="sm">
+                                    Option {option.label}
+                                </Text>
                                 {option.isCorrect && (
-                                    <Badge size="xs" color="green" ml="xs">
+                                    <Badge size="xs" color="green">
                                         Correct
                                     </Badge>
                                 )}
-                            </Text>
+                            </Group>
                         </Group>
                         <Text size="sm" mb="xs">{option.text}</Text>
                         {option.justification && (
