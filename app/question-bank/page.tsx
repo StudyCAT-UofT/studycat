@@ -1,7 +1,7 @@
 'use client'
 
-import { Container, Stack, Title, Group, TextInput, MultiSelect, Button, Card, Flex } from '@mantine/core'
-import { IconSearch, IconFilter, IconX, IconPlus } from '@tabler/icons-react'
+import { Container, Stack, Title, Group, TextInput, MultiSelect, Button, Card, Flex, Modal, Text, Box } from '@mantine/core'
+import { IconSearch, IconFilter, IconX, IconPlus, IconTrash } from '@tabler/icons-react'
 import { ProtectedRoute, RoleBasedRoute, QuestionBankTable, EditQuestionModal } from '@/components'
 import { useCourse } from '@/lib/course-context'
 import { useEffect, useState, useMemo, useCallback } from 'react'
@@ -45,6 +45,12 @@ const QuestionBankContent = () => {
 
     // Modal state
     const [isNewQuestionModalOpen, setIsNewQuestionModalOpen] = useState(false)
+
+    // Selection and delete state
+    const [selectedRecords, setSelectedRecords] = useState<Item[]>([])
+    const [deleteModalOpened, setDeleteModalOpened] = useState(false)
+    const [deletingItems, setDeletingItems] = useState<Item[]>([])
+    const [isDeleting, setIsDeleting] = useState(false)
 
     const fetchItems = useCallback(async () => {
         if (!selectedCourseOffering?.course?.id) {
@@ -120,18 +126,71 @@ const QuestionBankContent = () => {
 
     const hasActiveFilters = searchQuery.trim() || selectedModules.length > 0 || selectedBlooms.length > 0
 
+    const handleDeleteSelected = (items: Item[]) => {
+        setDeletingItems(items)
+        setDeleteModalOpened(true)
+    }
+
+    const handleDeleteConfirm = async () => {
+        if (deletingItems.length === 0) return
+
+        setIsDeleting(true)
+        try {
+            const response = await fetch('/api/items', {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    ids: deletingItems.map(item => item.id)
+                })
+            })
+
+            if (!response.ok) {
+                const errorData = await response.json()
+                throw new Error(errorData.error || 'Failed to delete items')
+            }
+
+            // Clear selection and close modal
+            setSelectedRecords([])
+            setDeletingItems([])
+            setDeleteModalOpened(false)
+
+            // Refresh the data
+            fetchItems()
+        } catch (error) {
+            console.error('Delete error:', error)
+            // You could add a notification here if needed
+        } finally {
+            setIsDeleting(false)
+        }
+    }
+
     return (
         <Container size="xl" py="xl">
             <Stack gap="lg">
                 <Group gap="md" align="center" justify="space-between">
                     <Title order={2}>Question Bank</Title>
-                    <Button
-                        leftSection={<IconPlus size={16} />}
-                        onClick={() => setIsNewQuestionModalOpen(true)}
-                        disabled={!selectedCourseOffering?.course?.id}
-                    >
-                        New Question
-                    </Button>
+                    <Group gap="sm">
+                        {selectedRecords.length > 0 && (
+                            <Button
+                                color="red"
+                                variant="light"
+                                leftSection={<IconTrash size={16} />}
+                                onClick={() => handleDeleteSelected(selectedRecords)}
+                                disabled={loading}
+                            >
+                                Delete Selected ({selectedRecords.length})
+                            </Button>
+                        )}
+                        <Button
+                            leftSection={<IconPlus size={16} />}
+                            onClick={() => setIsNewQuestionModalOpen(true)}
+                            disabled={!selectedCourseOffering?.course?.id}
+                        >
+                            New Question
+                        </Button>
+                    </Group>
                 </Group>
 
                 {/* Search Bar */}
@@ -203,6 +262,8 @@ const QuestionBankContent = () => {
                     loading={loading}
                     error={error}
                     onRefresh={fetchItems}
+                    selectedRecords={selectedRecords}
+                    onSelectedRecordsChange={setSelectedRecords}
                 />
 
                 {/* New Question Modal */}
@@ -214,6 +275,47 @@ const QuestionBankContent = () => {
                     isCreating={true}
                     courseId={selectedCourseOffering?.course?.id}
                 />
+
+                {/* Delete Confirmation Modal */}
+                <Modal
+                    opened={deleteModalOpened}
+                    onClose={() => setDeleteModalOpened(false)}
+                    title="Delete Questions"
+                    centered
+                >
+                    <Text mb="md">
+                        Are you sure you want to delete {deletingItems.length} selected question{deletingItems.length > 1 ? 's' : ''}?
+                        This action cannot be undone.
+                    </Text>
+
+                    <Box mb="md">
+                        <Text size="sm" fw={500} mb="xs">Selected questions:</Text>
+                        <Box style={{ maxHeight: 200, overflowY: 'auto' }}>
+                            {deletingItems.map((item, index) => (
+                                <Text key={item.id} size="sm" c="dimmed">
+                                    {index + 1}. {item.externalQuestionId} - {item.stem.substring(0, 50)}...
+                                </Text>
+                            ))}
+                        </Box>
+                    </Box>
+
+                    <Group justify="flex-end">
+                        <Button
+                            variant="light"
+                            onClick={() => setDeleteModalOpened(false)}
+                            disabled={isDeleting}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            color="red"
+                            onClick={handleDeleteConfirm}
+                            loading={isDeleting}
+                        >
+                            Delete
+                        </Button>
+                    </Group>
+                </Modal>
             </Stack>
         </Container>
     )

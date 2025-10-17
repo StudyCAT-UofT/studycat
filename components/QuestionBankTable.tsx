@@ -45,11 +45,17 @@ interface QuestionBankTableProps {
     loading: boolean
     error: string | null
     onRefresh?: () => void
+    selectedRecords?: Item[]
+    onSelectedRecordsChange?: (records: Item[]) => void
 }
 
-export const QuestionBankTable = ({ items, loading, error, onRefresh }: QuestionBankTableProps) => {
+export const QuestionBankTable = ({ items, loading, error, onRefresh, selectedRecords: externalSelectedRecords, onSelectedRecordsChange }: QuestionBankTableProps) => {
     const [sortStatus, setSortStatus] = useState<DataTableSortStatus<Item>>({ columnAccessor: 'externalQuestionId', direction: 'asc' })
-    const [selectedRecords, setSelectedRecords] = useState<Item[]>([])
+    const [internalSelectedRecords, setInternalSelectedRecords] = useState<Item[]>([])
+
+    // Use external selected records if provided, otherwise use internal state
+    const selectedRecords = externalSelectedRecords !== undefined ? externalSelectedRecords : internalSelectedRecords
+    const setSelectedRecords = onSelectedRecordsChange || setInternalSelectedRecords
     const [editModalOpened, setEditModalOpened] = useState(false)
     const [editingItem, setEditingItem] = useState<Item | null>(null)
     const [page, setPage] = useState(1)
@@ -59,6 +65,8 @@ export const QuestionBankTable = ({ items, loading, error, onRefresh }: Question
         setEditingItem(item)
         setEditModalOpened(true)
     }
+
+
 
     const handleSortStatusChange = (newSortStatus: DataTableSortStatus<Item>) => {
         setSortStatus(newSortStatus)
@@ -269,6 +277,7 @@ export const QuestionBankTable = ({ items, loading, error, onRefresh }: Question
                     }
                 }}
             />
+
         </>
     )
 }

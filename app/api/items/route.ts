@@ -211,3 +211,64 @@ export async function POST(request: Request) {
     )
   }
 }
+
+/**
+ * DELETE /api/items
+ * 
+ * Deletes multiple question items and all their associated options.
+ * 
+ * Request Body:
+ * - ids: Array of item IDs to delete (required)
+ * 
+ * Returns:
+ * - 200: Success message with count of deleted items
+ * - 400: Invalid request data
+ * - 500: Server error
+ */
+export async function DELETE(request: Request) {
+  try {
+    const body = await request.json()
+    const { ids } = body
+
+    // Validate required fields
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return NextResponse.json(
+        { error: 'ids must be a non-empty array' },
+        { status: 400 }
+      )
+    }
+
+    // Validate that all IDs are strings
+    if (!ids.every(id => typeof id === 'string')) {
+      return NextResponse.json(
+        { error: 'All ids must be strings' },
+        { status: 400 }
+      )
+    }
+
+    // Use a transaction to delete all items and their options
+    const result = await prisma.$transaction(async (tx) => {
+      // First, delete all options for the items
+      await tx.itemOption.deleteMany({
+        where: { itemId: { in: ids } }
+      })
+
+      // Then delete the items
+      const deletedItems = await tx.item.deleteMany({
+        where: { id: { in: ids } }
+      })
+
+      return deletedItems
+    })
+
+    return NextResponse.json({ 
+      message: `Successfully deleted ${result.count} item(s)` 
+    })
+  } catch (error) {
+    console.error('Failed to delete items:', error)
+    return NextResponse.json(
+      { error: 'Failed to delete items' },
+      { status: 500 }
+    )
+  }
+}

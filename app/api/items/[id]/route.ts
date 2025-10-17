@@ -33,6 +33,61 @@ export const runtime = 'nodejs'
  * - 404: Item not found
  * - 500: Server error
  */
+/**
+ * DELETE /api/items/[id]
+ * 
+ * Deletes a question item and all its associated options.
+ * 
+ * Path Parameters:
+ * - id: The ID of the item to delete
+ * 
+ * Returns:
+ * - 200: Success message
+ * - 404: Item not found
+ * - 500: Server error
+ */
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params
+
+    // Check if item exists
+    const existingItem = await prisma.item.findUnique({
+      where: { id }
+    })
+
+    if (!existingItem) {
+      return NextResponse.json(
+        { error: 'Item not found' },
+        { status: 404 }
+      )
+    }
+
+    // Use a transaction to delete the item and its options
+    await prisma.$transaction(async (tx) => {
+      // Delete all options first (foreign key constraint)
+      await tx.itemOption.deleteMany({
+        where: { itemId: id }
+      })
+
+      // Delete the item
+      await tx.item.delete({
+        where: { id }
+      })
+    })
+
+    return NextResponse.json({ message: 'Item deleted successfully' })
+  } catch (error) {
+    console.error('Failed to delete item:', error)
+    return NextResponse.json(
+      { error: 'Failed to delete item' },
+      { status: 500 }
+    )
+  }
+}
+
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
