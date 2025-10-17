@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import {
     Card,
     Stack,
@@ -229,6 +229,47 @@ export const QuestionBankTable = ({ items, loading, error }: QuestionBankTablePr
         setEditModalOpened(true)
     }
 
+    const handleSortStatusChange = (newSortStatus: DataTableSortStatus<Item>) => {
+        setSortStatus(newSortStatus)
+        setPage(1) // Reset to first page when sorting changes
+    }
+
+    // Sort the items based on the current sort status
+    const sortedItems = useMemo(() => {
+        const sorted = [...items].sort((a, b) => {
+            const { columnAccessor, direction } = sortStatus
+            const aValue = a[columnAccessor as keyof Item]
+            const bValue = b[columnAccessor as keyof Item]
+
+            // Handle null/undefined values
+            if (aValue == null && bValue == null) return 0
+            if (aValue == null) return direction === 'asc' ? 1 : -1
+            if (bValue == null) return direction === 'asc' ? -1 : 1
+
+            // Handle string comparison
+            if (typeof aValue === 'string' && typeof bValue === 'string') {
+                const aLower = aValue.toLowerCase()
+                const bLower = bValue.toLowerCase()
+                if (aLower < bLower) return direction === 'asc' ? -1 : 1
+                if (aLower > bLower) return direction === 'asc' ? 1 : -1
+                return 0
+            }
+
+            // Handle number comparison
+            if (typeof aValue === 'number' && typeof bValue === 'number') {
+                if (aValue < bValue) return direction === 'asc' ? -1 : 1
+                if (aValue > bValue) return direction === 'asc' ? 1 : -1
+                return 0
+            }
+
+            // Fallback for other types
+            if (aValue < bValue) return direction === 'asc' ? -1 : 1
+            if (aValue > bValue) return direction === 'asc' ? 1 : -1
+            return 0
+        })
+        return sorted
+    }, [items, sortStatus])
+
     const columns = [
         {
             accessor: 'externalQuestionId',
@@ -355,10 +396,10 @@ export const QuestionBankTable = ({ items, loading, error }: QuestionBankTablePr
     return (
         <>
             <DataTable
-                records={items}
+                records={sortedItems}
                 columns={columns}
                 sortStatus={sortStatus}
-                onSortStatusChange={setSortStatus}
+                onSortStatusChange={handleSortStatusChange}
                 selectedRecords={selectedRecords}
                 onSelectedRecordsChange={setSelectedRecords}
                 rowExpansion={{
@@ -373,7 +414,7 @@ export const QuestionBankTable = ({ items, loading, error }: QuestionBankTablePr
                 withRowBorders
                 page={page}
                 onPageChange={setPage}
-                totalRecords={items.length}
+                totalRecords={sortedItems.length}
                 recordsPerPage={pageSize}
                 paginationActiveBackgroundColor="blue"
                 idAccessor="id"
