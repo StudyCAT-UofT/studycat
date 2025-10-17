@@ -338,7 +338,10 @@ export const QuestionBankTable = ({ items, loading, error }: QuestionBankTablePr
                     <ActionIcon
                         variant="subtle"
                         color="blue"
-                        onClick={() => handleEdit(item)}
+                        onClick={(e) => {
+                            e.stopPropagation()
+                            handleEdit(item)
+                        }}
                     >
                         <IconEdit size={16} />
                     </ActionIcon>
