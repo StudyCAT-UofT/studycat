@@ -44,9 +44,10 @@ interface QuestionBankTableProps {
     items: Item[]
     loading: boolean
     error: string | null
+    onRefresh?: () => void
 }
 
-export const QuestionBankTable = ({ items, loading, error }: QuestionBankTableProps) => {
+export const QuestionBankTable = ({ items, loading, error, onRefresh }: QuestionBankTableProps) => {
     const [sortStatus, setSortStatus] = useState<DataTableSortStatus<Item>>({ columnAccessor: 'externalQuestionId', direction: 'asc' })
     const [selectedRecords, setSelectedRecords] = useState<Item[]>([])
     const [editModalOpened, setEditModalOpened] = useState(false)
@@ -259,6 +260,11 @@ export const QuestionBankTable = ({ items, loading, error }: QuestionBankTablePr
                 onClose={() => {
                     setEditModalOpened(false)
                     setEditingItem(null)
+                }}
+                onSave={() => {
+                    if (onRefresh) {
+                        onRefresh()
+                    }
                 }}
             />
         </>

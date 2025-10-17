@@ -1,10 +1,10 @@
 'use client'
 
-import { Container, Stack, Title, Badge, Group, TextInput, MultiSelect, Button, Card, Flex } from '@mantine/core'
+import { Container, Stack, Title, Group, TextInput, MultiSelect, Button, Card, Flex } from '@mantine/core'
 import { IconSearch, IconFilter, IconX } from '@tabler/icons-react'
 import { ProtectedRoute, RoleBasedRoute, QuestionBankTable } from '@/components'
 import { useCourse } from '@/lib/course-context'
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 
 interface Item {
     id: string
@@ -43,33 +43,33 @@ const QuestionBankContent = () => {
     const [selectedBlooms, setSelectedBlooms] = useState<string[]>([])
     const [showFilters, setShowFilters] = useState(false)
 
-    useEffect(() => {
-        const fetchItems = async () => {
-            if (!selectedCourseOffering?.course?.id) {
-                setItems([])
-                return
-            }
-
-            setLoading(true)
-            setError(null)
-
-            try {
-                const response = await fetch(`/api/items?courseId=${selectedCourseOffering.course.id}`)
-                if (!response.ok) {
-                    throw new Error('Failed to fetch items')
-                }
-                const data = await response.json()
-                setItems(data.items || [])
-            } catch (err) {
-                setError(err instanceof Error ? err.message : 'Failed to fetch items')
-                setItems([])
-            } finally {
-                setLoading(false)
-            }
+    const fetchItems = useCallback(async () => {
+        if (!selectedCourseOffering?.course?.id) {
+            setItems([])
+            return
         }
 
-        fetchItems()
+        setLoading(true)
+        setError(null)
+
+        try {
+            const response = await fetch(`/api/items?courseId=${selectedCourseOffering.course.id}`)
+            if (!response.ok) {
+                throw new Error('Failed to fetch items')
+            }
+            const data = await response.json()
+            setItems(data.items || [])
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to fetch items')
+            setItems([])
+        } finally {
+            setLoading(false)
+        }
     }, [selectedCourseOffering?.course?.id])
+
+    useEffect(() => {
+        fetchItems()
+    }, [fetchItems])
 
     // Get unique modules and blooms for filter options
     const uniqueModules = useMemo(() => {
@@ -122,11 +122,6 @@ const QuestionBankContent = () => {
             <Stack gap="lg">
                 <Group gap="md" align="center">
                     <Title order={2}>Question Bank</Title>
-                    {!loading && !error && (
-                        <Badge size="lg" variant="light">
-                            {filteredItems.length} of {items.length} question{items.length !== 1 ? 's' : ''}
-                        </Badge>
-                    )}
                 </Group>
 
                 {/* Search Bar */}
@@ -193,7 +188,12 @@ const QuestionBankContent = () => {
                     </Stack>
                 </Card>
 
-                <QuestionBankTable items={filteredItems} loading={loading} error={error} />
+                <QuestionBankTable
+                    items={filteredItems}
+                    loading={loading}
+                    error={error}
+                    onRefresh={fetchItems}
+                />
             </Stack>
         </Container>
     )

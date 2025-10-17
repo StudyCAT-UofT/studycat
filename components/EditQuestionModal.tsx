@@ -1,15 +1,18 @@
-import { Box, Text, Button, Checkbox, Divider, Group, Modal, Select, Stack, Textarea, TextInput } from "@mantine/core"
+import { Box, Text, Button, Checkbox, Divider, Group, Modal, Select, Stack, Textarea, TextInput, Alert } from "@mantine/core"
 import { Item } from "./QuestionBankTable"
 import { useState, useEffect } from "react"
+import { IconAlertCircle, IconCheck } from "@tabler/icons-react"
 
 const EditQuestionModal = ({
     item,
     opened,
-    onClose
+    onClose,
+    onSave
 }: {
     item: Item | null
     opened: boolean
     onClose: () => void
+    onSave?: () => void
 }) => {
     const [formData, setFormData] = useState({
         externalQuestionId: '',
@@ -26,6 +29,9 @@ const EditQuestionModal = ({
             isCorrect: boolean
         }>
     })
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState<string | null>(null)
+    const [success, setSuccess] = useState(false)
 
     // Update form data when item changes
     useEffect(() => {
@@ -42,13 +48,84 @@ const EditQuestionModal = ({
                     justification: opt.justification || ''
                 }))
             })
+            setError(null)
+            setSuccess(false)
         }
     }, [item])
 
-    const handleSave = () => {
-        // TODO: Implement save functionality
-        console.log('Saving item:', formData)
-        onClose()
+    const handleSave = async () => {
+        if (!item) return
+
+        // Basic form validation
+        if (!formData.externalQuestionId.trim()) {
+            setError('Question ID is required')
+            return
+        }
+        if (!formData.module.trim()) {
+            setError('Module is required')
+            return
+        }
+        if (!formData.bloom) {
+            setError('Bloom\'s taxonomy is required')
+            return
+        }
+        if (!formData.stem.trim()) {
+            setError('Question stem is required')
+            return
+        }
+        if (formData.options.length === 0) {
+            setError('At least one option is required')
+            return
+        }
+
+        // Validate that at least one option is marked as correct
+        const correctOptions = formData.options.filter(opt => opt.isCorrect)
+        if (correctOptions.length === 0) {
+            setError('At least one option must be marked as correct')
+            return
+        }
+
+        // Validate that all options have text
+        const emptyOptions = formData.options.filter(opt => !opt.text.trim())
+        if (emptyOptions.length > 0) {
+            setError('All options must have text')
+            return
+        }
+
+        setLoading(true)
+        setError(null)
+        setSuccess(false)
+
+        try {
+            const response = await fetch(`/api/items/${item.id}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(formData),
+            })
+
+            if (!response.ok) {
+                const errorData = await response.json()
+                throw new Error(errorData.error || 'Failed to save question')
+            }
+
+            setSuccess(true)
+
+            // Call the onSave callback to refresh data in parent component
+            if (onSave) {
+                onSave()
+            }
+
+            // Close modal after a brief delay to show success state
+            setTimeout(() => {
+                onClose()
+            }, 1000)
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to save question')
+        } finally {
+            setLoading(false)
+        }
     }
 
     const updateOption = (index: number, field: string, value: string | boolean) => {
@@ -67,6 +144,28 @@ const EditQuestionModal = ({
             size="lg"
         >
             <Stack gap="md">
+                {error && (
+                    <Alert
+                        icon={<IconAlertCircle size={16} />}
+                        title="Error"
+                        color="red"
+                        variant="light"
+                    >
+                        {error}
+                    </Alert>
+                )}
+
+                {success && (
+                    <Alert
+                        icon={<IconCheck size={16} />}
+                        title="Success"
+                        color="green"
+                        variant="light"
+                    >
+                        Question updated successfully!
+                    </Alert>
+                )}
+
                 <Group grow>
                     <TextInput
                         label="Question ID"
@@ -124,6 +223,7 @@ const EditQuestionModal = ({
                                 label="Correct Answer"
                                 checked={option.isCorrect}
                                 onChange={(e) => updateOption(index, 'isCorrect', e.currentTarget.checked)}
+                                description="Multiple answers can be correct"
                             />
                         </Group>
                         <Textarea
@@ -143,11 +243,11 @@ const EditQuestionModal = ({
                 ))}
 
                 <Group justify="flex-end" mt="md">
-                    <Button variant="outline" onClick={onClose}>
+                    <Button variant="outline" onClick={onClose} disabled={loading}>
                         Cancel
                     </Button>
-                    <Button onClick={handleSave}>
-                        Save Changes
+                    <Button onClick={handleSave} loading={loading} disabled={success}>
+                        {success ? 'Saved!' : 'Save Changes'}
                     </Button>
                 </Group>
             </Stack>
