@@ -104,6 +104,8 @@ pnpm db:migrate
 
 The Prisma schema and migrations are located in a submodule at `external/studycat-schema/`. This allows for a single source of truth for the database schema across multiple StudyCAT repositories.
 
+To make changes to the schema, refer to the guide in the [studycat-schema README](https://github.com/StudyCAT-UofT/studycat-schema#implementing-changes-requiring-schema-changes).
+
 ### Available Database Scripts
 
 The following pnpm scripts are available for working with the database:
