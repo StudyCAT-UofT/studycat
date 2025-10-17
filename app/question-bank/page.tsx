@@ -293,7 +293,7 @@ const QuestionBankContent = () => {
                         <Box style={{ maxHeight: 200, overflowY: 'auto' }}>
                             {deletingItems.map((item, index) => (
                                 <Text key={item.id} size="sm" c="dimmed">
-                                    {index + 1}. {item.externalQuestionId} - {item.stem.substring(0, 50)}...
+                                    {index + 1}. {item.externalQuestionId} - {item.stem.substring(0, 50)}{item.stem.length > 50 ? '...' : ''}
                                 </Text>
                             ))}
                         </Box>
