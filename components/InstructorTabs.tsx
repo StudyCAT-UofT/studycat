@@ -23,8 +23,8 @@ export const InstructorTabs = ({ children }: InstructorTabsProps) => {
     const isInstructorOrTA = selectedCourseOffering?.role === 'INSTRUCTOR' || selectedCourseOffering?.role === 'TA'
 
     // Don't render tabs if user is not instructor/TA or no course is selected
-    // Wait for loading to complete to prevent UI flashing
-    if (!loading && (!isInstructorOrTA || !selectedCourseOffering)) {
+    // Hide tabs by default to prevent UI flashing, only show when confirmed instructor/TA
+    if (loading || !isInstructorOrTA || !selectedCourseOffering) {
         return <>{children}</>
     }
 
