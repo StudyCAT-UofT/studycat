@@ -5,35 +5,6 @@ import { BloomCategory } from '@prisma/client'
 export const runtime = 'nodejs'
 
 /**
- * PUT /api/items/[id]
- * 
- * Updates an existing question item and its options.
- * 
- * Path Parameters:
- * - id: The ID of the item to update
- * 
- * Request Body:
- * - externalQuestionId: string
- * - module: string
- * - bloom: BloomCategory
- * - stem: string
- * - reference?: string
- * - figureUrl?: string
- * - options: Array<{
- *     id: string
- *     label: OptionLabel
- *     text: string
- *     justification?: string
- *     isCorrect: boolean
- *   }>
- * 
- * Returns:
- * - 200: Updated item with options
- * - 400: Invalid request data
- * - 404: Item not found
- * - 500: Server error
- */
-/**
  * DELETE /api/items/[id]
  * 
  * Deletes a question item and all its associated options.
@@ -88,6 +59,35 @@ export async function DELETE(
   }
 }
 
+/**
+ * PUT /api/items/[id]
+ * 
+ * Updates an existing question item and its options.
+ * 
+ * Path Parameters:
+ * - id: The ID of the item to update
+ * 
+ * Request Body:
+ * - externalQuestionId: string
+ * - module: string
+ * - bloom: BloomCategory
+ * - stem: string
+ * - reference?: string
+ * - figureUrl?: string
+ * - options: Array<{
+ *     id: string
+ *     label: OptionLabel
+ *     text: string
+ *     justification?: string
+ *     isCorrect: boolean
+ *   }>
+ * 
+ * Returns:
+ * - 200: Updated item with options
+ * - 400: Invalid request data
+ * - 404: Item not found
+ * - 500: Server error
+ */
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }

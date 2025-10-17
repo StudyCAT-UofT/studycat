@@ -277,7 +277,6 @@ export const QuestionBankTable = ({ items, loading, error, onRefresh, selectedRe
                     }
                 }}
             />
-
         </>
     )
 }
