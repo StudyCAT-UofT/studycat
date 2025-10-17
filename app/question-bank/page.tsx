@@ -1,9 +1,10 @@
 'use client'
 
-import { Container, Stack, Title, Badge, Group } from '@mantine/core'
+import { Container, Stack, Title, Group, TextInput, MultiSelect, Button, Card, Flex } from '@mantine/core'
+import { IconSearch, IconFilter, IconX } from '@tabler/icons-react'
 import { ProtectedRoute, RoleBasedRoute, QuestionBankTable } from '@/components'
 import { useCourse } from '@/lib/course-context'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 
 interface Item {
     id: string
@@ -36,47 +37,163 @@ const QuestionBankContent = () => {
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
-    useEffect(() => {
-        const fetchItems = async () => {
-            if (!selectedCourseOffering?.course?.id) {
-                setItems([])
-                return
-            }
+    // Search and filter state
+    const [searchQuery, setSearchQuery] = useState('')
+    const [selectedModules, setSelectedModules] = useState<string[]>([])
+    const [selectedBlooms, setSelectedBlooms] = useState<string[]>([])
+    const [showFilters, setShowFilters] = useState(false)
 
-            setLoading(true)
-            setError(null)
-
-            try {
-                const response = await fetch(`/api/items?courseId=${selectedCourseOffering.course.id}`)
-                if (!response.ok) {
-                    throw new Error('Failed to fetch items')
-                }
-                const data = await response.json()
-                setItems(data.items || [])
-            } catch (err) {
-                setError(err instanceof Error ? err.message : 'Failed to fetch items')
-                setItems([])
-            } finally {
-                setLoading(false)
-            }
+    const fetchItems = useCallback(async () => {
+        if (!selectedCourseOffering?.course?.id) {
+            setItems([])
+            return
         }
 
-        fetchItems()
+        setLoading(true)
+        setError(null)
+
+        try {
+            const response = await fetch(`/api/items?courseId=${selectedCourseOffering.course.id}`)
+            if (!response.ok) {
+                throw new Error('Failed to fetch items')
+            }
+            const data = await response.json()
+            setItems(data.items || [])
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to fetch items')
+            setItems([])
+        } finally {
+            setLoading(false)
+        }
     }, [selectedCourseOffering?.course?.id])
 
+    useEffect(() => {
+        fetchItems()
+    }, [fetchItems])
+
+    // Get unique modules and blooms for filter options
+    const uniqueModules = useMemo(() => {
+        return Array.from(new Set(items.map(item => item.module))).sort()
+    }, [items])
+
+    const uniqueBlooms = useMemo(() => {
+        return Array.from(new Set(items.map(item => item.bloom))).sort()
+    }, [items])
+
+    // Filter items based on search and filter criteria
+    const filteredItems = useMemo(() => {
+        let filtered = items
+
+        // Search filter
+        if (searchQuery.trim()) {
+            const query = searchQuery.toLowerCase()
+            filtered = filtered.filter(item =>
+                item.externalQuestionId.toLowerCase().includes(query) ||
+                item.module.toLowerCase().includes(query) ||
+                item.bloom.toLowerCase().includes(query) ||
+                item.stem.toLowerCase().includes(query) ||
+                item.reference?.toLowerCase().includes(query)
+            )
+        }
+
+        // Module filter
+        if (selectedModules.length > 0) {
+            filtered = filtered.filter(item => selectedModules.includes(item.module))
+        }
+
+        // Bloom taxonomy filter
+        if (selectedBlooms.length > 0) {
+            filtered = filtered.filter(item => selectedBlooms.includes(item.bloom))
+        }
+
+        return filtered
+    }, [items, searchQuery, selectedModules, selectedBlooms])
+
+    const clearFilters = () => {
+        setSearchQuery('')
+        setSelectedModules([])
+        setSelectedBlooms([])
+    }
+
+    const hasActiveFilters = searchQuery.trim() || selectedModules.length > 0 || selectedBlooms.length > 0
+
     return (
-        <Container size="md" py="xl">
+        <Container size="xl" py="xl">
             <Stack gap="lg">
                 <Group gap="md" align="center">
                     <Title order={2}>Question Bank</Title>
-                    {!loading && !error && (
-                        <Badge size="lg" variant="light">
-                            {items.length} question{items.length !== 1 ? 's' : ''}
-                        </Badge>
-                    )}
                 </Group>
 
-                <QuestionBankTable items={items} loading={loading} error={error} />
+                {/* Search Bar */}
+                <Card withBorder padding="md">
+                    <Stack gap="md">
+                        <Flex gap="md" align="end">
+                            <TextInput
+                                placeholder="Search questions by ID, module, bloom taxonomy, stem, or reference..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                leftSection={<IconSearch size={16} />}
+                                rightSection={
+                                    searchQuery ? (
+                                        <Button
+                                            variant="subtle"
+                                            size="xs"
+                                            onClick={() => setSearchQuery('')}
+                                        >
+                                            <IconX size={12} />
+                                        </Button>
+                                    ) : null
+                                }
+                                style={{ flex: 1 }}
+                            />
+                            <Button
+                                variant={showFilters ? 'filled' : 'outline'}
+                                leftSection={<IconFilter size={16} />}
+                                onClick={() => setShowFilters(!showFilters)}
+                            >
+                                Filters
+                            </Button>
+                        </Flex>
+
+                        {/* Filter Controls */}
+                        {showFilters && (
+                            <Flex gap="md" wrap="wrap">
+                                <MultiSelect
+                                    placeholder="Filter by modules"
+                                    data={uniqueModules}
+                                    value={selectedModules}
+                                    onChange={setSelectedModules}
+                                    clearable
+                                    style={{ minWidth: 240 }}
+                                />
+                                <MultiSelect
+                                    placeholder="Filter by Bloom's taxonomy"
+                                    data={uniqueBlooms}
+                                    value={selectedBlooms}
+                                    onChange={setSelectedBlooms}
+                                    clearable
+                                    style={{ minWidth: 240 }}
+                                />
+                                {hasActiveFilters && (
+                                    <Button
+                                        variant="subtle"
+                                        color="gray"
+                                        onClick={clearFilters}
+                                    >
+                                        Clear All
+                                    </Button>
+                                )}
+                            </Flex>
+                        )}
+                    </Stack>
+                </Card>
+
+                <QuestionBankTable
+                    items={filteredItems}
+                    loading={loading}
+                    error={error}
+                    onRefresh={fetchItems}
+                />
             </Stack>
         </Container>
     )

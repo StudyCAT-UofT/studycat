@@ -1,4 +1,5 @@
 import '@mantine/core/styles.css';
+import 'mantine-datatable/styles.layer.css';
 
 import { ColorSchemeScript, MantineProvider, mantineHtmlProps } from '@mantine/core';
 import { AuthProvider } from '@/lib/auth-context';
