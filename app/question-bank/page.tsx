@@ -65,7 +65,7 @@ const QuestionBankContent = () => {
     }, [selectedCourseOffering?.course?.id])
 
     return (
-        <Container size="md" py="xl">
+        <Container size="xl" py="xl">
             <Stack gap="lg">
                 <Group gap="md" align="center">
                     <Title order={2}>Question Bank</Title>
