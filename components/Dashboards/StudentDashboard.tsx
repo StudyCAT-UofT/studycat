@@ -65,9 +65,9 @@ const StudentDashboard = () => {
         <Container size="lg" py="xl">
             <Stack gap="xl">
                 <Stack gap="md">
-                    <Title order={2}>Student Dashboard</Title>
+                    <Title order={2}>{selectedCourseOffering?.course?.code}</Title>
                     <Text size="lg" c="dimmed">
-                        Welcome to your course dashboard. Below are all the available quizzes for this course.
+                        {selectedCourseOffering?.course?.title}
                     </Text>
                 </Stack>
 
