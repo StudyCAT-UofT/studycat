@@ -3,6 +3,7 @@ import 'mantine-datatable/styles.layer.css';
 
 import { ColorSchemeScript, MantineProvider, mantineHtmlProps } from '@mantine/core';
 import { AuthProvider } from '@/lib/auth-context';
+import { CourseProvider } from '@/lib/course-context';
 
 export const metadata = {
     title: 'StudyCAT',
@@ -22,7 +23,9 @@ export default function RootLayout({
             <body>
                 <MantineProvider defaultColorScheme="light">
                     <AuthProvider requireAuth={false}>
-                        {children}
+                        <CourseProvider>
+                            {children}
+                        </CourseProvider>
                     </AuthProvider>
                 </MantineProvider>
             </body>

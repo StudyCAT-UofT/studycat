@@ -1,7 +1,7 @@
 'use client'
 
 export interface User {
-  id: string
+  userId: string
   username: string
 }
 
@@ -47,7 +47,9 @@ export const logout = async (): Promise<{ success: boolean } | { error: string }
 
 export const getCurrentUser = async (): Promise<User | null> => {
   try {
-    const response = await fetch('/api/auth/session')
+    const response = await fetch('/api/auth/session', {
+      credentials: 'include'
+    })
     const data = await response.json()
 
     if (!response.ok || !data.user) {
@@ -77,7 +79,9 @@ export interface CourseOffering {
 
 export const getEnrollments = async (): Promise<CourseOffering[]> => {
   try {
-    const response = await fetch('/api/enrollments')
+    const response = await fetch('/api/enrollments', {
+      credentials: 'include'
+    })
     const data = await response.json()
 
     if (!response.ok) {

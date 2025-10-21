@@ -62,7 +62,9 @@ const QuestionBankContent = () => {
         setError(null)
 
         try {
-            const response = await fetch(`/api/items?courseId=${selectedCourseOffering.course.id}`)
+            const response = await fetch(`/api/items?courseId=${selectedCourseOffering.course.id}`, {
+                credentials: 'include'
+            })
             if (!response.ok) {
                 throw new Error('Failed to fetch items')
             }
