@@ -33,14 +33,12 @@ const QuizContent = ({ quizId }: { quizId: string }) => {
         isFinished: false,
         loading: true
     })
-    const [hasInitialized, setHasInitialized] = useState(false)
-    const [isInitializing, setIsInitializing] = useState(false)
+    const [isInitialized, setIsInitialized] = useState(false)
 
     // Initialize quiz attempt
     useEffect(() => {
         // Prevent multiple initializations
-        if (hasInitialized || isInitializing) {
-            console.log('Already initialized or initialization in progress, skipping')
+        if (isInitialized) {
             return
         }
 
@@ -59,7 +57,6 @@ const QuizContent = ({ quizId }: { quizId: string }) => {
 
             try {
                 setQuizState(prev => ({ ...prev, loading: true, error: undefined }))
-                setIsInitializing(true) // Mark as initializing to prevent duplicate calls
 
                 const response = await quizClient.initAttempt({
                     quizId,
@@ -71,7 +68,7 @@ const QuizContent = ({ quizId }: { quizId: string }) => {
                     isFinished: false,
                     loading: false
                 })
-                setHasInitialized(true) // Mark as completed
+                setIsInitialized(true) // Mark as initializing to prevent duplicate calls
             } catch (error) {
                 console.error('Quiz initialization failed:', error)
                 setQuizState(prev => ({
@@ -79,14 +76,14 @@ const QuizContent = ({ quizId }: { quizId: string }) => {
                     error: error instanceof Error ? error.message : 'Failed to start quiz',
                     loading: false
                 }))
-                setHasInitialized(false) // Reset on error to allow retry
+                setIsInitialized(false) // Reset on error to allow retry
             } finally {
-                setIsInitializing(false) // Clear the initializing flag
+                setIsInitialized(false) // Clear the initializing flag
             }
         }
 
         initQuiz()
-    }, [quizId, selectedCourseOffering?.id, user?.userId, hasInitialized, isInitializing])
+    }, [quizId, selectedCourseOffering?.id, user?.userId, isInitialized])
 
     const handleAnswer = async (answerIndex: number) => {
         if (!quizState.attemptId || !quizState.currentItem) return
