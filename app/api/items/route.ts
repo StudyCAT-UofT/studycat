@@ -165,7 +165,7 @@ export async function POST(request: Request) {
     }
 
     // Validate option text content is unique (no duplicate answer options)
-    const optionTexts = options.map(opt => opt.text.trim().toLowerCase())
+    const optionTexts = options.map(opt => opt.text.trim())
     const uniqueTexts = new Set(optionTexts)
     if (optionTexts.length !== uniqueTexts.size) {
       return NextResponse.json(
@@ -174,6 +174,7 @@ export async function POST(request: Request) {
       )
     }
 
+    const irtC = options.filter(opt => opt.isCorrect).length / options.length
     // Use a transaction to create the item and its options
     const newItem = await prisma.$transaction(async (tx) => {
       // Create the item
@@ -190,7 +191,7 @@ export async function POST(request: Request) {
           // Set default IRT parameters
           irtA: 1.0,
           irtB: 0.0,
-          irtC: 0.25
+          irtC
         }
       })
 
@@ -256,19 +257,9 @@ export async function DELETE(request: Request) {
       )
     }
 
-    // Use a transaction to delete all items and their options
-    const result = await prisma.$transaction(async (tx) => {
-      // First, delete all options for the items
-      await tx.itemOption.deleteMany({
-        where: { itemId: { in: ids } }
-      })
-
-      // Then delete the items
-      const deletedItems = await tx.item.deleteMany({
-        where: { id: { in: ids } }
-      })
-
-      return deletedItems
+    // Delete the items (options will be automatically deleted due to onDelete: Cascade)
+    const result = await prisma.item.deleteMany({
+      where: { id: { in: ids } }
     })
 
     return NextResponse.json({ 

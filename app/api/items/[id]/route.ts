@@ -36,17 +36,9 @@ export async function DELETE(
       )
     }
 
-    // Use a transaction to delete the item and its options
-    await prisma.$transaction(async (tx) => {
-      // Delete all options first (foreign key constraint)
-      await tx.itemOption.deleteMany({
-        where: { itemId: id }
-      })
-
-      // Delete the item
-      await tx.item.delete({
-        where: { id }
-      })
+    // Delete the item (options will be automatically deleted due to onDelete: Cascade)
+    await prisma.item.delete({
+      where: { id }
     })
 
     return NextResponse.json({ message: 'Item deleted successfully' })
@@ -179,7 +171,7 @@ export async function PUT(
     }
 
     // Validate option text content is unique (no duplicate answer options)
-    const optionTexts = options.map(opt => opt.text.trim().toLowerCase())
+    const optionTexts = options.map(opt => opt.text.trim())
     const uniqueTexts = new Set(optionTexts)
     if (optionTexts.length !== uniqueTexts.size) {
       return NextResponse.json(
@@ -188,6 +180,7 @@ export async function PUT(
       )
     }
 
+    const irtC = options.filter(opt => opt.isCorrect).length / options.length
     // Use a transaction to update the item and its options
     const updatedItem = await prisma.$transaction(async (tx) => {
       // Update the item
@@ -199,11 +192,12 @@ export async function PUT(
           bloom,
           stem,
           reference: reference || null,
-          figureUrl: figureUrl || null
+          figureUrl: figureUrl || null,
+          irtC
         }
       })
 
-      // Delete existing options
+      // Delete existing options (needed for update - onDelete: Cascade only applies when parent is deleted)
       await tx.itemOption.deleteMany({
         where: { itemId: id }
       })

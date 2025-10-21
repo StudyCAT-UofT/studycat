@@ -66,8 +66,6 @@ export const QuestionBankTable = ({ items, loading, error, onRefresh, selectedRe
         setEditModalOpened(true)
     }
 
-
-
     const handleSortStatusChange = (newSortStatus: DataTableSortStatus<Item>) => {
         setSortStatus(newSortStatus)
         setPage(1) // Reset to first page when sorting changes
