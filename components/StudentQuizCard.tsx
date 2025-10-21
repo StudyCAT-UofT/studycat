@@ -1,9 +1,12 @@
 import { Card, Stack, Group, Button, Text } from "@mantine/core"
 import { Quiz } from "@prisma/client"
+import { useRouter } from "next/navigation"
 
 const StudentQuizCard = ({ quiz }: { quiz: Quiz }) => {
+    const router = useRouter()
+
     const handleTakeQuiz = () => {
-        console.log('Taking quiz:', quiz.id)
+        router.push(`/quiz/${quiz.id}`)
     }
 
     return (
