@@ -8,7 +8,7 @@ import { useEffect, useState, useCallback, useMemo } from 'react'
 /**
  * Quiz data structure returned from the API
  */
-interface Quiz {
+export interface Quiz {
     id: string
     title: string
     description: string | null
@@ -85,7 +85,7 @@ const QuizzesContent = () => {
     }, [quizzes.length, loading, error])
 
     return (
-        <Container size="md" py="xl">
+        <Container size="xl" py="xl">
             <Stack gap="lg">
                 <Group gap="md" align="center">
                     <Title order={2}>Quizzes</Title>
