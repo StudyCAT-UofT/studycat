@@ -12,6 +12,8 @@ const main = async () => {
   await prisma.quiz.deleteMany()
   await prisma.itemOption.deleteMany()
   await prisma.item.deleteMany()
+  await prisma.theta.deleteMany()
+  await prisma.module.deleteMany()
   await prisma.enrollment.deleteMany()
   await prisma.courseOffering.deleteMany()
   await prisma.course.deleteMany()
@@ -71,6 +73,23 @@ const main = async () => {
 
   console.log('✅ Created course offering')
 
+  // Create modules
+  const module1 = await prisma.module.create({
+    data: {
+      offeringId: offering.id,
+      name: 'Programming Basics',
+    },
+  })
+
+  const module2 = await prisma.module.create({
+    data: {
+      offeringId: offering.id,
+      name: 'Data Structures',
+    },
+  })
+
+  console.log('✅ Created modules')
+
   // Create enrollments
   await prisma.enrollment.createMany({
     data: [
@@ -98,8 +117,8 @@ const main = async () => {
   const item1 = await prisma.item.create({
     data: {
       courseId: course.id,
+      moduleId: module1.id,
       externalQuestionId: 'Q001',
-      module: 'Programming Basics',
       bloom: 'REMEMBER',
       stem: 'What is a variable in programming?',
       reference: 'Chapter 2, Section 1',
@@ -115,8 +134,8 @@ const main = async () => {
   const item2 = await prisma.item.create({
     data: {
       courseId: course.id,
+      moduleId: module1.id,
       externalQuestionId: 'Q002',
-      module: 'Programming Basics',
       bloom: 'UNDERSTAND',
       stem: 'Which of the following best describes the purpose of a loop?',
       reference: 'Chapter 3, Section 2',
@@ -132,8 +151,8 @@ const main = async () => {
   const item3 = await prisma.item.create({
     data: {
       courseId: course.id,
+      moduleId: module2.id,
       externalQuestionId: 'Q003',
-      module: 'Data Structures',
       bloom: 'APPLY',
       stem: 'Given the array [1, 2, 3, 4, 5], what is the result of accessing index 2?',
       reference: 'Chapter 4, Section 1',
@@ -249,7 +268,7 @@ const main = async () => {
       offeringId: offering.id,
       title: 'Programming Basics Quiz',
       fixedLength: 3,
-      includedModules: ['Programming Basics', 'Data Structures'],
+      includedModuleIds: [module1.id, module2.id],
       includedBlooms: ['REMEMBER', 'UNDERSTAND', 'APPLY'],
       createdById: instructor.id,
     },
@@ -288,13 +307,13 @@ const main = async () => {
       fixedLengthN: 3,
       engineVersion: '1.0.0',
       scopeSnapshot: {
-        includedModules: ['Programming Basics', 'Data Structures'],
+        includedModuleIds: [module1.id, module2.id],
         includedBlooms: ['REMEMBER', 'UNDERSTAND', 'APPLY'],
         eligibleItemIds: [item1.id, item2.id, item3.id],
       },
       engineMasteryAtFinish: {
-        'Programming Basics': 0.8,
-        'Data Structures': 0.6,
+        [module1.id]: 0.8,
+        [module2.id]: 0.6,
       },
     },
   })
@@ -325,7 +344,7 @@ const main = async () => {
         answeredAt: new Date('2024-10-01T10:02:30Z'),
         responseTimeMs: 150000, // 2.5 minutes
         engineMasterySnapshot: {
-          'Programming Basics': 0.7,
+          [module1.id]: 0.7,
         },
       },
       {
@@ -338,7 +357,7 @@ const main = async () => {
         answeredAt: new Date('2024-10-01T10:06:45Z'),
         responseTimeMs: 225000, // 3.75 minutes
         engineMasterySnapshot: {
-          'Programming Basics': 0.8,
+          [module1.id]: 0.8,
         },
       },
       {
@@ -351,8 +370,8 @@ const main = async () => {
         answeredAt: new Date('2024-10-01T10:10:15Z'),
         responseTimeMs: 195000, // 3.25 minutes
         engineMasterySnapshot: {
-          'Programming Basics': 0.8,
-          'Data Structures': 0.6,
+          [module1.id]: 0.8,
+          [module2.id]: 0.6,
         },
       },
     ],
