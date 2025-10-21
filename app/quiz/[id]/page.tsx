@@ -5,7 +5,7 @@ import { ProtectedRoute, RoleBasedRoute } from '@/components'
 import { useCourse } from '@/lib/course-context'
 import { useAuth } from '@/lib/auth-context'
 import { useRouter } from 'next/navigation'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, use } from 'react'
 import QuizQuestion from '@/components/Quiz/QuizQuestion'
 import { quizClient } from '@/lib/quiz-client'
 
@@ -140,7 +140,6 @@ const QuizContent = ({ quizId }: { quizId: string }) => {
             <Container size="md" py="xl">
                 <Stack align="center" gap="lg">
                     <Title order={2}>Quiz Completed!</Title>
-                    <Text>Thank you for completing the quiz.</Text>
                     <Button onClick={handleExit}>Return to Dashboard</Button>
                 </Stack>
             </Container>
@@ -179,8 +178,9 @@ const QuizContent = ({ quizId }: { quizId: string }) => {
 /**
  * Quiz page component
  */
-export default function QuizPage({ params }: { params: { id: string } }) {
+export default function QuizPage({ params }: { params: Promise<{ id: string }> }) {
     const { selectedCourseOffering } = useCourse()
+    const resolvedParams = use(params)
 
     // Validate quiz access for the current course offering
     if (!selectedCourseOffering) {
@@ -206,7 +206,7 @@ export default function QuizPage({ params }: { params: { id: string } }) {
                 }}
                 unauthorizedMessage="Only students can take quizzes."
             >
-                <QuizContent quizId={params.id} />
+                <QuizContent quizId={resolvedParams.id} />
             </RoleBasedRoute>
         </ProtectedRoute>
     )
