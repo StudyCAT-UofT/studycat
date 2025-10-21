@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ 
       user: {
-        id: user.id,
+        userId: user.id,
         username: user.username,
       }
     })

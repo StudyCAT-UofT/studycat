@@ -20,7 +20,9 @@ const StudentDashboard = () => {
         setError(null)
 
         try {
-            const response = await fetch(`/api/quizzes?courseOfferingId=${selectedCourseOffering.id}`)
+            const response = await fetch(`/api/quizzes?courseOfferingId=${selectedCourseOffering.id}`, {
+                credentials: 'include'
+            })
             if (!response.ok) {
                 throw new Error('Failed to fetch quizzes')
             }
