@@ -45,11 +45,17 @@ interface QuestionBankTableProps {
     loading: boolean
     error: string | null
     onRefresh?: () => void
+    selectedRecords?: Item[]
+    onSelectedRecordsChange?: (records: Item[]) => void
 }
 
-export const QuestionBankTable = ({ items, loading, error, onRefresh }: QuestionBankTableProps) => {
+export const QuestionBankTable = ({ items, loading, error, onRefresh, selectedRecords: externalSelectedRecords, onSelectedRecordsChange }: QuestionBankTableProps) => {
     const [sortStatus, setSortStatus] = useState<DataTableSortStatus<Item>>({ columnAccessor: 'externalQuestionId', direction: 'asc' })
-    const [selectedRecords, setSelectedRecords] = useState<Item[]>([])
+    const [internalSelectedRecords, setInternalSelectedRecords] = useState<Item[]>([])
+
+    // Use external selected records if provided, otherwise use internal state
+    const selectedRecords = externalSelectedRecords !== undefined ? externalSelectedRecords : internalSelectedRecords
+    const setSelectedRecords = onSelectedRecordsChange || setInternalSelectedRecords
     const [editModalOpened, setEditModalOpened] = useState(false)
     const [editingItem, setEditingItem] = useState<Item | null>(null)
     const [page, setPage] = useState(1)
@@ -196,14 +202,16 @@ export const QuestionBankTable = ({ items, loading, error, onRefresh }: Question
                         }}
                     >
                         <Group justify="space-between" mb="xs">
-                            <Text fw={500} size="sm">
-                                Option {option.label}
+                            <Group gap="xs" align="center">
+                                <Text fw={500} size="sm">
+                                    Option {option.label}
+                                </Text>
                                 {option.isCorrect && (
-                                    <Badge size="xs" color="green" ml="xs">
+                                    <Badge size="xs" color="green">
                                         Correct
                                     </Badge>
                                 )}
-                            </Text>
+                            </Group>
                         </Group>
                         <Text size="sm" mb="xs">{option.text}</Text>
                         {option.justification && (

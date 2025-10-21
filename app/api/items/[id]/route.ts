@@ -5,6 +5,53 @@ import { BloomCategory } from '@prisma/client'
 export const runtime = 'nodejs'
 
 /**
+ * DELETE /api/items/[id]
+ * 
+ * Deletes a question item and all its associated options.
+ * 
+ * Path Parameters:
+ * - id: The ID of the item to delete
+ * 
+ * Returns:
+ * - 200: Success message
+ * - 404: Item not found
+ * - 500: Server error
+ */
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params
+
+    // Check if item exists
+    const existingItem = await prisma.item.findUnique({
+      where: { id }
+    })
+
+    if (!existingItem) {
+      return NextResponse.json(
+        { error: 'Item not found' },
+        { status: 404 }
+      )
+    }
+
+    // Delete the item (options will be automatically deleted due to onDelete: Cascade)
+    await prisma.item.delete({
+      where: { id }
+    })
+
+    return NextResponse.json({ message: 'Item deleted successfully' })
+  } catch (error) {
+    console.error('Failed to delete item:', error)
+    return NextResponse.json(
+      { error: 'Failed to delete item' },
+      { status: 500 }
+    )
+  }
+}
+
+/**
  * PUT /api/items/[id]
  * 
  * Updates an existing question item and its options.
@@ -123,6 +170,17 @@ export async function PUT(
       )
     }
 
+    // Validate option text content is unique (no duplicate answer options)
+    const optionTexts = options.map(opt => opt.text.trim())
+    const uniqueTexts = new Set(optionTexts)
+    if (optionTexts.length !== uniqueTexts.size) {
+      return NextResponse.json(
+        { error: 'Answer options must be unique - no duplicate text content allowed' },
+        { status: 400 }
+      )
+    }
+
+    const irtC = options.filter(opt => opt.isCorrect).length / options.length
     // Use a transaction to update the item and its options
     const updatedItem = await prisma.$transaction(async (tx) => {
       // Update the item
@@ -134,11 +192,12 @@ export async function PUT(
           bloom,
           stem,
           reference: reference || null,
-          figureUrl: figureUrl || null
+          figureUrl: figureUrl || null,
+          irtC
         }
       })
 
-      // Delete existing options
+      // Delete existing options (needed for update - onDelete: Cascade only applies when parent is deleted)
       await tx.itemOption.deleteMany({
         where: { itemId: id }
       })

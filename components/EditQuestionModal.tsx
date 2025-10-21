@@ -7,12 +7,16 @@ const EditQuestionModal = ({
     item,
     opened,
     onClose,
-    onSave
+    onSave,
+    isCreating = false,
+    courseId
 }: {
     item: Item | null
     opened: boolean
     onClose: () => void
     onSave?: () => void
+    isCreating?: boolean
+    courseId?: string
 }) => {
     const [formData, setFormData] = useState({
         externalQuestionId: '',
@@ -33,28 +37,48 @@ const EditQuestionModal = ({
     const [error, setError] = useState<string | null>(null)
     const [success, setSuccess] = useState(false)
 
-    // Update form data when item changes
+    // Reset state and form data when modal opens
     useEffect(() => {
-        if (item) {
-            setFormData({
-                externalQuestionId: item.externalQuestionId,
-                module: item.module,
-                bloom: item.bloom,
-                stem: item.stem,
-                reference: item.reference || '',
-                figureUrl: item.figureUrl || '',
-                options: item.options.map(opt => ({
-                    ...opt,
-                    justification: opt.justification || ''
-                }))
-            })
+        if (opened) {
             setError(null)
             setSuccess(false)
+            setLoading(false)
+
+            if (isCreating) {
+                // Reset form for new question
+                setFormData({
+                    externalQuestionId: '',
+                    module: '',
+                    bloom: '',
+                    stem: '',
+                    reference: '',
+                    figureUrl: '',
+                    options: [
+                        { id: 'temp-1', label: 'A', text: '', justification: '', isCorrect: false },
+                        { id: 'temp-2', label: 'B', text: '', justification: '', isCorrect: false },
+                        { id: 'temp-3', label: 'C', text: '', justification: '', isCorrect: false },
+                        { id: 'temp-4', label: 'D', text: '', justification: '', isCorrect: false }
+                    ]
+                })
+            } else if (item) {
+                setFormData({
+                    externalQuestionId: item.externalQuestionId,
+                    module: item.module,
+                    bloom: item.bloom,
+                    stem: item.stem,
+                    reference: item.reference || '',
+                    figureUrl: item.figureUrl || '',
+                    options: item.options.map(opt => ({
+                        ...opt,
+                        justification: opt.justification || ''
+                    }))
+                })
+            }
         }
-    }, [item])
+    }, [opened, isCreating, item])
 
     const handleSave = async () => {
-        if (!item) return
+        if (!isCreating && !item) return
 
         // Basic form validation
         if (!formData.externalQuestionId.trim()) {
@@ -97,18 +121,40 @@ const EditQuestionModal = ({
         setSuccess(false)
 
         try {
-            const response = await fetch(`/api/items/${item.id}`, {
-                method: 'PUT',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                credentials: 'include',
-                body: JSON.stringify(formData),
-            })
+            let response: Response
+
+            if (isCreating) {
+                // Create new question
+                if (!courseId) {
+                    throw new Error('Course ID is required for creating new questions')
+                }
+
+                response = await fetch('/api/items', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        courseId,
+                        ...formData
+                    }),
+                })
+            } else {
+                // Update existing question
+                response = await fetch(`/api/items/${item!.id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    credentials: 'include',
+                    body: JSON.stringify(formData),
+                })
+            }
 
             if (!response.ok) {
                 const errorData = await response.json()
-                throw new Error(errorData.error || 'Failed to save question')
+                throw new Error(errorData.error || `Failed to ${isCreating ? 'create' : 'save'} question`)
             }
 
             setSuccess(true)
@@ -123,7 +169,7 @@ const EditQuestionModal = ({
                 onClose()
             }, 1000)
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to save question')
+            setError(err instanceof Error ? err.message : `Failed to ${isCreating ? 'create' : 'save'} question`)
         } finally {
             setLoading(false)
         }
@@ -135,13 +181,13 @@ const EditQuestionModal = ({
         setFormData({ ...formData, options: newOptions })
     }
 
-    if (!item) return null
+    if (!isCreating && !item) return null
 
     return (
         <Modal
             opened={opened}
             onClose={onClose}
-            title="Edit Question"
+            title={isCreating ? "Create New Question" : "Edit Question"}
             size="lg"
         >
             <Stack gap="md">
@@ -163,7 +209,7 @@ const EditQuestionModal = ({
                         color="green"
                         variant="light"
                     >
-                        Question updated successfully!
+                        Question {isCreating ? 'created' : 'updated'} successfully!
                     </Alert>
                 )}
 
@@ -248,7 +294,7 @@ const EditQuestionModal = ({
                         Cancel
                     </Button>
                     <Button onClick={handleSave} loading={loading} disabled={success}>
-                        {success ? 'Saved!' : 'Save Changes'}
+                        {success ? (isCreating ? 'Created!' : 'Saved!') : (isCreating ? 'Create Question' : 'Save Changes')}
                     </Button>
                 </Group>
             </Stack>
