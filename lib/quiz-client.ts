@@ -26,8 +26,8 @@ interface InitAttemptResponse {
 
 interface StepAttemptRequest {
   attemptId: string;
-  itemId?: string;
-  answerIndex?: number;
+  itemId: string;
+  answerIndex: number;
   responseTimeMs?: number;
 }
 

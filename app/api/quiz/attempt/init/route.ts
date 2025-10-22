@@ -51,15 +51,8 @@ export const POST = async (request: NextRequest) => {
       },
     });
 
-    // Get module names for the FastAPI service
-    const moduleNames = await prisma.module.findMany({
-      where: {
-        id: { in: quiz?.includedModuleIds || [] }
-      },
-      select: {
-        name: true
-      }
-    });
+    // Get module IDs for the FastAPI service
+    const moduleIds = quiz?.includedModuleIds || [];
 
     if (!quiz) {
       return NextResponse.json(
@@ -106,7 +99,7 @@ export const POST = async (request: NextRequest) => {
     // Prepare request for FastAPI service
     const fastApiRequest: FastAPIInitRequest = {
       attempt_id: attempt.id,
-      concepts: concepts || moduleNames.map(m => m.name),
+      concepts: concepts || moduleIds,
       prior_mu: priorMu,
       prior_sigma2: priorSigma2,
     };

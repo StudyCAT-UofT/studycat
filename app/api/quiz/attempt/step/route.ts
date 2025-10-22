@@ -4,8 +4,8 @@ import { fastApiClient, type FastAPIStepRequest } from '@/lib/fastapi-client';
 
 interface StepAttemptRequest {
   attemptId: string;
-  itemId?: string;
-  answerIndex?: number;
+  itemId: string;
+  answerIndex: number;
   responseTimeMs?: number;
 }
 
@@ -16,9 +16,9 @@ export const POST = async (request: NextRequest) => {
     const { attemptId, itemId, answerIndex, responseTimeMs } = body;
 
     // Validate required fields
-    if (!attemptId) {
+    if (!attemptId || !itemId || answerIndex === undefined) {
       return NextResponse.json(
-        { error: 'attemptId is required' },
+        { error: 'attemptId, itemId, and answerIndex are required' },
         { status: 400 }
       );
     }
@@ -47,9 +47,54 @@ export const POST = async (request: NextRequest) => {
       );
     }
 
+    // Get the item to determine correctness
+    const item = await prisma.item.findUnique({
+      where: { id: itemId },
+      include: { options: true },
+    });
+
+    if (!item) {
+      return NextResponse.json(
+        { error: 'Item not found' },
+        { status: 404 }
+      );
+    }
+
+    // Determine the correct answer
+    const correctOption = item.options.find(opt => opt.isCorrect);
+    if (!correctOption) {
+      return NextResponse.json(
+        { error: 'Item has no correct option' },
+        { status: 400 }
+      );
+    }
+
+    // Map answer index to option label (0=A, 1=B, 2=C, 3=D)
+    const optionLabels = ['A', 'B', 'C', 'D'] as const;
+    const selectedLabel = optionLabels[answerIndex] as 'A' | 'B' | 'C' | 'D';
+    const isCorrect = selectedLabel === correctOption.label;
+
+    // Find the selected option
+    const selectedOption = item.options.find(opt => opt.label === selectedLabel);
+
+    // Create response record
+    const response = await prisma.response.create({
+      data: {
+        attemptId: attemptId,
+        itemId: itemId,
+        selectedLabel: selectedLabel,
+        itemOptionId: selectedOption?.id,
+        isCorrect: isCorrect,
+        responseTimeMs: responseTimeMs || 0,
+        answeredAt: new Date(),
+        askedAt: new Date(), // This should ideally be set when the question was first shown
+      },
+    });
+
     // Prepare request for FastAPI service
     const fastApiRequest: FastAPIStepRequest = {
       attempt_id: attemptId,
+      response_id: response.id,
       item_id: itemId,
       answer_index: answerIndex,
       response_time_ms: responseTimeMs,
@@ -60,6 +105,11 @@ export const POST = async (request: NextRequest) => {
     try {
       fastApiData = await fastApiClient.stepAttempt(fastApiRequest);
     } catch (error) {
+      // If FastAPI call fails, clean up the response record we just created
+      await prisma.response.delete({
+        where: { id: response.id },
+      });
+      
       return NextResponse.json(
         { error: `FastAPI service error: ${error instanceof Error ? error.message : 'Unknown error'}` },
         { status: 500 }
@@ -78,22 +128,14 @@ export const POST = async (request: NextRequest) => {
       });
     }
 
-    // Update the last response with mastery snapshot if this was a response
-    if (itemId && answerIndex !== undefined && answerIndex >= 0) {
-      const lastResponse = await prisma.response.findFirst({
-        where: { attemptId: attempt.id },
-        orderBy: { answeredAt: 'desc' },
-      });
-
-      if (lastResponse) {
-        await prisma.response.update({
-          where: { id: lastResponse.id },
-          data: {
-            engineMasterySnapshot: fastApiData.mastery,
-          },
-        });
-      }
-    }
+    // The FastAPI service should have already updated the response with the mastery snapshot
+    // But let's ensure it's set in case there was an issue
+    await prisma.response.update({
+      where: { id: response.id },
+      data: {
+        engineMasterySnapshot: fastApiData.mastery,
+      },
+    });
 
     // Return response to frontend
     return NextResponse.json({
