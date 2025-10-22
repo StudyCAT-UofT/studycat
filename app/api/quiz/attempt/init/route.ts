@@ -85,7 +85,6 @@ export const POST = async (request: NextRequest) => {
     }
 
     // Create attempt in database
-    console.log('Creating attempt for enrollment:', enrollment.id, 'and quiz:', quizId);
     const attempt = await prisma.attempt.create({
       data: {
         quiz: {
