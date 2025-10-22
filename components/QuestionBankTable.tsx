@@ -14,31 +14,8 @@ import { DataTable, DataTableSortStatus } from 'mantine-datatable'
 import { IconEdit } from '@tabler/icons-react'
 import EditQuestionModal from './EditQuestionModal'
 import { getBloomColor } from '@/utils/getBloomColor'
+import { Item } from '@/types'
 
-export interface Item {
-    id: string
-    externalQuestionId: string
-    module: string
-    bloom: string
-    stem: string
-    reference: string | null
-    figureUrl: string | null
-    ptBi: number | null
-    average: number | null
-    attemptsCount: number | null
-    irtA: number
-    irtB: number
-    irtC: number
-    active: boolean
-    createdAt: string
-    options: Array<{
-        id: string
-        label: string
-        text: string
-        justification: string | null
-        isCorrect: boolean
-    }>
-}
 
 interface QuestionBankTableProps {
     items: Item[]
@@ -115,7 +92,7 @@ export const QuestionBankTable = ({ items, loading, error, onRefresh, selectedRe
             width: 100,
         },
         {
-            accessor: 'module',
+            accessor: 'module.name',
             title: 'Module',
             sortable: true,
             width: 120,

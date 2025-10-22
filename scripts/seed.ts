@@ -296,11 +296,23 @@ const main = async () => {
 
   console.log('✅ Linked items to quiz')
 
+  // Get the enrollment for student1
+  const student1Enrollment = await prisma.enrollment.findFirst({
+    where: {
+      userId: student1.id,
+      offeringId: offering.id,
+    },
+  });
+
+  if (!student1Enrollment) {
+    throw new Error('Student1 enrollment not found');
+  }
+
   // Create a completed attempt for student1
   const attempt = await prisma.attempt.create({
     data: {
       quizId: quiz.id,
-      userId: student1.id,
+      enrollmentId: student1Enrollment.id,
       startedAt: new Date('2024-10-01T10:00:00Z'),
       finishedAt: new Date('2024-10-01T10:15:00Z'),
       status: 'COMPLETED',
