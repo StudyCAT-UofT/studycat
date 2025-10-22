@@ -26,3 +26,33 @@ export interface Item {
         isCorrect: boolean
     }>
 }
+
+export interface Quiz {
+    id: string
+    title: string
+    description: string | null
+    modules: string[]
+    module: string // Primary module for display
+    fixedLength: number
+    timeLimit: number | null // Not in schema but kept for compatibility
+    maxAttempts: number | null // Not in schema but kept for compatibility
+    isActive: boolean
+    dueDate: string | null // Not in schema but kept for compatibility
+    createdAt: string
+    updatedAt: string
+    createdBy: string
+    stats: {
+        totalAttempts: number
+        averageScore: number | null
+        completionRate: number | null
+    }
+    includedModules: string[]
+    includedBlooms: string[]
+}
+
+export interface QuizItem {
+    item_id: string
+    skill: string
+    stem: string
+    options: string[]
+}

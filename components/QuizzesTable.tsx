@@ -1,30 +1,8 @@
 'use client'
 
+import { Quiz } from '@/types'
 import { Card, Stack, Text, Table, Badge, ScrollArea, Skeleton } from '@mantine/core'
 import { useMemo, useCallback } from 'react'
-
-interface Quiz {
-    id: string
-    title: string
-    description: string | null
-    modules: string[]
-    module: string
-    fixedLength: number
-    timeLimit: number | null
-    maxAttempts: number | null
-    isActive: boolean
-    dueDate: string | null
-    createdAt: string
-    updatedAt: string
-    createdBy: string
-    stats: {
-        totalAttempts: number
-        averageScore: number | null
-        completionRate: number | null
-    }
-    includedModules: string[]
-    includedBlooms: string[]
-}
 
 interface QuizzesTableProps {
     quizzes: Quiz[]
