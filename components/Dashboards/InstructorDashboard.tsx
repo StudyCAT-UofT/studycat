@@ -1,7 +1,7 @@
 import { useAuth } from "@/lib/auth-context"
 import { useCourse } from "@/lib/course-context"
 import { Container, Stack, Title, Card, Group, Button, Text } from "@mantine/core"
-import { useRouter } from "next/router"
+import { useRouter } from "next/navigation"
 
 const InstructorDashboard = () => {
     const { user } = useAuth()

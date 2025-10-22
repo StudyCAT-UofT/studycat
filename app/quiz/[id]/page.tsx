@@ -8,13 +8,7 @@ import { useRouter } from 'next/navigation'
 import { useState, useEffect, use } from 'react'
 import QuizQuestion from '@/components/Quiz/QuizQuestion'
 import { quizClient } from '@/lib/quiz-client'
-
-interface QuizItem {
-    item_id: string
-    skill: string
-    stem: string
-    options: string[]
-}
+import { QuizItem } from '@/types'
 
 interface QuizState {
     attemptId: string

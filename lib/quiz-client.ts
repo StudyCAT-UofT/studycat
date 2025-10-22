@@ -12,7 +12,7 @@ interface InitAttemptRequest {
 interface InitAttemptResponse {
   attemptId: string;
   quizId: string;
-  userId: string;
+  enrollmentId: string;
   theta: Record<string, number>;
   nextItem?: {
     item_id: string;

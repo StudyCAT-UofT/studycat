@@ -1,7 +1,8 @@
 import { Box, Text, Button, Checkbox, Divider, Group, Modal, Select, Stack, Textarea, TextInput, Alert } from "@mantine/core"
-import { Item } from "./QuestionBankTable"
-import { useState, useEffect } from "react"
+import { Item } from "@/types"
+import { useState, useEffect, useCallback } from "react"
 import { IconAlertCircle, IconCheck } from "@tabler/icons-react"
+import { useCourse } from "@/lib/course-context"
 
 const EditQuestionModal = ({
     item,
@@ -20,7 +21,7 @@ const EditQuestionModal = ({
 }) => {
     const [formData, setFormData] = useState({
         externalQuestionId: '',
-        module: '',
+        moduleId: '',
         bloom: '',
         stem: '',
         reference: '',
@@ -36,6 +37,29 @@ const EditQuestionModal = ({
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [success, setSuccess] = useState(false)
+    const [availableModules, setAvailableModules] = useState<Array<{ id: string, name: string }>>([])
+    const { selectedCourseOffering } = useCourse()
+
+    // Load available modules for the course
+    const loadModules = useCallback(async () => {
+        if (!selectedCourseOffering) {
+            setError('No course offering selected')
+            return
+        }
+
+        try {
+            // Fetch modules for the current course offering
+            const modulesResponse = await fetch(`/api/modules?courseOfferingId=${selectedCourseOffering.id}`)
+            if (!modulesResponse.ok) {
+                throw new Error('Failed to fetch modules')
+            }
+            const modulesData = await modulesResponse.json()
+            setAvailableModules(modulesData.modules || [])
+        } catch (error) {
+            console.error('Failed to load modules:', error)
+            setError('Failed to load available modules')
+        }
+    }, [selectedCourseOffering])
 
     // Reset state and form data when modal opens
     useEffect(() => {
@@ -48,7 +72,7 @@ const EditQuestionModal = ({
                 // Reset form for new question
                 setFormData({
                     externalQuestionId: '',
-                    module: '',
+                    moduleId: '',
                     bloom: '',
                     stem: '',
                     reference: '',
@@ -60,10 +84,11 @@ const EditQuestionModal = ({
                         { id: 'temp-4', label: 'D', text: '', justification: '', isCorrect: false }
                     ]
                 })
+                loadModules()
             } else if (item) {
                 setFormData({
                     externalQuestionId: item.externalQuestionId,
-                    module: item.module,
+                    moduleId: item.moduleId || '',
                     bloom: item.bloom,
                     stem: item.stem,
                     reference: item.reference || '',
@@ -73,9 +98,10 @@ const EditQuestionModal = ({
                         justification: opt.justification || ''
                     }))
                 })
+                loadModules()
             }
         }
-    }, [opened, isCreating, item])
+    }, [opened, isCreating, item, loadModules])
 
     const handleSave = async () => {
         if (!isCreating && !item) return
@@ -85,7 +111,7 @@ const EditQuestionModal = ({
             setError('Question ID is required')
             return
         }
-        if (!formData.module.trim()) {
+        if (!formData.moduleId.trim()) {
             setError('Module is required')
             return
         }
@@ -125,8 +151,8 @@ const EditQuestionModal = ({
 
             if (isCreating) {
                 // Create new question
-                if (!courseId) {
-                    throw new Error('Course ID is required for creating new questions')
+                if (!selectedCourseOffering) {
+                    throw new Error('Course offering is required for creating new questions')
                 }
 
                 response = await fetch('/api/items', {
@@ -136,7 +162,7 @@ const EditQuestionModal = ({
                     },
                     credentials: 'include',
                     body: JSON.stringify({
-                        courseId,
+                        courseId: selectedCourseOffering.course.id,
                         ...formData
                     }),
                 })
@@ -219,10 +245,16 @@ const EditQuestionModal = ({
                         value={formData.externalQuestionId}
                         onChange={(e) => setFormData({ ...formData, externalQuestionId: e.target.value })}
                     />
-                    <TextInput
+                    <Select
                         label="Module"
-                        value={formData.module}
-                        onChange={(e) => setFormData({ ...formData, module: e.target.value })}
+                        value={formData.moduleId}
+                        onChange={(value) => setFormData({ ...formData, moduleId: value || '' })}
+                        data={availableModules.map(module => ({
+                            value: module.id,
+                            label: module.name
+                        }))}
+                        placeholder="Select a module"
+                        required
                     />
                 </Group>
 

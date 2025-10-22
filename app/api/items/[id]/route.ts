@@ -61,7 +61,7 @@ export async function DELETE(
  * 
  * Request Body:
  * - externalQuestionId: string
- * - module: string
+ * - moduleId: string
  * - bloom: BloomCategory
  * - stem: string
  * - reference?: string
@@ -91,7 +91,7 @@ export async function PUT(
     // Validate required fields
     const {
       externalQuestionId,
-      module,
+      moduleId,
       bloom,
       stem,
       reference,
@@ -99,9 +99,9 @@ export async function PUT(
       options
     } = body
 
-    if (!externalQuestionId || !module || !bloom || !stem || !options) {
+    if (!externalQuestionId || !moduleId || !bloom || !stem || !options) {
       return NextResponse.json(
-        { error: 'Missing required fields: externalQuestionId, module, bloom, stem, options' },
+        { error: 'Missing required fields: externalQuestionId, moduleId, bloom, stem, options' },
         { status: 400 }
       )
     }
@@ -131,6 +131,23 @@ export async function PUT(
     if (!existingItem) {
       return NextResponse.json(
         { error: 'Item not found' },
+        { status: 404 }
+      )
+    }
+
+    // Check if module exists and belongs to a course offering for this course
+    const module = await prisma.module.findFirst({
+      where: { 
+        id: moduleId,
+        offering: {
+          courseId: existingItem.courseId
+        }
+      }
+    })
+
+    if (!module) {
+      return NextResponse.json(
+        { error: 'Module not found or does not belong to this course' },
         { status: 404 }
       )
     }
@@ -188,7 +205,7 @@ export async function PUT(
         where: { id },
         data: {
           externalQuestionId,
-          module,
+          moduleId,
           bloom,
           stem,
           reference: reference || null,
