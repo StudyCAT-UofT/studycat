@@ -88,8 +88,12 @@ export const POST = async (request: NextRequest) => {
     console.log('Creating attempt for enrollment:', enrollment.id, 'and quiz:', quizId);
     const attempt = await prisma.attempt.create({
       data: {
-        quizId,
-        enrollmentId: enrollment.id,
+        quiz: {
+          connect: { id: quizId }
+        },
+        enrollment: {
+          connect: { id: enrollment.id }
+        },
         fixedLengthN: quiz.fixedLength,
         status: 'IN_PROGRESS',
         scopeSnapshot: {
