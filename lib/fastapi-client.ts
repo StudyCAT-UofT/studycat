@@ -25,6 +25,7 @@ export interface FastAPIInitResponse {
 
 export interface FastAPIStepRequest {
   attempt_id: string;
+  response_id: string;
   item_id?: string;
   answer_index?: number;
   response_time_ms?: number;
@@ -61,12 +62,16 @@ export class FastAPIClient {
   }
 
   async initAttempt(request: FastAPIInitRequest): Promise<FastAPIInitResponse> {
-    const response = await fetch(`${this.baseUrl}/attempt/init`, {
+    const response = await fetch(`${this.baseUrl}/attempts/${request.attempt_id}/init`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(request),
+      body: JSON.stringify({
+        modules: request.concepts,
+        prior_mu: request.prior_mu,
+        prior_sigma2: request.prior_sigma2,
+      }),
     });
 
     if (!response.ok) {
@@ -78,12 +83,17 @@ export class FastAPIClient {
   }
 
   async stepAttempt(request: FastAPIStepRequest): Promise<FastAPIStepResponse> {
-    const response = await fetch(`${this.baseUrl}/attempt/step`, {
+    const response = await fetch(`${this.baseUrl}/attempts/${request.attempt_id}/step`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(request),
+      body: JSON.stringify({
+        response_id: request.response_id,
+        item_id: request.item_id,
+        answer_index: request.answer_index,
+        response_time_ms: request.response_time_ms,
+      }),
     });
 
     if (!response.ok) {
