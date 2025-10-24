@@ -1,16 +1,18 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
+import { Prisma } from '@prisma/client'
 
 export const runtime = 'nodejs'
 
 /**
  * GET /api/quizzes
  * 
- * Fetches all active quizzes for a specific course offering with comprehensive statistics.
+ * Fetches quizzes for a specific course offering with comprehensive statistics.
  * 
  * Query Parameters:
  * - courseOfferingId (required): The ID of the course offering to fetch quizzes for
+ * - active (optional): Filter by active status. If true, only active quizzes. If false, only inactive quizzes. If omitted, all quizzes.
  * 
  * Returns:
  * - 200: Array of quizzes with statistics
@@ -21,17 +23,26 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
     const courseOfferingId = searchParams.get('courseOfferingId')
+    const activeParam = searchParams.get('active')
 
     // Validate required parameter
     if (!courseOfferingId) {
       return NextResponse.json({ error: 'Course offering ID is required' }, { status: 400 })
     }
 
+    // Build where clause based on active parameter
+    const whereClause: Prisma.QuizWhereInput = {
+      offeringId: courseOfferingId,
+    }
+
+    // Add active filter if specified
+    if (activeParam !== null) {
+      whereClause.active = activeParam === 'true'
+    }
+
     // Fetch quizzes with related data for statistics calculation
     const quizzes = await prisma.quiz.findMany({
-      where: {
-        offeringId: courseOfferingId,
-      },
+      where: whereClause,
       include: {
         // Include creator information for display
         createdBy: {

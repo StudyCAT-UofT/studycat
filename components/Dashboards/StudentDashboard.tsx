@@ -20,7 +20,7 @@ const StudentDashboard = () => {
         setError(null)
 
         try {
-            const response = await fetch(`/api/quizzes?courseOfferingId=${selectedCourseOffering.id}`, {
+            const response = await fetch(`/api/quizzes?courseOfferingId=${selectedCourseOffering.id}&active=true`, {
                 credentials: 'include'
             })
             if (!response.ok) {
