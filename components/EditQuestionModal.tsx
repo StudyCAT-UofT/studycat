@@ -9,8 +9,7 @@ const EditQuestionModal = ({
     opened,
     onClose,
     onSave,
-    isCreating = false,
-    courseId
+    isCreating = false
 }: {
     item: Item | null
     opened: boolean

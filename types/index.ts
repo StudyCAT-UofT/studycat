@@ -31,8 +31,6 @@ export interface Quiz {
     id: string
     title: string
     description: string | null
-    modules: string[]
-    module: string // Primary module for display
     fixedLength: number
     timeLimit: number | null // Not in schema but kept for compatibility
     maxAttempts: number | null // Not in schema but kept for compatibility
