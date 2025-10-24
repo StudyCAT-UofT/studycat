@@ -70,6 +70,17 @@ export async function GET(request: Request) {
               }
             }
           }
+        },
+        // Include offering to access modules for includedModuleIds
+        offering: {
+          include: {
+            modules: {
+              select: {
+                id: true,
+                name: true
+              }
+            }
+          }
         }
       },
       orderBy: [
@@ -100,6 +111,14 @@ export async function GET(request: Request) {
       // Extract unique modules from quiz items for display
       const modules = Array.from(new Set(quiz.quizItems.map(qi => qi.item.module.name)))
 
+      // Create a mapping of module IDs to names for includedModuleIds
+      const moduleIdToName = new Map(quiz.offering.modules.map(module => [module.id, module.name]))
+      
+      // Convert includedModuleIds to module names
+      const includedModuleNames = quiz.includedModuleIds
+        .map(moduleId => moduleIdToName.get(moduleId))
+        .filter(name => name !== undefined) // Filter out any undefined names
+
       // Return standardized quiz object with calculated statistics
       return {
         id: quiz.id,
@@ -120,7 +139,7 @@ export async function GET(request: Request) {
           averageScore,
           completionRate
         },
-        includedModules: quiz.includedModuleIds,
+        includedModules: includedModuleNames,
         includedBlooms: quiz.includedBlooms
       }
     })

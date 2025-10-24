@@ -121,10 +121,11 @@ export const QuizzesTable = ({
             width: 150,
             render: (quiz: Quiz) => (
                 <Stack gap={2}>
-                    <Text size="sm">{quiz.module}</Text>
-                    {quiz.modules.length > 1 && (
+                    <Badge size="sm" variant="light">{quiz.modules[0]}</Badge>
+                    <Badge size="sm" variant="light">{quiz.modules[1]}</Badge>
+                    {quiz.modules.length > 2 && (
                         <Text size="xs" c="dimmed">
-                            +{quiz.modules.length - 1} more
+                            +{quiz.modules.length - 2} more
                         </Text>
                     )}
                 </Stack>
@@ -217,13 +218,6 @@ export const QuizzesTable = ({
     const expandedRowContent = ({ record }: { record: Quiz }) => (
         <Box p="md" style={{ backgroundColor: '#f8f9fa' }}>
             <Stack gap="md">
-                <div>
-                    <Text fw={500} mb="xs">Quiz Details:</Text>
-                    <Flex direction="column" gap="xs">
-                        <Text size="sm">Title: {record.title}</Text>
-                    </Flex>
-                </div>
-
                 {record.includedModules.length > 0 && (
                     <div>
                         <Text fw={500} mb="xs">Included Modules:</Text>
@@ -234,19 +228,7 @@ export const QuizzesTable = ({
                                 </Badge>
                             ))}
                         </Group>
-                    </div>
-                )}
-
-                {record.includedBlooms.length > 0 && (
-                    <div>
-                        <Text fw={500} mb="xs">Bloom&apos;s Taxonomy Levels:</Text>
-                        <Group gap="xs">
-                            {record.includedBlooms.map((bloom, index) => (
-                                <Badge key={index} size="sm" variant="outline">
-                                    {bloom}
-                                </Badge>
-                            ))}
-                        </Group>
+                        {/* TODO - include detailed quiz stats here */}
                     </div>
                 )}
             </Stack>
