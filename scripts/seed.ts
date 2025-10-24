@@ -683,7 +683,7 @@ const main = async () => {
     data: {
       offeringId: offering.id,
       title: 'Programming Basics Quiz',
-      fixedLength: 5, // Increased from 3 to 5 to allow more variety
+      fixedLength: 5,
       includedModuleIds: [module1.id, module2.id],
       includedBlooms: ['REMEMBER', 'UNDERSTAND', 'APPLY', 'ANALYZE', 'EVALUATE', 'CREATE'],
       createdById: instructor.id,
