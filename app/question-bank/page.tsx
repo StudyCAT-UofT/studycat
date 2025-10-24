@@ -5,31 +5,8 @@ import { IconSearch, IconFilter, IconX, IconPlus, IconTrash } from '@tabler/icon
 import { ProtectedRoute, RoleBasedRoute, QuestionBankTable, EditQuestionModal } from '@/components'
 import { useCourse } from '@/lib/course-context'
 import { useEffect, useState, useMemo, useCallback } from 'react'
+import { Item } from '@/types'
 
-interface Item {
-    id: string
-    externalQuestionId: string
-    module: string
-    bloom: string
-    stem: string
-    reference: string | null
-    figureUrl: string | null
-    ptBi: number | null
-    average: number | null
-    attemptsCount: number | null
-    irtA: number
-    irtB: number
-    irtC: number
-    active: boolean
-    createdAt: string
-    options: Array<{
-        id: string
-        label: string
-        text: string
-        justification: string | null
-        isCorrect: boolean
-    }>
-}
 
 const QuestionBankContent = () => {
     const { selectedCourseOffering } = useCourse()
@@ -84,7 +61,7 @@ const QuestionBankContent = () => {
 
     // Get unique modules and blooms for filter options
     const uniqueModules = useMemo(() => {
-        return Array.from(new Set(items.map(item => item.module))).sort()
+        return Array.from(new Set(items.map(item => item.module.name))).sort()
     }, [items])
 
     const uniqueBlooms = useMemo(() => {
@@ -100,7 +77,7 @@ const QuestionBankContent = () => {
             const query = searchQuery.toLowerCase()
             filtered = filtered.filter(item =>
                 item.externalQuestionId.toLowerCase().includes(query) ||
-                item.module.toLowerCase().includes(query) ||
+                item.module.name.toLowerCase().includes(query) ||
                 item.bloom.toLowerCase().includes(query) ||
                 item.stem.toLowerCase().includes(query) ||
                 item.reference?.toLowerCase().includes(query)
@@ -109,7 +86,7 @@ const QuestionBankContent = () => {
 
         // Module filter
         if (selectedModules.length > 0) {
-            filtered = filtered.filter(item => selectedModules.includes(item.module))
+            filtered = filtered.filter(item => selectedModules.includes(item.module.name))
         }
 
         // Bloom taxonomy filter
@@ -231,7 +208,7 @@ const QuestionBankContent = () => {
                             <Flex gap="md" wrap="wrap">
                                 <MultiSelect
                                     placeholder="Filter by modules"
-                                    data={uniqueModules}
+                                    data={uniqueModules.map(module => ({ value: module, label: module }))}
                                     value={selectedModules}
                                     onChange={setSelectedModules}
                                     clearable

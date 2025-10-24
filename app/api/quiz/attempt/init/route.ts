@@ -51,6 +51,16 @@ export const POST = async (request: NextRequest) => {
       },
     });
 
+    // Get module names for the FastAPI service
+    const moduleNames = await prisma.module.findMany({
+      where: {
+        id: { in: quiz?.includedModuleIds || [] }
+      },
+      select: {
+        name: true
+      }
+    });
+
     if (!quiz) {
       return NextResponse.json(
         { error: 'Quiz not found or inactive' },
@@ -75,15 +85,18 @@ export const POST = async (request: NextRequest) => {
     }
 
     // Create attempt in database
-    console.log('Creating attempt for user:', userId, 'and quiz:', quizId);
     const attempt = await prisma.attempt.create({
       data: {
-        quizId,
-        userId,
+        quiz: {
+          connect: { id: quizId }
+        },
+        enrollment: {
+          connect: { id: enrollment.id }
+        },
         fixedLengthN: quiz.fixedLength,
         status: 'IN_PROGRESS',
         scopeSnapshot: {
-          includedModules: quiz.includedModules,
+          includedModuleIds: quiz.includedModuleIds,
           includedBlooms: quiz.includedBlooms,
           eligibleItemIds: quiz.quizItems.map(qi => qi.itemId),
         },
@@ -93,7 +106,7 @@ export const POST = async (request: NextRequest) => {
     // Prepare request for FastAPI service
     const fastApiRequest: FastAPIInitRequest = {
       attempt_id: attempt.id,
-      concepts: concepts || quiz.includedModules,
+      concepts: concepts || moduleNames.map(m => m.name),
       prior_mu: priorMu,
       prior_sigma2: priorSigma2,
     };
@@ -126,7 +139,7 @@ export const POST = async (request: NextRequest) => {
     return NextResponse.json({
       attemptId: attempt.id,
       quizId,
-      userId,
+      enrollmentId: enrollment.id,
       theta: fastApiData.theta,
       nextItem: fastApiData.next_item,
       nextAction: fastApiData.next_action,

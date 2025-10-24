@@ -38,10 +38,17 @@ export async function GET(request: Request) {
         // Include all answer options for each question
         options: {
           orderBy: { label: 'asc' } // Sort options alphabetically by label
+        },
+        // Include module information
+        module: {
+          select: {
+            id: true,
+            name: true
+          }
         }
       },
       orderBy: [
-        { module: 'asc' },           // Group by module first
+        { module: { name: 'asc' } }, // Group by module name first
         { externalQuestionId: 'asc' } // Then by question ID within each module
       ]
     })
@@ -62,7 +69,7 @@ export async function GET(request: Request) {
  * Request Body:
  * - courseId: string (required)
  * - externalQuestionId: string (required)
- * - module: string (required)
+ * - moduleId: string (required)
  * - bloom: BloomCategory (required)
  * - stem: string (required)
  * - reference?: string
@@ -87,7 +94,7 @@ export async function POST(request: Request) {
     const {
       courseId,
       externalQuestionId,
-      module,
+      moduleId,
       bloom,
       stem,
       reference,
@@ -95,9 +102,9 @@ export async function POST(request: Request) {
       options
     } = body
 
-    if (!courseId || !externalQuestionId || !module || !bloom || !stem || !options) {
+    if (!courseId || !externalQuestionId || !moduleId || !bloom || !stem || !options) {
       return NextResponse.json(
-        { error: 'Missing required fields: courseId, externalQuestionId, module, bloom, stem, options' },
+        { error: 'Missing required fields: courseId, externalQuestionId, moduleId, bloom, stem, options' },
         { status: 400 }
       )
     }
@@ -126,6 +133,23 @@ export async function POST(request: Request) {
     if (!course) {
       return NextResponse.json(
         { error: 'Course not found' },
+        { status: 404 }
+      )
+    }
+
+    // Check if module exists and belongs to a course offering for this course
+    const module = await prisma.module.findFirst({
+      where: { 
+        id: moduleId,
+        offering: {
+          courseId: courseId
+        }
+      }
+    })
+
+    if (!module) {
+      return NextResponse.json(
+        { error: 'Module not found or does not belong to this course' },
         { status: 404 }
       )
     }
@@ -181,8 +205,8 @@ export async function POST(request: Request) {
       const item = await tx.item.create({
         data: {
           courseId,
+          moduleId,
           externalQuestionId,
-          module,
           bloom,
           stem,
           reference: reference || null,

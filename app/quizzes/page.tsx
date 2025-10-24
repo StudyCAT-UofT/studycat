@@ -4,32 +4,8 @@ import { Container, Stack, Title, Badge, Group } from '@mantine/core'
 import { ProtectedRoute, RoleBasedRoute, QuizzesTable } from '@/components'
 import { useCourse } from '@/lib/course-context'
 import { useEffect, useState, useCallback, useMemo } from 'react'
+import { Quiz } from '@/types'
 
-/**
- * Quiz data structure returned from the API
- */
-export interface Quiz {
-    id: string
-    title: string
-    description: string | null
-    modules: string[]
-    module: string // Primary module for display
-    fixedLength: number
-    timeLimit: number | null // Not in schema but kept for compatibility
-    maxAttempts: number | null // Not in schema but kept for compatibility
-    isActive: boolean
-    dueDate: string | null // Not in schema but kept for compatibility
-    createdAt: string
-    updatedAt: string
-    createdBy: string
-    stats: {
-        totalAttempts: number
-        averageScore: number | null
-        completionRate: number | null
-    }
-    includedModules: string[]
-    includedBlooms: string[]
-}
 
 /**
  * Main content component for the quizzes page

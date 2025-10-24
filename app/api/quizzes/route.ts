@@ -60,7 +60,12 @@ export async function GET(request: Request) {
             item: {
               select: {
                 id: true,
-                module: true,
+                module: {
+                  select: {
+                    id: true,
+                    name: true
+                  }
+                },
                 bloom: true
               }
             }
@@ -93,7 +98,7 @@ export async function GET(request: Request) {
       const completionRate = totalAttempts > 0 ? (completedAttempts.length / totalAttempts) * 100 : null
 
       // Extract unique modules from quiz items for display
-      const modules = Array.from(new Set(quiz.quizItems.map(qi => qi.item.module)))
+      const modules = Array.from(new Set(quiz.quizItems.map(qi => qi.item.module.name)))
 
       // Return standardized quiz object with calculated statistics
       return {
@@ -115,7 +120,7 @@ export async function GET(request: Request) {
           averageScore,
           completionRate
         },
-        includedModules: quiz.includedModules,
+        includedModules: quiz.includedModuleIds,
         includedBlooms: quiz.includedBlooms
       }
     })

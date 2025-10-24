@@ -1,14 +1,9 @@
 'use client'
 
+import { QuizItem } from '@/types'
 import { Card, Stack, Title, Button, Radio } from '@mantine/core'
 import { useState } from 'react'
 
-interface QuizItem {
-    item_id: string
-    skill: string
-    stem: string
-    options: string[]
-}
 
 interface QuizQuestionProps {
     item: QuizItem

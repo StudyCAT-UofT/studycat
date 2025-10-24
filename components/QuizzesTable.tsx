@@ -12,7 +12,7 @@ import {
 } from '@mantine/core'
 import { DataTable, DataTableSortStatus } from 'mantine-datatable'
 import { IconEdit } from '@tabler/icons-react'
-import { Quiz } from '@/app/quizzes/page'
+import { Quiz } from '@/types'
 
 interface QuizzesTableProps {
     quizzes: Quiz[]

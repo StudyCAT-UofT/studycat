@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "db:seed": "tsx scripts/seed.ts",
-    "db:generate": "prisma generate --schema=external/studycat-schema/schema.prisma",
+    "db:generate": "prisma generate --schema=external/studycat-schema/schema.prisma --generator=client",
     "db:migrate": "prisma migrate dev --schema=external/studycat-schema/schema.prisma",
     "db:migrate:deploy": "prisma migrate deploy --schema=external/studycat-schema/schema.prisma",
     "db:migrate:reset": "prisma migrate reset --schema=external/studycat-schema/schema.prisma",
