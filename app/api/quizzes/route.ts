@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { getSession } from '@/lib/auth'
 
 export const runtime = 'nodejs'
 
@@ -30,7 +31,6 @@ export async function GET(request: Request) {
     const quizzes = await prisma.quiz.findMany({
       where: {
         offeringId: courseOfferingId,
-        active: true // Only fetch active quizzes
       },
       include: {
         // Include creator information for display
@@ -108,9 +108,6 @@ export async function GET(request: Request) {
       // Calculate completion rate (completed attempts / total attempts)
       const completionRate = totalAttempts > 0 ? (completedAttempts.length / totalAttempts) * 100 : null
 
-      // Extract unique modules from quiz items for display
-      const modules = Array.from(new Set(quiz.quizItems.map(qi => qi.item.module.name)))
-
       // Create a mapping of module IDs to names for includedModuleIds
       const moduleIdToName = new Map(quiz.offering.modules.map(module => [module.id, module.name]))
       
@@ -118,6 +115,9 @@ export async function GET(request: Request) {
       const includedModuleNames = quiz.includedModuleIds
         .map(moduleId => moduleIdToName.get(moduleId))
         .filter(name => name !== undefined) // Filter out any undefined names
+
+      // Use the included module names as the modules for display
+      const modules = includedModuleNames
 
       // Return standardized quiz object with calculated statistics
       return {
@@ -149,6 +149,83 @@ export async function GET(request: Request) {
     // Log error for debugging while keeping client response generic
     console.error('Failed to fetch quizzes:', error)
     return NextResponse.json({ error: 'Failed to fetch quizzes' }, { status: 500 })
+  }
+}
+
+/**
+ * POST /api/quizzes
+ * 
+ * Creates a new quiz for a specific course offering.
+ * 
+ * Body:
+ * - courseOfferingId (required): The ID of the course offering
+ * - title (required): The quiz title
+ * - includedModuleIds (required): Array of module IDs to include
+ * - active (optional): Whether the quiz is active (default: true)
+ * - fixedLength (required): Number of questions in the quiz
+ * 
+ * Returns:
+ * - 201: Created quiz
+ * - 400: Missing required fields
+ * - 500: Server error
+ */
+export async function POST(request: Request) {
+  try {
+    // Get the current user session
+    const session = await getSession()
+    if (!session) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+    }
+
+    const body = await request.json()
+    const { courseOfferingId, title, includedModuleIds, active = true, fixedLength } = body
+
+    // Validate required fields
+    if (!courseOfferingId || !title || !includedModuleIds || !Array.isArray(includedModuleIds) || includedModuleIds.length === 0) {
+      return NextResponse.json({ error: 'Course offering ID, title, and at least one module are required' }, { status: 400 })
+    }
+
+    if (!fixedLength || fixedLength < 1) {
+      return NextResponse.json({ error: 'Fixed length must be at least 1' }, { status: 400 })
+    }
+
+    // Verify the course offering exists
+    const courseOffering = await prisma.courseOffering.findUnique({
+      where: { id: courseOfferingId }
+    })
+
+    if (!courseOffering) {
+      return NextResponse.json({ error: 'Course offering not found' }, { status: 404 })
+    }
+
+    // Verify all modules exist and belong to the course offering
+    const modules = await prisma.module.findMany({
+      where: {
+        id: { in: includedModuleIds },
+        offeringId: courseOfferingId
+      }
+    })
+
+    if (modules.length !== includedModuleIds.length) {
+      return NextResponse.json({ error: 'One or more modules not found or do not belong to this course offering' }, { status: 400 })
+    }
+
+    // Create the quiz
+    const quiz = await prisma.quiz.create({
+      data: {
+        title,
+        offeringId: courseOfferingId,
+        includedModuleIds,
+        active,
+        fixedLength,
+        createdById: session.userId
+      }
+    })
+
+    return NextResponse.json({ quiz }, { status: 201 })
+  } catch (error) {
+    console.error('Failed to create quiz:', error)
+    return NextResponse.json({ error: 'Failed to create quiz' }, { status: 500 })
   }
 }
 

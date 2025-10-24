@@ -1,10 +1,11 @@
 'use client'
 
-import { Container, Stack, Title, Badge, Group } from '@mantine/core'
-import { ProtectedRoute, RoleBasedRoute, QuizzesTable } from '@/components'
+import { Container, Stack, Title, Badge, Group, Button } from '@mantine/core'
+import { ProtectedRoute, RoleBasedRoute, QuizzesTable, EditQuizModal } from '@/components'
 import { useCourse } from '@/lib/course-context'
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { Quiz } from '@/types'
+import { IconPlus } from '@tabler/icons-react'
 
 
 /**
@@ -16,6 +17,11 @@ const QuizzesContent = () => {
     const [quizzes, setQuizzes] = useState<Quiz[]>([])
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
+
+    // Modal state
+    const [isNewQuizModalOpen, setIsNewQuizModalOpen] = useState(false)
+    const [isEditQuizModalOpen, setIsEditQuizModalOpen] = useState(false)
+    const [editingQuiz, setEditingQuiz] = useState<Quiz | null>(null)
 
     /**
      * Fetches quizzes for the selected course offering
@@ -60,19 +66,61 @@ const QuizzesContent = () => {
         return `${quizzes.length} quiz${quizzes.length !== 1 ? 'zes' : ''}`
     }, [quizzes.length, loading, error])
 
+    const handleEditQuiz = (quiz: Quiz) => {
+        setEditingQuiz(quiz)
+        setIsEditQuizModalOpen(true)
+    }
+
     return (
         <Container size="xl" py="xl">
             <Stack gap="lg">
-                <Group gap="md" align="center">
-                    <Title order={2}>Quizzes</Title>
-                    {quizCountText && (
-                        <Badge size="lg" variant="light">
-                            {quizCountText}
-                        </Badge>
-                    )}
+                <Group gap="md" align="center" justify="space-between">
+                    <Group gap="md" align="center">
+                        <Title order={2}>Quizzes</Title>
+                        {quizCountText && (
+                            <Badge size="lg" variant="light">
+                                {quizCountText}
+                            </Badge>
+                        )}
+                    </Group>
+                    <Button
+                        leftSection={<IconPlus size={16} />}
+                        onClick={() => setIsNewQuizModalOpen(true)}
+                        disabled={!selectedCourseOffering?.id}
+                    >
+                        New Quiz
+                    </Button>
                 </Group>
 
-                <QuizzesTable quizzes={quizzes} loading={loading} error={error} />
+                <QuizzesTable
+                    quizzes={quizzes}
+                    loading={loading}
+                    error={error}
+                    onEditQuiz={handleEditQuiz}
+                />
+
+                {/* New Quiz Modal */}
+                <EditQuizModal
+                    quiz={null}
+                    opened={isNewQuizModalOpen}
+                    onClose={() => setIsNewQuizModalOpen(false)}
+                    onSave={fetchQuizzes}
+                    isCreating={true}
+                    courseOfferingId={selectedCourseOffering?.id}
+                />
+
+                {/* Edit Quiz Modal */}
+                <EditQuizModal
+                    quiz={editingQuiz}
+                    opened={isEditQuizModalOpen}
+                    onClose={() => {
+                        setIsEditQuizModalOpen(false)
+                        setEditingQuiz(null)
+                    }}
+                    onSave={fetchQuizzes}
+                    isCreating={false}
+                    courseOfferingId={selectedCourseOffering?.id}
+                />
             </Stack>
         </Container>
     )

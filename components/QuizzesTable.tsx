@@ -7,7 +7,6 @@ import {
     Group,
     ActionIcon,
     Box,
-    Flex,
     Stack
 } from '@mantine/core'
 import { DataTable, DataTableSortStatus } from 'mantine-datatable'
@@ -20,6 +19,7 @@ interface QuizzesTableProps {
     error: string | null
     selectedRecords?: Quiz[]
     onSelectedRecordsChange?: (records: Quiz[]) => void
+    onEditQuiz?: (quiz: Quiz) => void
 }
 
 export const QuizzesTable = ({
@@ -27,7 +27,8 @@ export const QuizzesTable = ({
     loading,
     error,
     selectedRecords: externalSelectedRecords,
-    onSelectedRecordsChange
+    onSelectedRecordsChange,
+    onEditQuiz
 }: QuizzesTableProps) => {
     const [sortStatus, setSortStatus] = useState<DataTableSortStatus<Quiz>>({
         columnAccessor: 'title',
@@ -121,13 +122,11 @@ export const QuizzesTable = ({
             width: 150,
             render: (quiz: Quiz) => (
                 <Stack gap={2}>
-                    <Badge size="sm" variant="light">{quiz.modules[0]}</Badge>
-                    <Badge size="sm" variant="light">{quiz.modules[1]}</Badge>
-                    {quiz.modules.length > 2 && (
-                        <Text size="xs" c="dimmed">
-                            +{quiz.modules.length - 2} more
-                        </Text>
-                    )}
+                    {quiz.includedModules.map((module, index) => (
+                        <Badge key={index} size="sm" variant="light">
+                            {module}
+                        </Badge>
+                    ))}
                 </Stack>
             )
         },
@@ -205,7 +204,9 @@ export const QuizzesTable = ({
                         variant="subtle"
                         onClick={(e) => {
                             e.stopPropagation()
-                            // TODO: implement edit quiz
+                            if (onEditQuiz) {
+                                onEditQuiz(quiz)
+                            }
                         }}
                     >
                         <IconEdit size={16} />
