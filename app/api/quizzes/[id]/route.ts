@@ -21,7 +21,7 @@ export const runtime = 'nodejs'
  * - 400: Invalid data
  * - 500: Server error
  */
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
+export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     // Get the current user session
     const session = await getSession()
@@ -29,7 +29,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
     }
 
-    const { id } = params
+    const { id } = await params
     const body = await request.json()
     const { title, includedModuleIds, active, fixedLength } = body
 
@@ -90,7 +90,7 @@ export async function PUT(request: Request, { params }: { params: { id: string }
  * - 404: Quiz not found
  * - 500: Server error
  */
-export async function DELETE(request: Request, { params }: { params: { id: string } }) {
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     // Get the current user session
     const session = await getSession()
@@ -98,7 +98,7 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
     }
 
-    const { id } = params
+    const { id } = await params
 
     // Check if quiz exists
     const existingQuiz = await prisma.quiz.findUnique({

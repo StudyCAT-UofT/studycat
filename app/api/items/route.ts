@@ -138,7 +138,7 @@ export async function POST(request: Request) {
     }
 
     // Check if module exists and belongs to a course offering for this course
-    const module = await prisma.module.findFirst({
+    const existingModule = await prisma.module.findFirst({
       where: { 
         id: moduleId,
         offering: {
@@ -147,7 +147,7 @@ export async function POST(request: Request) {
       }
     })
 
-    if (!module) {
+    if (!existingModule) {
       return NextResponse.json(
         { error: 'Module not found or does not belong to this course' },
         { status: 404 }

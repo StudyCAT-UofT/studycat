@@ -106,7 +106,6 @@ const QuizzesContent = () => {
                     onClose={() => setIsNewQuizModalOpen(false)}
                     onSave={fetchQuizzes}
                     isCreating={true}
-                    courseOfferingId={selectedCourseOffering?.id}
                 />
 
                 {/* Edit Quiz Modal */}
@@ -119,7 +118,6 @@ const QuizzesContent = () => {
                     }}
                     onSave={fetchQuizzes}
                     isCreating={false}
-                    courseOfferingId={selectedCourseOffering?.id}
                 />
             </Stack>
         </Container>

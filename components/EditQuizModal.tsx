@@ -1,4 +1,4 @@
-import { Box, Text, Button, Group, Modal, Select, Stack, TextInput, Alert, NumberInput, Switch } from "@mantine/core"
+import { Box, Text, Button, Group, Modal, Stack, TextInput, Alert, NumberInput, Switch } from "@mantine/core"
 import { Quiz } from "@/types"
 import { useState, useEffect, useCallback } from "react"
 import { IconAlertCircle, IconCheck } from "@tabler/icons-react"
@@ -88,8 +88,8 @@ const EditQuizModal = ({
     useEffect(() => {
         if (opened && !isCreating && quiz && availableModules.length > 0) {
             const moduleIds = quiz.includedModules.map(moduleName => {
-                const module = availableModules.find(m => m.name === moduleName)
-                return module?.id || ''
+                const m = availableModules.find(m => m.name === moduleName)
+                return m?.id || ''
             }).filter(id => id !== '')
 
             setFormData(prev => ({
