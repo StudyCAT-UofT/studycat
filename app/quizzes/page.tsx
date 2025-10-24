@@ -1,11 +1,11 @@
 'use client'
 
-import { Container, Stack, Title, Badge, Group, Button } from '@mantine/core'
+import { Container, Stack, Title, Badge, Group, Button, Modal, Text, Box } from '@mantine/core'
 import { ProtectedRoute, RoleBasedRoute, QuizzesTable, EditQuizModal } from '@/components'
 import { useCourse } from '@/lib/course-context'
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { Quiz } from '@/types'
-import { IconPlus } from '@tabler/icons-react'
+import { IconPlus, IconTrash } from '@tabler/icons-react'
 
 
 /**
@@ -22,6 +22,12 @@ const QuizzesContent = () => {
     const [isNewQuizModalOpen, setIsNewQuizModalOpen] = useState(false)
     const [isEditQuizModalOpen, setIsEditQuizModalOpen] = useState(false)
     const [editingQuiz, setEditingQuiz] = useState<Quiz | null>(null)
+
+    // Selection and delete state
+    const [selectedRecords, setSelectedRecords] = useState<Quiz[]>([])
+    const [deleteModalOpened, setDeleteModalOpened] = useState(false)
+    const [deletingQuizzes, setDeletingQuizzes] = useState<Quiz[]>([])
+    const [isDeleting, setIsDeleting] = useState(false)
 
     /**
      * Fetches quizzes for the selected course offering
@@ -71,6 +77,46 @@ const QuizzesContent = () => {
         setIsEditQuizModalOpen(true)
     }
 
+    const handleDeleteSelected = (quizzes: Quiz[]) => {
+        setDeletingQuizzes(quizzes)
+        setDeleteModalOpened(true)
+    }
+
+    const handleDeleteConfirm = async () => {
+        if (deletingQuizzes.length === 0) return
+
+        setIsDeleting(true)
+        try {
+            const response = await fetch('/api/quizzes', {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    ids: deletingQuizzes.map(quiz => quiz.id)
+                })
+            })
+
+            if (!response.ok) {
+                const errorData = await response.json()
+                throw new Error(errorData.error || 'Failed to delete quizzes')
+            }
+
+            // Clear selection and close modal
+            setSelectedRecords([])
+            setDeletingQuizzes([])
+            setDeleteModalOpened(false)
+
+            // Refresh the data
+            fetchQuizzes()
+        } catch (error) {
+            console.error('Delete error:', error)
+            // You could add a notification here if needed
+        } finally {
+            setIsDeleting(false)
+        }
+    }
+
     return (
         <Container size="xl" py="xl">
             <Stack gap="lg">
@@ -83,19 +129,34 @@ const QuizzesContent = () => {
                             </Badge>
                         )}
                     </Group>
-                    <Button
-                        leftSection={<IconPlus size={16} />}
-                        onClick={() => setIsNewQuizModalOpen(true)}
-                        disabled={!selectedCourseOffering?.id}
-                    >
-                        New Quiz
-                    </Button>
+                    <Group gap="sm">
+                        {selectedRecords.length > 0 && (
+                            <Button
+                                color="red"
+                                variant="light"
+                                leftSection={<IconTrash size={16} />}
+                                onClick={() => handleDeleteSelected(selectedRecords)}
+                                disabled={loading}
+                            >
+                                Delete Selected ({selectedRecords.length})
+                            </Button>
+                        )}
+                        <Button
+                            leftSection={<IconPlus size={16} />}
+                            onClick={() => setIsNewQuizModalOpen(true)}
+                            disabled={!selectedCourseOffering?.id}
+                        >
+                            New Quiz
+                        </Button>
+                    </Group>
                 </Group>
 
                 <QuizzesTable
                     quizzes={quizzes}
                     loading={loading}
                     error={error}
+                    selectedRecords={selectedRecords}
+                    onSelectedRecordsChange={setSelectedRecords}
                     onEditQuiz={handleEditQuiz}
                 />
 
@@ -119,6 +180,47 @@ const QuizzesContent = () => {
                     onSave={fetchQuizzes}
                     isCreating={false}
                 />
+
+                {/* Delete Confirmation Modal */}
+                <Modal
+                    opened={deleteModalOpened}
+                    onClose={() => setDeleteModalOpened(false)}
+                    title="Delete Quizzes"
+                    centered
+                >
+                    <Text mb="md">
+                        Are you sure you want to delete {deletingQuizzes.length} selected quiz{deletingQuizzes.length > 1 ? 'zes' : ''}?
+                        All questions, attempts, and statistics associated with the quiz{deletingQuizzes.length > 1 ? 'zes' : ''} will also be deleted. This action cannot be undone.
+                    </Text>
+
+                    <Box mb="md">
+                        <Text size="sm" fw={500} mb="xs">Selected quizzes:</Text>
+                        <Box style={{ maxHeight: 200, overflowY: 'auto' }}>
+                            {deletingQuizzes.map((quiz, index) => (
+                                <Text key={quiz.id} size="sm" c="dimmed">
+                                    {index + 1}. {quiz.title} - {quiz.fixedLength} questions
+                                </Text>
+                            ))}
+                        </Box>
+                    </Box>
+
+                    <Group justify="flex-end">
+                        <Button
+                            variant="light"
+                            onClick={() => setDeleteModalOpened(false)}
+                            disabled={isDeleting}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            color="red"
+                            onClick={handleDeleteConfirm}
+                            loading={isDeleting}
+                        >
+                            Delete
+                        </Button>
+                    </Group>
+                </Modal>
             </Stack>
         </Container>
     )

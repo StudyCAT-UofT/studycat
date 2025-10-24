@@ -240,3 +240,53 @@ export async function POST(request: Request) {
   }
 }
 
+/**
+ * DELETE /api/quizzes
+ * 
+ * Deletes multiple quizzes by their IDs.
+ * 
+ * Body:
+ * - ids (required): Array of quiz IDs to delete
+ * 
+ * Returns:
+ * - 200: Success
+ * - 400: Missing or invalid IDs
+ * - 500: Server error
+ */
+export async function DELETE(request: Request) {
+  try {
+    // Get the current user session
+    const session = await getSession()
+    if (!session) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 })
+    }
+
+    const body = await request.json()
+    const { ids } = body
+
+    // Validate required fields
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return NextResponse.json({ error: 'Quiz IDs are required' }, { status: 400 })
+    }
+
+    // Check if all quizzes exist
+    const existingQuizzes = await prisma.quiz.findMany({
+      where: { id: { in: ids } }
+    })
+
+    if (existingQuizzes.length !== ids.length) {
+      return NextResponse.json({ error: 'One or more quizzes not found' }, { status: 404 })
+    }
+
+    // Delete the quizzes
+    await prisma.quiz.deleteMany({
+      where: { id: { in: ids } }
+    })
+
+    return NextResponse.json({ success: true, deletedCount: ids.length })
+  } catch (error) {
+    console.error('Failed to delete quizzes:', error)
+    return NextResponse.json({ error: 'Failed to delete quizzes' }, { status: 500 })
+  }
+}
+
