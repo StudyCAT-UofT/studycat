@@ -43,6 +43,12 @@ interface StepAttemptResponse {
     options: string[];
   };
   isFinished: boolean;
+  feedback?: {
+    correctAnswerIndex: number;
+    selectedAnswerIndex: number;
+    isCorrect: boolean;
+    justification: string | null;
+  };
 }
 
 export class QuizClient {

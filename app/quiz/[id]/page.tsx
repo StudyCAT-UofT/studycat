@@ -10,12 +10,21 @@ import QuizQuestion from '@/components/Quiz/QuizQuestion'
 import { quizClient } from '@/lib/quiz-client'
 import { QuizItem } from '@/types'
 
+interface Feedback {
+    correctAnswerIndex: number
+    selectedAnswerIndex: number
+    isCorrect: boolean
+    justification: string | null
+}
+
 interface QuizState {
     attemptId: string
     currentItem?: QuizItem
     isFinished: boolean
     loading: boolean
     error?: string
+    feedback?: Feedback | null
+    nextItem?: QuizItem
 }
 
 const QuizContent = ({ quizId }: { quizId: string }) => {
@@ -91,7 +100,8 @@ const QuizContent = ({ quizId }: { quizId: string }) => {
 
             setQuizState(prev => ({
                 ...prev,
-                currentItem: response.nextItem,
+                feedback: response.feedback || null,
+                nextItem: response.nextItem,
                 isFinished: response.isFinished
             }))
         } catch (error) {
@@ -100,6 +110,25 @@ const QuizContent = ({ quizId }: { quizId: string }) => {
                 error: error instanceof Error ? error.message : 'Failed to submit answer'
             }))
         }
+    }
+
+    const handleNext = () => {
+        setQuizState(prev => {
+            if (prev.isFinished) {
+                // Quiz is finished, just clear feedback
+                return {
+                    ...prev,
+                    feedback: null
+                }
+            }
+            // Move to next question
+            return {
+                ...prev,
+                currentItem: prev.nextItem,
+                feedback: null,
+                nextItem: undefined
+            }
+        })
     }
 
     const handleExit = () => {
@@ -129,7 +158,8 @@ const QuizContent = ({ quizId }: { quizId: string }) => {
         )
     }
 
-    if (quizState.isFinished) {
+    // Show completion screen only if finished and no feedback is being shown
+    if (quizState.isFinished && !quizState.feedback) {
         return (
             <Container size="md" py="xl">
                 <Stack align="center" gap="lg">
@@ -163,6 +193,8 @@ const QuizContent = ({ quizId }: { quizId: string }) => {
                 <QuizQuestion
                     item={quizState.currentItem}
                     onAnswer={handleAnswer}
+                    onNext={handleNext}
+                    feedback={quizState.feedback}
                 />
             </Stack>
         </Container>
