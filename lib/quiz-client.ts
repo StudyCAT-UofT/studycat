@@ -51,6 +51,20 @@ interface StepAttemptResponse {
   };
 }
 
+interface AttemptResultsResponse {
+  attemptId: string;
+  totalQuestions: number;
+  correctAnswers: number;
+  percentage: number;
+  responses: Array<{
+    id: string;
+    itemId: string;
+    selectedLabel: string;
+    isCorrect: boolean;
+    answeredAt: string;
+  }>;
+}
+
 export class QuizClient {
   private baseUrl: string;
 
@@ -89,6 +103,24 @@ export class QuizClient {
     if (!response.ok) {
       const errorData = await response.json();
       throw new Error(errorData.error || 'Failed to process quiz step');
+    }
+
+    return response.json();
+  }
+
+  async getResults(attemptId: string): Promise<AttemptResultsResponse> {
+    const response = await fetch(`${this.baseUrl}/results`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify({ attemptId }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to fetch quiz results');
     }
 
     return response.json();

@@ -1,6 +1,6 @@
 'use client'
 
-import { Container, Stack, Text, Title, Button, Group, Alert, Loader, Center } from '@mantine/core'
+import { Container, Stack, Text, Title, Button, Group, Alert, Loader, Center, Paper } from '@mantine/core'
 import { ProtectedRoute, RoleBasedRoute } from '@/components'
 import { useCourse } from '@/lib/course-context'
 import { useAuth } from '@/lib/auth-context'
@@ -17,6 +17,13 @@ interface Feedback {
     justification: string | null
 }
 
+interface QuizResults {
+    attemptId: string
+    totalQuestions: number
+    correctAnswers: number
+    percentage: number
+}
+
 interface QuizState {
     attemptId: string
     currentItem?: QuizItem
@@ -25,6 +32,8 @@ interface QuizState {
     error?: string
     feedback?: Feedback | null
     nextItem?: QuizItem
+    results?: QuizResults
+    loadingResults: boolean
 }
 
 const QuizContent = ({ quizId }: { quizId: string }) => {
@@ -34,7 +43,8 @@ const QuizContent = ({ quizId }: { quizId: string }) => {
     const [quizState, setQuizState] = useState<QuizState>({
         attemptId: '',
         isFinished: false,
-        loading: true
+        loading: true,
+        loadingResults: false
     })
     const [isInitialized, setIsInitialized] = useState(false)
 
@@ -69,7 +79,8 @@ const QuizContent = ({ quizId }: { quizId: string }) => {
                     attemptId: response.attemptId,
                     currentItem: response.nextItem,
                     isFinished: false,
-                    loading: false
+                    loading: false,
+                    loadingResults: false
                 })
                 setIsInitialized(true) // Mark as initializing to prevent duplicate calls
             } catch (error) {
@@ -112,23 +123,44 @@ const QuizContent = ({ quizId }: { quizId: string }) => {
         }
     }
 
-    const handleNext = () => {
-        setQuizState(prev => {
-            if (prev.isFinished) {
-                // Quiz is finished, just clear feedback
-                return {
+    const handleNext = async () => {
+        if (quizState.isFinished) {
+            // Quiz is finished, fetch results and clear feedback
+            setQuizState(prev => ({
+                ...prev,
+                feedback: null,
+                loadingResults: true
+            }))
+
+            try {
+                const results = await quizClient.getResults(quizState.attemptId)
+                setQuizState(prev => ({
                     ...prev,
-                    feedback: null
-                }
+                    results: {
+                        attemptId: results.attemptId,
+                        totalQuestions: results.totalQuestions,
+                        correctAnswers: results.correctAnswers,
+                        percentage: results.percentage
+                    },
+                    loadingResults: false
+                }))
+            } catch (error) {
+                console.error('Failed to fetch quiz results:', error)
+                setQuizState(prev => ({
+                    ...prev,
+                    error: error instanceof Error ? error.message : 'Failed to fetch quiz results',
+                    loadingResults: false
+                }))
             }
+        } else {
             // Move to next question
-            return {
+            setQuizState(prev => ({
                 ...prev,
                 currentItem: prev.nextItem,
                 feedback: null,
                 nextItem: undefined
-            }
-        })
+            }))
+        }
     }
 
     const handleExit = () => {
@@ -160,6 +192,42 @@ const QuizContent = ({ quizId }: { quizId: string }) => {
 
     // Show completion screen only if finished and no feedback is being shown
     if (quizState.isFinished && !quizState.feedback) {
+        if (quizState.loadingResults) {
+            return (
+                <Container size="md" py="xl">
+                    <Center h={400}>
+                        <Stack align="center" gap="md">
+                            <Loader size="lg" />
+                            <Text>Loading results...</Text>
+                        </Stack>
+                    </Center>
+                </Container>
+            )
+        }
+
+        if (quizState.results) {
+            return (
+                <Container size="md" py="xl">
+                    <Stack align="center" gap="lg">
+                        <Title order={2}>Quiz Completed!</Title>
+
+                        <Paper p="xl" radius="md" withBorder style={{ minWidth: 300 }}>
+                            <Stack align="center" gap="md">
+                                <Text size="xl" fw={700} c="blue">
+                                    {quizState.results.percentage}%
+                                </Text>
+                                <Text size="lg">
+                                    {quizState.results.correctAnswers} out of {quizState.results.totalQuestions} questions correct
+                                </Text>
+                            </Stack>
+                        </Paper>
+
+                        <Button onClick={handleExit}>Return to Dashboard</Button>
+                    </Stack>
+                </Container>
+            )
+        }
+
         return (
             <Container size="md" py="xl">
                 <Stack align="center" gap="lg">
