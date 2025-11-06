@@ -8,11 +8,51 @@ interface InstructorTabsProps {
     children: React.ReactNode
 }
 
+interface TabConfig {
+    value: string
+    label: string
+    route: string
+}
+
+/**
+ * Tab configuration for instructor/TA interface
+ * 
+ * To add a new tab, simply add a new entry to this array with:
+ * - value: unique identifier for the tab
+ * - label: display name shown in the UI
+ * - pathPattern: string pattern to match in pathname (e.g., '/question-bank')
+ * - route: route to navigate to when tab is clicked
+ */
+const TAB_CONFIGS: TabConfig[] = [
+    {
+        value: 'dashboard',
+        label: 'Dashboard',
+        route: '/'
+    },
+    {
+        value: 'question-bank',
+        label: 'Question Bank',
+        route: '/question-bank'
+    },
+    {
+        value: 'quizzes',
+        label: 'Quizzes',
+        route: '/quizzes'
+    },
+    {
+        value: 'students',
+        label: 'Students',
+        route: '/students'
+    }
+]
+
 /**
  * Navigation tabs component for instructor/TA interface
  * 
- * Provides tabbed navigation between Dashboard, Question Bank, and Quizzes.
+ * Provides tabbed navigation between Dashboard, Question Bank, Quizzes, and Students.
  * Only renders for users with instructor or TA roles for the selected course.
+ * 
+ * The tabs are configured via the TAB_CONFIGS array, making it easy to add or modify tabs.
  */
 export const InstructorTabs = ({ children }: InstructorTabsProps) => {
     const router = useRouter()
@@ -30,46 +70,60 @@ export const InstructorTabs = ({ children }: InstructorTabsProps) => {
 
     /**
      * Determines the current active tab based on the current pathname
+     * Checks each tab config's pathPattern to find a match
      * @returns The tab value that should be active
      */
-    const getCurrentTab = () => {
-        if (pathname.includes('/question-bank')) {
-            return 'question-bank'
+    const getCurrentTab = (): string => {
+        // Special case: if pathname is exactly '/', return dashboard
+        if (pathname === '/') {
+            return TAB_CONFIGS[0]?.value || 'dashboard'
         }
-        if (pathname.includes('/quizzes')) {
-            return 'quizzes'
+
+        // Find the first tab config that matches the current pathname
+        // Check all tabs except dashboard (index 0) first to avoid false matches
+        const nonDashboardTabs = TAB_CONFIGS.slice(1)
+        const matchingTab = nonDashboardTabs.find(tab => pathname.includes(tab.route))
+
+        // If a non-dashboard tab matches, return it
+        if (matchingTab) {
+            return matchingTab.value
         }
-        if (pathname.includes('/students')) {
-            return 'students'
-        }
-        return 'dashboard'
+
+        // Default to dashboard if no other match
+        return TAB_CONFIGS[0]?.value || 'dashboard'
     }
 
     /**
      * Handles tab change events and navigates to the appropriate route
+     * Uses the tab config to find the corresponding route
      * @param value - The tab value that was selected
      */
     const handleTabChange = (value: string | null) => {
-        if (value === 'question-bank') {
-            router.push('/question-bank')
-        } else if (value === 'quizzes') {
-            router.push('/quizzes')
-        } else if (value === 'students') {
-            router.push('/students')
+        if (!value) return
+
+        // Find the tab config for the selected value
+        const selectedTab = TAB_CONFIGS.find(tab => tab.value === value)
+
+        if (selectedTab) {
+            router.push(selectedTab.route)
         } else {
+            // Fallback to dashboard if tab not found
             router.push('/')
         }
     }
 
+    const currentTab = getCurrentTab()
+
     return (
-        <Tabs value={getCurrentTab()} onChange={handleTabChange}>
+        <Tabs value={currentTab} onChange={handleTabChange}>
             <Tabs.List>
-                <Tabs.Tab value="dashboard">Dashboard</Tabs.Tab>
-                <Tabs.Tab value="question-bank">Question Bank</Tabs.Tab>
-                <Tabs.Tab value="quizzes">Quizzes</Tabs.Tab>
-                <Tabs.Tab value="students">Students</Tabs.Tab>
+                {TAB_CONFIGS.map(tab => (
+                    <Tabs.Tab key={tab.value} value={tab.value}>
+                        {tab.label}
+                    </Tabs.Tab>
+                ))}
             </Tabs.List>
-            <Tabs.Panel value={getCurrentTab()} pt="md">
+            <Tabs.Panel value={currentTab} pt="md">
                 {children}
             </Tabs.Panel>
         </Tabs>
