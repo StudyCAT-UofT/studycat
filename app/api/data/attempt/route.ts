@@ -87,7 +87,7 @@ export async function GET(request: Request) {
         return new NextResponse(csvContent, { status: 200, headers });
     } catch (error) {
         // Log error for debugging while keeping client response generic
-        console.error('Failed to fetch modules:', error)
-        return NextResponse.json({ error: 'Failed to fetch modules' }, { status: 500 })
+        console.error('Failed to fetch attempts:', error)
+        return NextResponse.json({ error: 'Failed to fetch attempts' }, { status: 500 })
     }
 }

@@ -7,13 +7,45 @@ export default function DataPage() {
     const [quizId, setQuizId] = useState<string>('');
     const [loadingTheta, setLoadingTheta] = useState(false);
     const [loadingQuiz, setLoadingQuiz] = useState(false);
+    const [loadingQuestions, setLoadingQuestions] = useState(false);
     const [status, setStatus] = useState<string | null>(null);
 
+    const downloadFromResponse = async (res: Response, defaultFilename: string) => {
+        if (!res.ok) {
+            let errMsg = `${res.status} ${res.statusText}`;
+            try {
+                const j = await res.json();
+                errMsg = j?.error ?? JSON.stringify(j);
+            } catch {
+                /* ignore */
+            }
+            throw new Error(errMsg);
+        }
+
+        const blob = await res.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = blobUrl;
+
+        const cd = res.headers.get('Content-Disposition') ?? '';
+        let filename = defaultFilename;
+        const match = cd.match(/filename="?([^"]+)"?/);
+        if (match && match[1]) filename = match[1];
+
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(blobUrl);
+
+        return filename;
+    };
+
     const handleDownload = async (
-        e: React.FormEvent,
+        e: React.FormEvent | undefined,
         type: 'theta' | 'quiz'
     ) => {
-        e.preventDefault();
+        if (e) e.preventDefault();
         setStatus(null);
 
         let idParam = type === 'theta' ? courseOfferingId.trim() : quizId.trim();
@@ -34,44 +66,41 @@ export default function DataPage() {
                     : `/api/data/attempt?quizId=${encodeURIComponent(idParam)}`;
 
             const res = await fetch(endpoint, { method: 'GET', credentials: 'same-origin' });
-
-            if (!res.ok) {
-                let errMsg = `${res.status} ${res.statusText}`;
-                try {
-                    const j = await res.json();
-                    errMsg = j?.error ?? JSON.stringify(j);
-                } catch {
-                    /* ignore */
-                }
-                setStatus(`Error: ${errMsg}`);
-                return;
-            }
-
-            const blob = await res.blob();
-            const blobUrl = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = blobUrl;
-
-            const cd = res.headers.get('Content-Disposition') ?? '';
-            let filename =
+            const filename = await downloadFromResponse(
+                res,
                 type === 'theta'
                     ? `thetas_${idParam}.csv`
-                    : `quiz_${idParam}_completed_attempts.csv`;
-            const match = cd.match(/filename="?([^"]+)"?/);
-            if (match && match[1]) filename = match[1];
-
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            URL.revokeObjectURL(blobUrl);
-
+                    : `quiz_${idParam}_completed_attempts.csv`
+            );
             setStatus(`Download started: ${filename}`);
         } catch (err) {
-            setStatus(`Network error: ${(err as Error).message}`);
+            setStatus(`Error: ${(err as Error).message}`);
         } finally {
             if (type === 'theta') setLoadingTheta(false);
             else setLoadingQuiz(false);
+        }
+    };
+
+    const handleDownloadQuestionStats = async (e?: React.FormEvent) => {
+        if (e) e.preventDefault();
+        setStatus(null);
+
+        const idParam = quizId.trim();
+        if (!idParam) {
+            setStatus('Please enter a quiz ID.');
+            return;
+        }
+
+        setLoadingQuestions(true);
+        try {
+            const endpoint = `/api/data/question?quizId=${encodeURIComponent(idParam)}`;
+            const res = await fetch(endpoint, { method: 'GET', credentials: 'same-origin' });
+            const filename = await downloadFromResponse(res, `item_stats_quiz_${idParam}.csv`);
+            setStatus(`Download started: ${filename}`);
+        } catch (err) {
+            setStatus(`Error: ${(err as Error).message}`);
+        } finally {
+            setLoadingQuestions(false);
         }
     };
 
@@ -80,8 +109,7 @@ export default function DataPage() {
             style={{
                 maxWidth: 800,
                 margin: '2rem auto',
-                fontFamily:
-                    'system-ui, -apple-system, Segoe UI, Roboto, sans-serif',
+                fontFamily: 'system-ui, -apple-system, Segoe UI, Roboto, sans-serif',
             }}
         >
             <h1>Export Data (CSV)</h1>
@@ -90,8 +118,8 @@ export default function DataPage() {
             <section style={{ marginBottom: 40 }}>
                 <h2>Export Student Thetas</h2>
                 <p>
-                    Enter a <strong>Course Offering ID</strong> and download a CSV containing
-                    <code> studentID,module,theta</code>.
+                    Enter a <strong>Course Offering ID</strong> and download a CSV containing{' '}
+                    <code>studentID,module,theta</code>.
                 </p>
 
                 <form
@@ -104,9 +132,7 @@ export default function DataPage() {
                     }}
                 >
                     <label style={{ flex: 1 }}>
-                        <div style={{ fontSize: 14, marginBottom: 6 }}>
-                            Course Offering ID
-                        </div>
+                        <div style={{ fontSize: 14, marginBottom: 6 }}>Course Offering ID</div>
                         <input
                             value={courseOfferingId}
                             onChange={(e) => setCourseOfferingId(e.target.value)}
@@ -130,12 +156,12 @@ export default function DataPage() {
                 </form>
             </section>
 
-            {/* --- Quiz CSV --- */}
+            {/* --- Quiz CSV & Question Stats --- */}
             <section>
-                <h2>Export Completed Quiz Attempts</h2>
+                <h2>Quiz exports (by Quiz ID)</h2>
                 <p>
-                    Enter a <strong>Quiz ID</strong> to download a CSV of all completed quiz
-                    attempts with headers <code>userId,score,questionSequence</code>.
+                    Use the Quiz ID to download either completed attempts (<code>userId,score,questionSequence</code>)
+                    or question-level statistics (<code>questionId,stem,average,averageA..D,numAttempts</code>).
                 </p>
 
                 <form
@@ -145,6 +171,7 @@ export default function DataPage() {
                         gap: 12,
                         alignItems: 'center',
                         marginTop: 12,
+                        marginBottom: 8,
                     }}
                 >
                     <label style={{ flex: 1 }}>
@@ -167,7 +194,20 @@ export default function DataPage() {
                             cursor: loadingQuiz ? 'not-allowed' : 'pointer',
                         }}
                     >
-                        {loadingQuiz ? 'Preparing...' : 'Download CSV'}
+                        {loadingQuiz ? 'Preparing...' : 'Download Attempts CSV'}
+                    </button>
+
+                    <button
+                        type="button"
+                        onClick={handleDownloadQuestionStats}
+                        disabled={loadingQuestions}
+                        style={{
+                            padding: '10px 14px',
+                            fontSize: 16,
+                            cursor: loadingQuestions ? 'not-allowed' : 'pointer',
+                        }}
+                    >
+                        {loadingQuestions ? 'Preparing...' : 'Download Question Stats'}
                     </button>
                 </form>
             </section>
@@ -186,12 +226,12 @@ export default function DataPage() {
             <hr style={{ marginTop: 30 }} />
 
             <div style={{ marginTop: 10, fontSize: 13, color: '#555' }}>
-                Tip: you can also call
-                <div>
-                    <code>/api/data/theta?courseOfferingId=&lt;id&gt;</code> or{' '}
-                    <code>/api/quiz-attempts?quizId=&lt;id&gt;</code> directly (GET)
+                Tip: you can also call the endpoints directly:
+                <div style={{ marginTop: 6 }}>
+                    <code>/api/data/theta?courseOfferingId=&lt;id&gt;</code> •{' '}
+                    <code>/api/data/attempt?quizId=&lt;id&gt;</code> •{' '}
+                    <code>/api/items-stats?quizId=&lt;id&gt;</code>
                 </div>
-                to download the CSV.
             </div>
         </div>
     );
