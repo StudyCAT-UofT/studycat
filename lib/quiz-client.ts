@@ -2,68 +2,13 @@
  * Client utility for interacting with quiz attempt endpoints
  */
 
-interface InitAttemptRequest {
-  quizId: string;
-  concepts?: string[];
-  priorMu?: number;
-  priorSigma2?: number;
-}
-
-interface InitAttemptResponse {
-  attemptId: string;
-  quizId: string;
-  enrollmentId: string;
-  theta: Record<string, number>;
-  nextItem?: {
-    item_id: string;
-    skill: string;
-    stem: string;
-    options: string[];
-  };
-  nextAction: string;
-  startedAt: string;
-}
-
-interface StepAttemptRequest {
-  attemptId: string;
-  itemId: string;
-  answerIndex: number;
-  responseTimeMs?: number;
-}
-
-interface StepAttemptResponse {
-  attemptId: string;
-  theta: Record<string, number>;
-  mastery: Record<string, boolean>;
-  nextAction: string;
-  nextItem?: {
-    item_id: string;
-    skill: string;
-    stem: string;
-    options: string[];
-  };
-  isFinished: boolean;
-  feedback?: {
-    correctAnswerIndex: number;
-    selectedAnswerIndex: number;
-    isCorrect: boolean;
-    justification: string | null;
-  };
-}
-
-interface AttemptResultsResponse {
-  attemptId: string;
-  totalQuestions: number;
-  correctAnswers: number;
-  percentage: number;
-  responses: Array<{
-    id: string;
-    itemId: string;
-    selectedLabel: string;
-    isCorrect: boolean;
-    answeredAt: string;
-  }>;
-}
+import type {
+  InitAttemptRequest,
+  InitAttemptResponse,
+  StepAttemptRequest,
+  StepAttemptResponse,
+  AttemptResultsResponse,
+} from '@/types'
 
 export class QuizClient {
   private baseUrl: string;

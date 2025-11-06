@@ -2,13 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { fastApiClient, type FastAPIInitRequest } from '@/lib/fastapi-client';
 import { getSession } from '@/lib/auth';
-
-interface InitAttemptRequest {
-  quizId: string;
-  concepts?: string[];
-  priorMu?: number;
-  priorSigma2?: number;
-}
+import type { InitAttemptRequest } from '@/types';
 
 
 export const POST = async (request: NextRequest) => {
