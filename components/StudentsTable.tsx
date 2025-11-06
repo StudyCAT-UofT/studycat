@@ -1,11 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import {
-    Text,
-    Group,
-    Box
-} from '@mantine/core'
+import { Text } from '@mantine/core'
 import { DataTable, DataTableSortStatus } from 'mantine-datatable'
 
 interface Student {

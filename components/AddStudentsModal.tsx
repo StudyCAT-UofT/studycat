@@ -1,6 +1,6 @@
 'use client'
 
-import { Box, Text, Button, Group, Modal, Stack, Textarea, Alert } from "@mantine/core"
+import { Text, Button, Group, Modal, Stack, Textarea, Alert } from "@mantine/core"
 import { useState, useEffect } from "react"
 import { IconAlertCircle, IconCheck } from "@tabler/icons-react"
 import { useCourse } from "@/lib/course-context"
