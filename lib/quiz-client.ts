@@ -2,48 +2,13 @@
  * Client utility for interacting with quiz attempt endpoints
  */
 
-interface InitAttemptRequest {
-  quizId: string;
-  concepts?: string[];
-  priorMu?: number;
-  priorSigma2?: number;
-}
-
-interface InitAttemptResponse {
-  attemptId: string;
-  quizId: string;
-  enrollmentId: string;
-  theta: Record<string, number>;
-  nextItem?: {
-    item_id: string;
-    skill: string;
-    stem: string;
-    options: string[];
-  };
-  nextAction: string;
-  startedAt: string;
-}
-
-interface StepAttemptRequest {
-  attemptId: string;
-  itemId: string;
-  answerIndex: number;
-  responseTimeMs?: number;
-}
-
-interface StepAttemptResponse {
-  attemptId: string;
-  theta: Record<string, number>;
-  mastery: Record<string, boolean>;
-  nextAction: string;
-  nextItem?: {
-    item_id: string;
-    skill: string;
-    stem: string;
-    options: string[];
-  };
-  isFinished: boolean;
-}
+import type {
+  InitAttemptRequest,
+  InitAttemptResponse,
+  StepAttemptRequest,
+  StepAttemptResponse,
+  AttemptResultsResponse,
+} from '@/types'
 
 export class QuizClient {
   private baseUrl: string;
@@ -83,6 +48,24 @@ export class QuizClient {
     if (!response.ok) {
       const errorData = await response.json();
       throw new Error(errorData.error || 'Failed to process quiz step');
+    }
+
+    return response.json();
+  }
+
+  async getResults(attemptId: string): Promise<AttemptResultsResponse> {
+    const response = await fetch(`${this.baseUrl}/results`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify({ attemptId }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to fetch quiz results');
     }
 
     return response.json();

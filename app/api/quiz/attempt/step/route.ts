@@ -1,13 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { fastApiClient, type FastAPIStepRequest } from '@/lib/fastapi-client';
-
-interface StepAttemptRequest {
-  attemptId: string;
-  itemId: string;
-  answerIndex: number;
-  responseTimeMs?: number;
-}
+import type { StepAttemptRequest } from '@/types';
 
 
 export const POST = async (request: NextRequest) => {
@@ -76,6 +70,15 @@ export const POST = async (request: NextRequest) => {
 
     // Find the selected option
     const selectedOption = item.options.find(opt => opt.label === selectedLabel);
+    
+    // Find the correct answer index
+    const correctAnswerIndex = optionLabels.indexOf(correctOption.label as typeof optionLabels[number]);
+    if (correctAnswerIndex === -1) {
+      return NextResponse.json(
+        { error: 'Invalid correct option label' },
+        { status: 400 }
+      );
+    }
 
     // Create response record
     const response = await prisma.response.create({
@@ -145,6 +148,12 @@ export const POST = async (request: NextRequest) => {
       nextAction: fastApiData.next_action,
       nextItem: fastApiData.next_item,
       isFinished: fastApiData.next_action === 'FINISH',
+      feedback: {
+        correctAnswerIndex: correctAnswerIndex,
+        selectedAnswerIndex: answerIndex,
+        isCorrect: isCorrect,
+        justification: selectedOption?.justification || null,
+      },
     });
 
   } catch (error) {
