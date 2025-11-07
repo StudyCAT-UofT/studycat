@@ -71,8 +71,8 @@ export default function LoginPage() {
                 <Card withBorder padding="lg" radius="md">
                     <Stack>
                         <TextInput
-                            label="Username"
-                            placeholder="Enter your username"
+                            label="UTORid"
+                            placeholder="Enter your UTORid"
                             value={username}
                             onChange={(e) => setUsername(e.currentTarget.value)}
                             onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
@@ -86,10 +86,6 @@ export default function LoginPage() {
                         </Button>
                     </Stack>
                 </Card>
-
-                <Text size="sm" c="dimmed" ta="center">
-                    Enter your username to access StudyCAT. No password required.
-                </Text>
             </Stack>
         </Container>
     )
