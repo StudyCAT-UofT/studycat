@@ -1,15 +1,17 @@
 'use client'
 
 import { Container, Stack, Title, Group, TextInput, MultiSelect, Button, Card, Flex, Modal, Text, Box } from '@mantine/core'
-import { IconSearch, IconFilter, IconX, IconPlus, IconTrash } from '@tabler/icons-react'
+import { IconSearch, IconFilter, IconX, IconPlus, IconTrash, IconUpload } from '@tabler/icons-react'
 import { ProtectedRoute, RoleBasedRoute, QuestionBankTable, EditQuestionModal } from '@/components'
 import { useCourse } from '@/lib/course-context'
 import { useEffect, useState, useMemo, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { Item } from '@/types'
 
 
 const QuestionBankContent = () => {
     const { selectedCourseOffering } = useCourse()
+    const router = useRouter()
     const [items, setItems] = useState<Item[]>([])
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -162,6 +164,14 @@ const QuestionBankContent = () => {
                                 Delete Selected ({selectedRecords.length})
                             </Button>
                         )}
+                        <Button
+                            variant="outline"
+                            leftSection={<IconUpload size={16} />}
+                            onClick={() => router.push('/upload')}
+                            disabled={!selectedCourseOffering?.course?.id}
+                        >
+                            Upload Questions
+                        </Button>
                         <Button
                             leftSection={<IconPlus size={16} />}
                             onClick={() => setIsNewQuestionModalOpen(true)}
