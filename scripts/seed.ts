@@ -877,21 +877,454 @@ const main = async () => {
 
   console.log('✅ Created responses')
 
+  // Create more students for testing
+  const student3 = await prisma.user.create({
+    data: {
+      username: 'student3',
+    },
+  })
+
+  const student4 = await prisma.user.create({
+    data: {
+      username: 'student4',
+    },
+  })
+
+  const ta1 = await prisma.user.create({
+    data: {
+      username: 'ta1',
+    },
+  })
+
+  console.log('✅ Created additional users')
+
+  // Create additional enrollments
+  const student3Enrollment = await prisma.enrollment.create({
+    data: {
+      userId: student3.id,
+      offeringId: offering.id,
+      offeringRole: 'STUDENT',
+    },
+  })
+
+  const student4Enrollment = await prisma.enrollment.create({
+    data: {
+      userId: student4.id,
+      offeringId: offering.id,
+      offeringRole: 'STUDENT',
+    },
+  })
+
+  await prisma.enrollment.create({
+    data: {
+      userId: ta1.id,
+      offeringId: offering.id,
+      offeringRole: 'TA',
+    },
+  })
+
+  console.log('✅ Created additional enrollments')
+
+  // Create initial theta values for students
+  await prisma.theta.createMany({
+    data: [
+      {
+        enrollmentId: student1Enrollment.id,
+        moduleId: module1.id,
+        value: 0.0,
+      },
+      {
+        enrollmentId: student1Enrollment.id,
+        moduleId: module2.id,
+        value: 0.0,
+      },
+      {
+        enrollmentId: (await prisma.enrollment.findFirst({
+          where: { userId: student2.id, offeringId: offering.id },
+        }))!.id,
+        moduleId: module1.id,
+        value: 0.0,
+      },
+      {
+        enrollmentId: (await prisma.enrollment.findFirst({
+          where: { userId: student2.id, offeringId: offering.id },
+        }))!.id,
+        moduleId: module2.id,
+        value: 0.0,
+      },
+      {
+        enrollmentId: student3Enrollment.id,
+        moduleId: module1.id,
+        value: 0.0,
+      },
+      {
+        enrollmentId: student3Enrollment.id,
+        moduleId: module2.id,
+        value: 0.0,
+      },
+      {
+        enrollmentId: student4Enrollment.id,
+        moduleId: module1.id,
+        value: 0.0,
+      },
+      {
+        enrollmentId: student4Enrollment.id,
+        moduleId: module2.id,
+        value: 0.0,
+      },
+    ],
+  })
+
+  console.log('✅ Created initial theta values')
+
+  // Create a second quiz for testing
+  const quiz2 = await prisma.quiz.create({
+    data: {
+      offeringId: offering.id,
+      title: 'Data Structures Quiz',
+      fixedLength: 5,
+      includedModuleIds: [module2.id],
+      includedBlooms: ['REMEMBER', 'UNDERSTAND', 'APPLY'],
+      createdById: instructor.id,
+    },
+  })
+
+  // Link items to second quiz (Data Structures questions)
+  await prisma.quizItem.createMany({
+    data: [
+      { quizId: quiz2.id, itemId: item3.id },
+      { quizId: quiz2.id, itemId: item7.id },
+      { quizId: quiz2.id, itemId: item8.id },
+      { quizId: quiz2.id, itemId: item9.id },
+      { quizId: quiz2.id, itemId: item11.id },
+    ],
+  })
+
+  console.log('✅ Created second quiz')
+
+  // Create an inactive quiz
+  await prisma.quiz.create({
+    data: {
+      offeringId: offering.id,
+      title: 'Old Midterm Exam (Archived)',
+      fixedLength: 10,
+      includedModuleIds: [module1.id, module2.id],
+      includedBlooms: ['REMEMBER', 'UNDERSTAND', 'APPLY', 'ANALYZE', 'EVALUATE', 'CREATE'],
+      createdById: instructor.id,
+      active: false,
+    },
+  })
+
+  console.log('✅ Created inactive quiz')
+
+  // Get student2 enrollment
+  const student2Enrollment = await prisma.enrollment.findFirst({
+    where: {
+      userId: student2.id,
+      offeringId: offering.id,
+    },
+  })
+
+  if (!student2Enrollment) {
+    throw new Error('Student2 enrollment not found')
+  }
+
+  // Create an in-progress attempt for student2
+  const inProgressAttempt = await prisma.attempt.create({
+    data: {
+      quizId: quiz.id,
+      enrollmentId: student2Enrollment.id,
+      startedAt: new Date('2024-10-02T14:00:00Z'),
+      status: 'IN_PROGRESS',
+      fixedLengthN: 5,
+      engineVersion: '1.0.0',
+      scopeSnapshot: {
+        includedModuleIds: [module1.id, module2.id],
+        includedBlooms: ['REMEMBER', 'UNDERSTAND', 'APPLY', 'ANALYZE', 'EVALUATE', 'CREATE'],
+        eligibleItemIds: [item1.id, item2.id, item3.id, item4.id, item5.id, item6.id, item7.id, item8.id, item9.id, item10.id, item11.id, item12.id],
+      },
+    },
+  })
+
+  // Get correct options for in-progress attempt
+  const correctOption6 = await prisma.itemOption.findFirst({
+    where: { itemId: item6.id, isCorrect: true },
+  })
+  const correctOption7 = await prisma.itemOption.findFirst({
+    where: { itemId: item7.id, isCorrect: true },
+  })
+
+  // Add 2 responses to the in-progress attempt
+  await prisma.response.createMany({
+    data: [
+      {
+        attemptId: inProgressAttempt.id,
+        itemId: item6.id,
+        selectedLabel: 'B',
+        itemOptionId: correctOption6?.id,
+        isCorrect: true,
+        askedAt: new Date('2024-10-02T14:00:00Z'),
+        answeredAt: new Date('2024-10-02T14:03:00Z'),
+        responseTimeMs: 180000,
+        engineMasterySnapshot: {
+          [module1.id]: 0.5,
+        },
+      },
+      {
+        attemptId: inProgressAttempt.id,
+        itemId: item7.id,
+        selectedLabel: 'A',
+        itemOptionId: correctOption7?.id,
+        isCorrect: true,
+        askedAt: new Date('2024-10-02T14:04:00Z'),
+        answeredAt: new Date('2024-10-02T14:07:00Z'),
+        responseTimeMs: 180000,
+        engineMasterySnapshot: {
+          [module1.id]: 0.5,
+          [module2.id]: 0.4,
+        },
+      },
+    ],
+  })
+
+  console.log('✅ Created in-progress attempt')
+
+  // Create a second completed attempt for student3 on quiz2
+  const wrongOption1 = await prisma.itemOption.findFirst({
+    where: { itemId: item3.id, isCorrect: false },
+  })
+  const correctOption8 = await prisma.itemOption.findFirst({
+    where: { itemId: item8.id, isCorrect: true },
+  })
+  const wrongOption2 = await prisma.itemOption.findFirst({
+    where: { itemId: item9.id, isCorrect: false },
+  })
+
+  const attempt3 = await prisma.attempt.create({
+    data: {
+      quizId: quiz2.id,
+      enrollmentId: student3Enrollment.id,
+      startedAt: new Date('2024-10-03T09:00:00Z'),
+      finishedAt: new Date('2024-10-03T09:25:00Z'),
+      status: 'COMPLETED',
+      fixedLengthN: 5,
+      engineVersion: '1.0.0',
+      scopeSnapshot: {
+        includedModuleIds: [module2.id],
+        includedBlooms: ['REMEMBER', 'UNDERSTAND', 'APPLY'],
+        eligibleItemIds: [item3.id, item7.id, item8.id, item9.id, item11.id],
+      },
+      engineMasteryAtFinish: {
+        [module2.id]: 0.65,
+      },
+    },
+  })
+
+  await prisma.response.createMany({
+    data: [
+      {
+        attemptId: attempt3.id,
+        itemId: item3.id,
+        selectedLabel: 'A',
+        itemOptionId: wrongOption1?.id,
+        isCorrect: false,
+        askedAt: new Date('2024-10-03T09:00:00Z'),
+        answeredAt: new Date('2024-10-03T09:04:00Z'),
+        responseTimeMs: 240000,
+        engineMasterySnapshot: {
+          [module2.id]: 0.3,
+        },
+      },
+      {
+        attemptId: attempt3.id,
+        itemId: item8.id,
+        selectedLabel: 'B',
+        itemOptionId: correctOption8?.id,
+        isCorrect: true,
+        askedAt: new Date('2024-10-03T09:05:00Z'),
+        answeredAt: new Date('2024-10-03T09:08:00Z'),
+        responseTimeMs: 180000,
+        engineMasterySnapshot: {
+          [module2.id]: 0.5,
+        },
+      },
+      {
+        attemptId: attempt3.id,
+        itemId: item9.id,
+        selectedLabel: 'C',
+        itemOptionId: wrongOption2?.id,
+        isCorrect: false,
+        askedAt: new Date('2024-10-03T09:09:00Z'),
+        answeredAt: new Date('2024-10-03T09:12:00Z'),
+        responseTimeMs: 180000,
+        engineMasterySnapshot: {
+          [module2.id]: 0.4,
+        },
+      },
+    ],
+  })
+
+  console.log('✅ Created additional attempts')
+
+  // Create an abandoned attempt for student4
+  const attempt4 = await prisma.attempt.create({
+    data: {
+      quizId: quiz.id,
+      enrollmentId: student4Enrollment.id,
+      startedAt: new Date('2024-10-04T10:00:00Z'),
+      finishedAt: new Date('2024-10-04T10:05:00Z'),
+      status: 'ABANDONED',
+      fixedLengthN: 5,
+      engineVersion: '1.0.0',
+      scopeSnapshot: {
+        includedModuleIds: [module1.id, module2.id],
+        includedBlooms: ['REMEMBER', 'UNDERSTAND', 'APPLY', 'ANALYZE', 'EVALUATE', 'CREATE'],
+        eligibleItemIds: [item1.id, item2.id, item3.id, item4.id, item5.id, item6.id, item7.id, item8.id, item9.id, item10.id, item11.id, item12.id],
+      },
+    },
+  })
+
+  // Add one response before abandoning
+  await prisma.response.create({
+    data: {
+      attemptId: attempt4.id,
+      itemId: item1.id,
+      selectedLabel: 'A',
+      itemOptionId: correctOption1?.id,
+      isCorrect: true,
+      askedAt: new Date('2024-10-04T10:00:00Z'),
+      answeredAt: new Date('2024-10-04T10:03:00Z'),
+      responseTimeMs: 180000,
+      engineMasterySnapshot: {
+        [module1.id]: 0.4,
+      },
+    },
+  })
+
+  console.log('✅ Created abandoned attempt')
+
+  // Create additional courses for testing course switching and upload flows
+  const course2 = await prisma.course.create({
+    data: {
+      code: 'CSC207',
+      title: 'Software Design',
+    }
+  })
+
+  const course3 = await prisma.course.create({
+    data: {
+      code: 'CSC343',
+      title: 'Introduction to Databases',
+    }
+  })
+
+  const course4 = await prisma.course.create({
+    data: {
+      code: 'CSC369',
+      title: 'Operating Systems',
+    }
+  })
+
+  console.log('✅ Created additional courses')
+
+  // Create course offerings for additional courses
+  const offering2 = await prisma.courseOffering.create({
+    data: {
+      courseId: course2.id,
+      termId: term.id,
+      display: 'CSC207 - Fall 2024',
+    }
+  })
+
+  const offering3 = await prisma.courseOffering.create({
+    data: {
+      courseId: course3.id,
+      termId: term.id,
+      display: 'CSC343 - Fall 2024',
+    }
+  })
+
+  const offering4 = await prisma.courseOffering.create({
+    data: {
+      courseId: course4.id,
+      termId: term.id,
+      display: 'CSC369 - Fall 2024',
+    }
+  })
+
+  console.log('✅ Created additional course offerings')
+
+  // Enroll instructor in all courses
+  await prisma.enrollment.createMany({
+    data: [
+      {
+        userId: instructor.id,
+        offeringId: offering2.id,
+        offeringRole: 'INSTRUCTOR',
+      },
+      {
+        userId: instructor.id,
+        offeringId: offering3.id,
+        offeringRole: 'INSTRUCTOR',
+      },
+      {
+        userId: instructor.id,
+        offeringId: offering4.id,
+        offeringRole: 'INSTRUCTOR',
+      },
+    ]
+  })
+
+  console.log('✅ Enrolled instructor in additional courses')
+
+  // Create modules for additional courses
+  await Promise.all([
+    prisma.module.create({
+      data: { offeringId: offering2.id, name: 'Design Patterns' }
+    }),
+    prisma.module.create({
+      data: { offeringId: offering2.id, name: 'Object-Oriented Design' }
+    }),
+    prisma.module.create({
+      data: { offeringId: offering3.id, name: 'SQL Fundamentals' }
+    }),
+    prisma.module.create({
+      data: { offeringId: offering3.id, name: 'Database Normalization' }
+    }),
+    prisma.module.create({
+      data: { offeringId: offering4.id, name: 'Process Management' }
+    }),
+    prisma.module.create({
+      data: { offeringId: offering4.id, name: 'Memory Management' }
+    })
+  ])
+
+  console.log('✅ Created modules for additional courses')
+
   console.log('🎉 Seed completed successfully!')
   console.log('\n📊 Summary:')
-  console.log(`- Users: 3 (1 instructor, 2 students)`)
-  console.log(`- Course: CS101 - Introduction to Computer Science`)
+  console.log(`- Users: 6 (1 instructor, 1 TA, 4 students)`)
+  console.log(`- Courses: 4 (CS101, CSC207, CSC343, CSC369)`)
   console.log(`- Term: Fall 2024`)
-  console.log(`- Items: 12 questions with 4 options each`)
-  console.log(`- Quiz: Programming Basics Quiz (5 questions from 12 available)`)
-  console.log(`- Attempt: 1 completed attempt by student1`)
-  console.log(`- Responses: 5 responses (all correct)`)
+  console.log(`- Course Offerings: 4`)
+  console.log(`- Modules: 8 total`)
+  console.log(`- Items: 12 questions with 4 options each (48 options) in CS101`)
+  console.log(`- Quizzes: 3 (2 active, 1 inactive) in CS101`)
+  console.log(`- Attempts: 4 (2 completed, 1 in-progress, 1 abandoned)`)
+  console.log(`- Responses: 11 total`)
+  console.log(`- Theta values: 8 (initial values for all students)`)
   console.log('\n🔑 Test credentials:')
-  console.log('- Instructor: instructor1')
-  console.log('- Students: student1, student2')
-  console.log('\n📚 Question Topics:')
-  console.log('- Programming Basics (7 questions): variables, loops, comments, operators, expressions')
-  console.log('- Data Structures (5 questions): arrays, indexing, time complexity, stack implementation')
+  console.log('- Instructor: instructor1 (enrolled in all 4 courses)')
+  console.log('- TA: ta1 (enrolled in CS101)')
+  console.log('- Students: student1, student2, student3, student4 (enrolled in CS101)')
+  console.log('\n📝 Test Scenarios:')
+  console.log('- student1: Has completed attempt on Programming Basics Quiz (5/5 correct)')
+  console.log('- student2: Has in-progress attempt on Programming Basics Quiz (2/5 answered)')
+  console.log('- student3: Has completed attempt on Data Structures Quiz (1/3 correct)')
+  console.log('- student4: Has abandoned attempt on Programming Basics Quiz (1 response)')
+  console.log('\n📚 Courses Available:')
+  console.log('- CS101: Has questions and quizzes populated')
+  console.log('- CSC207, CSC343, CSC369: Empty, ready for spreadsheet upload testing')
 }
 
 main()
