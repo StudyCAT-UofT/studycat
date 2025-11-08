@@ -1,7 +1,7 @@
 'use client'
 
 import { QuizItem, Feedback } from '@/types'
-import { Card, Stack, Title, Button, Radio, Text, Paper } from '@mantine/core'
+import { Card, Stack, Title, Button, Radio, Text, Paper, Image, Flex } from '@mantine/core'
 import { useState } from 'react'
 
 interface QuizQuestionProps {
@@ -15,6 +15,12 @@ const QuizQuestion = ({ item, onAnswer, onNext, feedback }: QuizQuestionProps) =
     const [userSelectedIndex, setUserSelectedIndex] = useState<number | null>(null)
     const isFeedbackMode = feedback !== null && feedback !== undefined
     const selectedIndex = isFeedbackMode ? feedback.selectedAnswerIndex : userSelectedIndex
+    const figureUrl = typeof item.figure_url === 'string' && item.figure_url.trim().length > 0
+        ? item.figure_url.trim()
+        : null
+    const reference = typeof item.reference === 'string' && item.reference.trim().length > 0
+        ? item.reference.trim()
+        : null
 
     const handleSubmit = () => {
         if (userSelectedIndex !== null && !isFeedbackMode) {
@@ -45,6 +51,17 @@ const QuizQuestion = ({ item, onAnswer, onNext, feedback }: QuizQuestionProps) =
         <Card withBorder padding="lg" radius="md">
             <Stack gap="md">
                 <Title order={3}>{item.stem}</Title>
+
+                {figureUrl && (
+                    <Flex mah="500px" justify="center">
+                        <Image
+                            src={figureUrl}
+                            alt="Question illustration"
+                            w="auto"
+                            fit="contain"
+                        />
+                    </Flex>
+                )}
 
                 <Radio.Group
                     value={selectedIndex?.toString() || ''}
@@ -78,12 +95,26 @@ const QuizQuestion = ({ item, onAnswer, onNext, feedback }: QuizQuestionProps) =
                     </Stack>
                 </Radio.Group>
 
-                {isFeedbackMode && feedback.justification && (
+                {isFeedbackMode && (feedback.justification || reference) && (
                     <Paper p="md" radius="md" bg="gray.0" mt="md">
-                        <Text size="sm" fw={500} mb="xs">
-                            Feedback:
-                        </Text>
-                        <Text size="sm">{feedback.justification}</Text>
+                        <Stack gap="md">
+                            {feedback.justification && (
+                                <>
+                                    <Text size="sm" fw={500}>
+                                        Feedback:
+                                    </Text>
+                                    <Text size="sm">{feedback.justification}</Text>
+                                </>
+                            )}
+                            {reference && (
+                                <>
+                                    <Text size="sm" fw={500}>
+                                        Reference:
+                                    </Text>
+                                    <Text size="sm">{reference}</Text>
+                                </>
+                            )}
+                        </Stack>
                     </Paper>
                 )}
 

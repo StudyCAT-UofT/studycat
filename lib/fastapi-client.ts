@@ -19,6 +19,8 @@ export interface FastAPIInitResponse {
     skill: string;
     stem: string;
     options: string[];
+    figure_url?: string | null;
+    reference?: string | null;
   };
   next_action: string;
 }
@@ -41,6 +43,8 @@ export interface FastAPIStepResponse {
     skill: string;
     stem: string;
     options: string[];
+    figure_url?: string | null;
+    reference?: string | null;
   };
 }
 

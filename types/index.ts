@@ -53,6 +53,8 @@ export interface QuizItem {
     skill: string
     stem: string
     options: string[]
+    figure_url?: string | null
+    reference?: string | null
 }
 
 // Quiz Attempt Interfaces
