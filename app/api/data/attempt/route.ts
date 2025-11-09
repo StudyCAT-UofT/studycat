@@ -6,13 +6,15 @@ export const runtime = 'nodejs'
 /**
  * GET /api/data/attempt
  * 
- * Returns a .csv file containing headers userID, score, questionSequence
+ * Returns JSON containing user attempts for a given quiz.
  * 
  * Query Parameters: 
  *  - quizID (required): The ID of the quiz to fetch attempts from
  * 
  * Returns:
- * - 200: A .csv file containing headers userID, score, questionSequence
+ * - 200: JSON containing quizId, count (number of attempts), and attempts 
+ *        (object containing userId, score, and questions (list of questions 
+ *        answered in order of when they appeared))
  * - 400: Missing course offering ID
  * - 500: Server error
  */

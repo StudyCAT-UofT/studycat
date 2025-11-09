@@ -6,13 +6,16 @@ export const runtime = 'nodejs'
 /**
  * GET /api/data/question
  * 
- * Returns a .csv file containing headers questionId, stem, average, averageA, averageB, averageC, averageD, numAttempts
+ * Returns JSON containing question-level stats for items in a quiz.
  * 
  * Query Parameters: 
  *  - quizID (required): The ID of the quiz to fetch questions
  * 
  * Returns:
- * - 200: A .csv file containing headers questionId, stem, average, averageA, averageB, averageC, averageD, numAttempts
+ * - 200: JSON containing quizId, count (num items in the quiz), and items 
+ *        (object containing item id, stem, average (how often student got correct answer), 
+ *        averageA (percentage of time a student chose option A), averageB, averageC, averageD, 
+ *        and numAttempts)
  * - 400: Missing quizId
  * - 500: Server error
  */
@@ -30,8 +33,10 @@ export async function GET(request: Request) {
         });
         itemIds = qi.map((r) => r.itemId);
 
-        // If no items found, return header-only CSV
-        const header = ["questionId", "stem", "average", "averageA", "averageB", "averageC", "averageD", "numAttempts"].join(",") + "\n";
+        // If empty, return empty items array
+        if (itemIds.length === 0) {
+            return NextResponse.json({ quizId, count: 0, items: [] }, { status: 200 })
+        }
 
         const grouped: Array<{ itemId: string; selectedLabel: string | null; isCorrect: boolean | null; _count: { _all: number } }> =
             (await (prisma as any).response.groupBy({
@@ -82,65 +87,46 @@ export async function GET(request: Request) {
             }
         }
 
-        const csvEscape = (value: unknown) => {
-            if (value === undefined || value === null) return "";
-            const s = String(value);
-            if (s.includes('"')) return `"${s.replace(/"/g, '""')}"`;
-            if (s.includes(",") || s.includes("\n") || s.includes("\r")) return `"${s}"`;
-            return s;
-        };
+        // Map meta by id for stable order
+        const metaById = itemsMeta.reduce<Record<string, { externalQuestionId?: string | null; stem?: string | null }>>(
+            (acc, it) => {
+                acc[it.id] = { externalQuestionId: it.externalQuestionId, stem: it.stem }
+                return acc
+            },
+            {}
+        );
 
-        // Build rows in same order as itemsMeta
-        const rows: string[] = [];
-        // create a mapping for itemsMeta by id for stable order
-        const metaById = itemsMeta.reduce<Record<string, { externalQuestionId?: string | null; stem?: string | null }>>((acc, it) => {
-            acc[it.id] = { externalQuestionId: it.externalQuestionId, stem: it.stem };
-            return acc;
-        }, {});
+        // Build items array
+        const items = itemIds.map((id) => {
+            const meta = metaById[id] ?? {}
+            const questionId = meta.externalQuestionId ?? id
+            const stem = meta.stem ?? ''
 
-        for (const id of itemIds) {
-            const meta = metaById[id] ?? {};
-            const questionId = meta.externalQuestionId ?? id;
-            const stem = meta.stem ?? "";
+            const agg = statsMap[id] ?? { numAttempts: 0, correctCount: 0, choiceCounts: { A: 0, B: 0, C: 0, D: 0 } }
+            const n = agg.numAttempts
 
-            const agg = statsMap[id] ?? { numAttempts: 0, correctCount: 0, choiceCounts: { A: 0, B: 0, C: 0, D: 0 } };
-            const n = agg.numAttempts;
+            const average = n > 0 ? agg.correctCount / n : 0
+            const averageA = n > 0 ? agg.choiceCounts.A / n : 0
+            const averageB = n > 0 ? agg.choiceCounts.B / n : 0
+            const averageC = n > 0 ? agg.choiceCounts.C / n : 0
+            const averageD = n > 0 ? agg.choiceCounts.D / n : 0
 
-            const average = n > 0 ? (agg.correctCount / n) : 0;
-            const averageA = n > 0 ? (agg.choiceCounts.A / n) : 0;
-            const averageB = n > 0 ? (agg.choiceCounts.B / n) : 0;
-            const averageC = n > 0 ? (agg.choiceCounts.C / n) : 0;
-            const averageD = n > 0 ? (agg.choiceCounts.D / n) : 0;
+            // round to 4 decimal places for neatness
+            const round = (v: number) => Math.round(v * 10000) / 10000
 
-            // format as decimal with 2 places
-            const fmt = (v: number) => v.toFixed(2);
+            return {
+                questionId,
+                stem,
+                average: round(average),
+                averageA: round(averageA),
+                averageB: round(averageB),
+                averageC: round(averageC),
+                averageD: round(averageD),
+                numAttempts: n,
+            }
+        });
 
-            rows.push(
-                [
-                    questionId,
-                    csvEscape(stem),
-                    fmt(average),
-                    fmt(averageA),
-                    fmt(averageB),
-                    fmt(averageC),
-                    fmt(averageD),
-                    n,
-                ].join(",")
-            );
-        }
-
-        const csvContent = header + rows.join("\n");
-
-        // Set headers for file download
-        const filename = `questions_${quizId}.csv`;
-
-        const headers = {
-            "Content-Type": "text/csv; charset=utf-8",
-            "Content-Disposition": `attachment; filename="${filename}"`,
-            "Cache-Control": "no-store",
-        };
-
-        return new NextResponse(csvContent, { status: 200, headers });
+        return NextResponse.json({ quizId, count: items.length, items }, { status: 200 });
 
     } catch (error) {
         // Log error for debugging while keeping client response generic
