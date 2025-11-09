@@ -24,6 +24,11 @@ export async function GET(request: Request) {
         const { searchParams } = new URL(request.url);
         const quizId = searchParams.get('quizId');
 
+        // Validate required parameter
+        if (!quizId) {
+            return NextResponse.json({ error: 'Quiz ID is required' }, { status: 400 });
+        }
+
         // Determine item IDs to operate on
         let itemIds: string[] = [];
 
