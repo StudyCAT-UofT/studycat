@@ -29,7 +29,7 @@ export async function GET(request: Request) {
         const attempts = await prisma.attempt.findMany({
             where: {
                 quizId,
-                status: "COMPLETED", // AttemptStatus.COMPLETED
+                status: 'COMPLETED', // AttemptStatus.COMPLETED
             },
             include: {
                 enrollment: {
@@ -38,53 +38,47 @@ export async function GET(request: Request) {
                 responses: {
                     include: {
                         item: {
-                            select: { externalQuestionId: true, id: true },
+                            select: { id: true, externalQuestionId: true, stem: true },
                         },
                     },
-                    orderBy: { askedAt: "asc" },
+                    orderBy: { askedAt: 'asc' },
                 },
             },
-            orderBy: { startedAt: "asc" },
+            orderBy: { startedAt: 'asc' },
         });
 
-        // Build rows
-        const rows: string[] = [];
+        // Transform data
+        const data = attempts.map((attempt) => {
+            const total = attempt.responses.length
+            const correctCount = attempt.responses.reduce(
+                (acc, r) => acc + (r.isCorrect ? 1 : 0),
+                0
+            )
 
-        for (const at of attempts) {
-            // if no responses, score = 0
-            const total = at.responses.length;
-            const correctCount = at.responses.reduce((acc, r) => acc + (r.isCorrect ? 1 : 0), 0);
-            // Calculate percentage; guard divide by zero
-            const scorePct = total > 0 ? (correctCount / total) * 100 : 0;
-            // Format to two decimals
-            const scoreFormatted = scorePct.toFixed(2);
+            const scorePct = total > 0 ? (correctCount / total) * 100 : 0
 
-            // Build questionSequence — use externalQuestionId where available; fallback to itemId
-            const seq = at.responses
-                .map((r) => r.item?.externalQuestionId ?? r.itemId ?? "")
-                // filter empty entries
-                .filter((x) => x !== "")
-                // join with pipe to avoid colliding with CSV commas
-                .join("|");
+            // Build question data
+            const questions = attempt.responses.map((r) => ({
+                questionId: r.item?.externalQuestionId ?? r.itemId,
+                stem: r.item?.stem ?? '(no text)',
+                isCorrect: r.isCorrect,
+            }))
 
-            const studentId = at.enrollment?.userId ?? "";
+            return {
+                userId: attempt.enrollment?.userId ?? '',
+                score: parseFloat(scorePct.toFixed(2)),
+                questions,
+            }
+        });
 
-            rows.push([studentId, scoreFormatted, seq].join(","));
-        }
-
-        const header = ["userId", "score", "questionSequence"].join(",") + "\n";
-        const csvContent = header + rows.join("\n");
-
-        // Set headers for file download
-        const filename = `attempts_${quizId}.csv`;
-
-        const headers = {
-            "Content-Type": "text/csv; charset=utf-8",
-            "Content-Disposition": `attachment; filename="${filename}"`,
-            "Cache-Control": "no-store",
-        };
-
-        return new NextResponse(csvContent, { status: 200, headers });
+        return NextResponse.json(
+            {
+                quizId,
+                count: data.length,
+                attempts: data,
+            },
+            { status: 200 }
+        )
     } catch (error) {
         // Log error for debugging while keeping client response generic
         console.error('Failed to fetch attempts:', error)
