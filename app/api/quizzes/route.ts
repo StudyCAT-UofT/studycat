@@ -104,7 +104,7 @@ export async function GET(request: Request) {
       // Filter for completed attempts to calculate meaningful statistics
       const completedAttempts = quiz.attempts.filter(attempt => attempt.status === 'COMPLETED')
       const totalAttempts = quiz.attempts.length
-      
+
       // Calculate average score percentage for completed attempts only
       let averageScore = null
       if (completedAttempts.length > 0) {
@@ -121,7 +121,7 @@ export async function GET(request: Request) {
 
       // Create a mapping of module IDs to names for includedModuleIds
       const moduleIdToName = new Map(quiz.offering.modules.map(module => [module.id, module.name]))
-      
+
       // Convert includedModuleIds to module names
       const includedModuleNames = quiz.includedModuleIds
         .map(moduleId => moduleIdToName.get(moduleId))
@@ -221,19 +221,46 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'One or more modules not found or do not belong to this course offering' }, { status: 400 })
     }
 
-    // Create the quiz
-    const quiz = await prisma.quiz.create({
-      data: {
-        title,
-        offeringId: courseOfferingId,
-        includedModuleIds,
-        active,
-        fixedLength,
-        createdById: session.userId
-      }
-    })
+    // Find all eligible items that belong to the included modules and are active
+    const eligibleItems = await prisma.item.findMany({
+      where: {
+        moduleId: { in: includedModuleIds },
+        active: true,
+      },
+      select: { id: true }
+    });
 
-    return NextResponse.json({ quiz }, { status: 201 })
+    const eligibleItemIds = eligibleItems.map(i => i.id);
+
+    // Create quiz and QuizItem rows in a transaction
+    const result = await prisma.$transaction(async (tx) => {
+      const quiz = await tx.quiz.create({
+        data: {
+          title,
+          offeringId: courseOfferingId,
+          includedModuleIds,
+          active,
+          fixedLength,
+          createdById: session.userId
+        }
+      });
+
+      let quizItemsCreated = 0;
+      if (eligibleItemIds.length > 0) {
+        const data = eligibleItemIds.map(itemId => ({ quizId: quiz.id, itemId }));
+        // createMany is efficient; skipDuplicates just in case
+        await tx.quizItem.createMany({
+          data,
+          skipDuplicates: true
+        });
+        quizItemsCreated = data.length;
+      }
+
+      return { quiz, quizItemsCreated };
+    });
+
+
+    return NextResponse.json({ result }, { status: 201 })
   } catch (error) {
     console.error('Failed to create quiz:', error)
     return NextResponse.json({ error: 'Failed to create quiz' }, { status: 500 })
