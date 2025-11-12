@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { OptionLabel } from '@prisma/client'
 
 export const runtime = 'nodejs'
 
@@ -32,23 +33,42 @@ export async function GET(request: Request) {
         // Determine item IDs to operate on
         let itemIds: string[] = [];
 
-        const qi = await prisma.quizItem.findMany({
-            where: { quizId: String(quizId) },
-            select: { itemId: true },
+        const quiz = await prisma.quiz.findUnique({
+            where: { id: String(quizId) },
+            select: { includedModuleIds: true },
         });
-        itemIds = qi.map((r) => r.itemId);
+
+        if (!quiz) {
+            throw new Error('Quiz not found');
+        }
+
+        const quizItems = await prisma.item.findMany({
+            where: {
+                moduleId: { in: quiz.includedModuleIds },
+                active: true, // optional: filter to only active items
+            },
+            select: { id: true },
+        });
+
+        itemIds = quizItems.map((item) => item.id);
 
         // If empty, return empty items array
         if (itemIds.length === 0) {
             return NextResponse.json({ quizId, count: 0, items: [] }, { status: 200 })
         }
 
-        const grouped: Array<{ itemId: string; selectedLabel: string | null; isCorrect: boolean | null; _count: { _all: number } }> =
-            (await (prisma as any).response.groupBy({
-                by: ["itemId", "selectedLabel", "isCorrect"],
-                where: { itemId: { in: itemIds } },
-                _count: { _all: true },
-            })) as any;
+        const optionLabels = Object.values(OptionLabel) as OptionLabel[];
+
+        const grouped = (await (prisma as any).response.groupBy({
+            by: ['itemId', 'selectedLabel', 'isCorrect'],
+            where: { itemId: { in: itemIds } },
+            _count: { _all: true },
+        })) as Array<{
+            itemId: string;
+            selectedLabel: string | null;
+            isCorrect: boolean | null;
+            _count: { _all: number };
+        }>;
 
         // Fetch item metadata (externalQuestionId, stem)
         const itemsMeta = await prisma.item.findMany({
@@ -56,11 +76,18 @@ export async function GET(request: Request) {
             select: { id: true, externalQuestionId: true, stem: true },
         });
 
+        type ChoiceCounts = Record<OptionLabel, number>
         // Build a map itemId -> aggregated stats
         type Agg = {
             numAttempts: number;
             correctCount: number;
-            choiceCounts: { A: number; B: number; C: number; D: number };
+            choiceCounts: ChoiceCounts;
+        };
+
+        const initChoiceCounts = (): Record<OptionLabel, number> => {
+            const counts = {} as ChoiceCounts;
+            for (const label of optionLabels) counts[label] = 0;
+            return counts;
         };
 
         const statsMap: Record<string, Agg> = {};
@@ -68,13 +95,14 @@ export async function GET(request: Request) {
             statsMap[id] = {
                 numAttempts: 0,
                 correctCount: 0,
-                choiceCounts: { A: 0, B: 0, C: 0, D: 0 },
+                choiceCounts: initChoiceCounts(),
             };
         }
 
         for (const row of grouped) {
             const itemId = row.itemId;
-            const label = row.selectedLabel as string | null;
+            const rawLabel = row.selectedLabel;
+            const label = (rawLabel as OptionLabel) ?? null;
             const isCorrect = !!row.isCorrect;
             const cnt = row._count ? row._count._all : 0;
             if (!statsMap[itemId]) {
@@ -82,13 +110,13 @@ export async function GET(request: Request) {
                 statsMap[itemId] = {
                     numAttempts: 0,
                     correctCount: 0,
-                    choiceCounts: { A: 0, B: 0, C: 0, D: 0 },
+                    choiceCounts: initChoiceCounts(),
                 };
             }
             statsMap[itemId].numAttempts += cnt;
             if (isCorrect) statsMap[itemId].correctCount += cnt;
-            if (label && ["A", "B", "C", "D"].includes(label)) {
-                statsMap[itemId].choiceCounts[label as "A" | "B" | "C" | "D"] += cnt;
+            if (label && optionLabels.includes(label)) {
+                statsMap[itemId].choiceCounts[label] += cnt;
             }
         }
 
@@ -107,25 +135,23 @@ export async function GET(request: Request) {
             const questionId = meta.externalQuestionId ?? id
             const stem = meta.stem ?? ''
 
-            const agg = statsMap[id] ?? { numAttempts: 0, correctCount: 0, choiceCounts: { A: 0, B: 0, C: 0, D: 0 } }
+            const agg = statsMap[id] ?? { numAttempts: 0, correctCount: 0, choiceCounts: initChoiceCounts() }
             const n = agg.numAttempts
 
-            const average = n > 0 ? agg.correctCount / n : 0
-            const averageA = n > 0 ? agg.choiceCounts.A / n : 0
-            const averageB = n > 0 ? agg.choiceCounts.B / n : 0
-            const averageC = n > 0 ? agg.choiceCounts.C / n : 0
-            const averageD = n > 0 ? agg.choiceCounts.D / n : 0
-
-            return {
+            const base = {
                 questionId,
                 stem,
-                average: average,
-                averageA: averageA,
-                averageB: averageB,
-                averageC: averageC,
-                averageD: averageD,
+                average: n > 0 ? agg.correctCount / n : 0,
                 numAttempts: n,
+            } as Record<string, unknown>;
+
+            // dynamic average fields per OptionLabel (e.g., averageA, averageB, ...)
+            for (const label of optionLabels) {
+                const key = `average${label}`;
+                base[key] = n > 0 ? agg.choiceCounts[label] / n : 0;
             }
+
+            return base;
         });
 
         return NextResponse.json({ quizId, count: items.length, items }, { status: 200 });
