@@ -116,17 +116,14 @@ export async function GET(request: Request) {
             const averageC = n > 0 ? agg.choiceCounts.C / n : 0
             const averageD = n > 0 ? agg.choiceCounts.D / n : 0
 
-            // round to 4 decimal places for neatness
-            const round = (v: number) => Math.round(v * 10000) / 10000
-
             return {
                 questionId,
                 stem,
-                average: round(average),
-                averageA: round(averageA),
-                averageB: round(averageB),
-                averageC: round(averageC),
-                averageD: round(averageD),
+                average: average,
+                averageA: averageA,
+                averageB: averageB,
+                averageC: averageC,
+                averageD: averageD,
                 numAttempts: n,
             }
         });

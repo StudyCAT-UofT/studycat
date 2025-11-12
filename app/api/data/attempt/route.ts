@@ -68,7 +68,7 @@ export async function GET(request: Request) {
 
             return {
                 userId: attempt.enrollment?.userId ?? '',
-                score: parseFloat(scorePct.toFixed(2)),
+                score: scorePct,
                 questions,
             }
         });
