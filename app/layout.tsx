@@ -1,7 +1,9 @@
 import '@mantine/core/styles.css';
+import '@mantine/notifications/styles.css';
 import 'mantine-datatable/styles.layer.css';
 
 import { ColorSchemeScript, MantineProvider, mantineHtmlProps } from '@mantine/core';
+import { Notifications } from '@mantine/notifications';
 import { AuthProvider } from '@/lib/auth-context';
 import { CourseProvider } from '@/lib/course-context';
 
@@ -22,6 +24,7 @@ export default function RootLayout({
             </head>
             <body>
                 <MantineProvider defaultColorScheme="light">
+                    <Notifications position="top-right" zIndex={1000} />
                     <AuthProvider requireAuth={false}>
                         <CourseProvider>
                             {children}

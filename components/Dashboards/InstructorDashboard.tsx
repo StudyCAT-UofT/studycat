@@ -1,6 +1,7 @@
 import { useAuth } from "@/lib/auth-context"
 import { useCourse } from "@/lib/course-context"
 import { Container, Stack, Title, Card, Group, Button, Text } from "@mantine/core"
+import { IconUpload } from "@tabler/icons-react"
 import { useRouter } from "next/navigation"
 
 const InstructorDashboard = () => {
@@ -11,7 +12,16 @@ const InstructorDashboard = () => {
     return (
         <Container size="md" py="xl">
             <Stack gap="lg">
-                <Title order={2}>Dashboard</Title>
+                <Group justify="space-between" align="center">
+                    <Title order={2}>Dashboard</Title>
+                    <Button
+                        leftSection={<IconUpload size={16} />}
+                        onClick={() => router.push('/upload')}
+                        disabled={!selectedCourseOffering}
+                    >
+                        Upload Questions
+                    </Button>
+                </Group>
 
                 <Card withBorder padding="lg" radius="md">
                     <Stack>
