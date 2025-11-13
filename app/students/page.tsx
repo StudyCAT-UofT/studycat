@@ -1,41 +1,46 @@
 'use client'
 
 import { Container, Stack, Title, Badge, Group, Button, Modal, Text, Box } from '@mantine/core'
-import { ProtectedRoute, RoleBasedRoute, QuizzesTable, EditQuizModal } from '@/components'
+import { ProtectedRoute, RoleBasedRoute, StudentsTable } from '@/components'
 import { useCourse } from '@/lib/course-context'
 import { useEffect, useState, useCallback, useMemo } from 'react'
-import { Quiz } from '@/types'
 import { IconPlus, IconTrash } from '@tabler/icons-react'
+import AddStudentsModal from '@/components/AddStudentsModal'
 
+interface Student {
+    id: string
+    userId: string
+    username: string
+    enrolledAt: string
+    createdAt: string
+}
 
 /**
- * Main content component for the quizzes page
- * Displays a table of quizzes with statistics for the selected course offering
+ * Main content component for the students page
+ * Displays a table of students for the selected course offering
  */
-const QuizzesContent = () => {
+const StudentsContent = () => {
     const { selectedCourseOffering } = useCourse()
-    const [quizzes, setQuizzes] = useState<Quiz[]>([])
+    const [students, setStudents] = useState<Student[]>([])
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
     // Modal state
-    const [isNewQuizModalOpen, setIsNewQuizModalOpen] = useState(false)
-    const [isEditQuizModalOpen, setIsEditQuizModalOpen] = useState(false)
-    const [editingQuiz, setEditingQuiz] = useState<Quiz | null>(null)
+    const [isAddStudentsModalOpen, setIsAddStudentsModalOpen] = useState(false)
 
     // Selection and delete state
-    const [selectedRecords, setSelectedRecords] = useState<Quiz[]>([])
+    const [selectedRecords, setSelectedRecords] = useState<Student[]>([])
     const [deleteModalOpened, setDeleteModalOpened] = useState(false)
-    const [deletingQuizzes, setDeletingQuizzes] = useState<Quiz[]>([])
+    const [deletingStudents, setDeletingStudents] = useState<Student[]>([])
     const [isDeleting, setIsDeleting] = useState(false)
 
     /**
-     * Fetches quizzes for the selected course offering
+     * Fetches students for the selected course offering
      * Resets state when course offering changes
      */
-    const fetchQuizzes = useCallback(async () => {
+    const fetchStudents = useCallback(async () => {
         if (!selectedCourseOffering?.id) {
-            setQuizzes([])
+            setStudents([])
             return
         }
 
@@ -43,72 +48,69 @@ const QuizzesContent = () => {
         setError(null)
 
         try {
-            const response = await fetch(`/api/quizzes?courseOfferingId=${selectedCourseOffering.id}`, {
+            const response = await fetch(`/api/students?courseOfferingId=${selectedCourseOffering.id}`, {
                 credentials: 'include'
             })
             if (!response.ok) {
-                throw new Error('Failed to fetch quizzes')
+                throw new Error('Failed to fetch students')
             }
             const data = await response.json()
-            setQuizzes(data.quizzes || [])
+            setStudents(data.students || [])
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to fetch quizzes')
-            setQuizzes([])
+            setError(err instanceof Error ? err.message : 'Failed to fetch students')
+            setStudents([])
         } finally {
             setLoading(false)
         }
     }, [selectedCourseOffering?.id])
 
-    // Fetch quizzes when course offering changes
+    // Fetch students when course offering changes
     useEffect(() => {
-        fetchQuizzes()
-    }, [fetchQuizzes])
+        fetchStudents()
+    }, [fetchStudents])
 
     /**
-     * Memoized quiz count display text to prevent unnecessary re-renders
+     * Memoized student count display text to prevent unnecessary re-renders
      */
-    const quizCountText = useMemo(() => {
+    const studentCountText = useMemo(() => {
         if (loading || error) return null
-        return `${quizzes.length} quiz${quizzes.length !== 1 ? 'zes' : ''}`
-    }, [quizzes.length, loading, error])
+        return `${students.length} student${students.length !== 1 ? 's' : ''}`
+    }, [students.length, loading, error])
 
-    const handleEditQuiz = (quiz: Quiz) => {
-        setEditingQuiz(quiz)
-        setIsEditQuizModalOpen(true)
-    }
-
-    const handleDeleteSelected = (quizzes: Quiz[]) => {
-        setDeletingQuizzes(quizzes)
+    const handleDeleteSelected = (students: Student[]) => {
+        setDeletingStudents(students)
         setDeleteModalOpened(true)
     }
 
     const handleDeleteConfirm = async () => {
-        if (deletingQuizzes.length === 0) return
+        if (deletingStudents.length === 0) return
 
         setIsDeleting(true)
         try {
-            const response = await fetch('/api/quizzes', {
+            // Delete enrollments (students are enrollments with STUDENT role)
+            const response = await fetch('/api/enrollments', {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json',
                 },
+                credentials: 'include',
                 body: JSON.stringify({
-                    ids: deletingQuizzes.map(quiz => quiz.id)
+                    enrollmentIds: deletingStudents.map(student => student.id)
                 })
             })
 
             if (!response.ok) {
                 const errorData = await response.json()
-                throw new Error(errorData.error || 'Failed to delete quizzes')
+                throw new Error(errorData.error || 'Failed to delete students')
             }
 
             // Clear selection and close modal
             setSelectedRecords([])
-            setDeletingQuizzes([])
+            setDeletingStudents([])
             setDeleteModalOpened(false)
 
             // Refresh the data
-            fetchQuizzes()
+            fetchStudents()
         } catch (error) {
             console.error('Delete error:', error)
             // You could add a notification here if needed
@@ -122,10 +124,10 @@ const QuizzesContent = () => {
             <Stack gap="lg">
                 <Group gap="md" align="center" justify="space-between">
                     <Group gap="md" align="center">
-                        <Title order={2}>Quizzes</Title>
-                        {quizCountText && (
+                        <Title order={2}>Students</Title>
+                        {studentCountText && (
                             <Badge size="lg" variant="light">
-                                {quizCountText}
+                                {studentCountText}
                             </Badge>
                         )}
                     </Group>
@@ -143,62 +145,47 @@ const QuizzesContent = () => {
                         )}
                         <Button
                             leftSection={<IconPlus size={16} />}
-                            onClick={() => setIsNewQuizModalOpen(true)}
+                            onClick={() => setIsAddStudentsModalOpen(true)}
                             disabled={!selectedCourseOffering?.id}
                         >
-                            New Quiz
+                            Add Students
                         </Button>
                     </Group>
                 </Group>
 
-                <QuizzesTable
-                    quizzes={quizzes}
+                <StudentsTable
+                    students={students}
                     loading={loading}
                     error={error}
                     selectedRecords={selectedRecords}
                     onSelectedRecordsChange={setSelectedRecords}
-                    onEditQuiz={handleEditQuiz}
                 />
 
-                {/* New Quiz Modal */}
-                <EditQuizModal
-                    quiz={null}
-                    opened={isNewQuizModalOpen}
-                    onClose={() => setIsNewQuizModalOpen(false)}
-                    onSave={fetchQuizzes}
-                    isCreating={true}
-                />
-
-                {/* Edit Quiz Modal */}
-                <EditQuizModal
-                    quiz={editingQuiz}
-                    opened={isEditQuizModalOpen}
-                    onClose={() => {
-                        setIsEditQuizModalOpen(false)
-                        setEditingQuiz(null)
-                    }}
-                    onSave={fetchQuizzes}
-                    isCreating={false}
+                {/* Add Students Modal */}
+                <AddStudentsModal
+                    opened={isAddStudentsModalOpen}
+                    onClose={() => setIsAddStudentsModalOpen(false)}
+                    onSave={fetchStudents}
                 />
 
                 {/* Delete Confirmation Modal */}
                 <Modal
                     opened={deleteModalOpened}
                     onClose={() => setDeleteModalOpened(false)}
-                    title="Delete Quizzes"
+                    title="Remove Students"
                     centered
                 >
                     <Text mb="md">
-                        Are you sure you want to delete {deletingQuizzes.length} selected quiz{deletingQuizzes.length > 1 ? 'zes' : ''}?
-                        All questions, attempts, and statistics associated with the quiz{deletingQuizzes.length > 1 ? 'zes' : ''} will also be deleted. This action cannot be undone.
+                        Are you sure you want to remove {deletingStudents.length} selected student{deletingStudents.length > 1 ? 's' : ''} from this course offering?
+                        This will remove their enrollment but will not delete their user accounts. This action cannot be undone.
                     </Text>
 
                     <Box mb="md">
-                        <Text size="sm" fw={500} mb="xs">Selected quizzes:</Text>
+                        <Text size="sm" fw={500} mb="xs">Selected students:</Text>
                         <Box style={{ maxHeight: 200, overflowY: 'auto' }}>
-                            {deletingQuizzes.map((quiz, index) => (
-                                <Text key={quiz.id} size="sm" c="dimmed">
-                                    {index + 1}. {quiz.title} - {quiz.fixedLength} questions
+                            {deletingStudents.map((student, index) => (
+                                <Text key={student.id} size="sm" c="dimmed">
+                                    {index + 1}. {student.username}
                                 </Text>
                             ))}
                         </Box>
@@ -217,7 +204,7 @@ const QuizzesContent = () => {
                             onClick={handleDeleteConfirm}
                             loading={isDeleting}
                         >
-                            Delete
+                            Remove
                         </Button>
                     </Group>
                 </Modal>
@@ -227,26 +214,27 @@ const QuizzesContent = () => {
 }
 
 /**
- * Quizzes page component
+ * Students page component
  * 
- * Displays a comprehensive list of quizzes for the selected course offering.
- * Includes statistics, loading states, and error handling.
+ * Displays a comprehensive list of students for the selected course offering.
+ * Includes loading states, error handling, and the ability to add/remove students.
  * 
  * Access Control:
  * - Requires authentication (ProtectedRoute)
  * - Restricted to instructors and TAs only (RoleBasedRoute)
  */
-export default function QuizzesPage() {
+export default function StudentsPage() {
     return (
         <ProtectedRoute>
             <RoleBasedRoute
                 permissions={{
                     requireAnyRole: ['INSTRUCTOR', 'TA']
                 }}
-                unauthorizedMessage="Only instructors and TAs can access quizzes."
+                unauthorizedMessage="Only instructors and TAs can access students."
             >
-                <QuizzesContent />
+                <StudentsContent />
             </RoleBasedRoute>
         </ProtectedRoute>
     )
 }
+

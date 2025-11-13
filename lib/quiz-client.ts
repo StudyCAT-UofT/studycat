@@ -87,6 +87,24 @@ export class QuizClient {
 
     return response.json();
   }
+
+  async getResults(attemptId: string): Promise<AttemptResultsResponse> {
+    const response = await fetch(`${this.baseUrl}/results`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify({ attemptId }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to fetch quiz results');
+    }
+
+    return response.json();
+  }
 }
 
 export const quizClient = new QuizClient();

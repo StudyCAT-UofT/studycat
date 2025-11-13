@@ -1,6 +1,6 @@
 'use client'
 
-import { Container, Stack, Text, Title, Button, Group, Alert, Loader, Center } from '@mantine/core'
+import { Container, Stack, Text, Title, Button, Group, Alert, Loader, Center, Paper } from '@mantine/core'
 import { ProtectedRoute, RoleBasedRoute } from '@/components'
 import { useCourse } from '@/lib/course-context'
 import { useAuth } from '@/lib/auth-context'
@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation'
 import { useState, useEffect, use } from 'react'
 import QuizQuestion from '@/components/Quiz/QuizQuestion'
 import { quizClient } from '@/lib/quiz-client'
-import { QuizItem } from '@/types'
+import { QuizItem, Feedback, QuizResults } from '@/types'
 
 interface QuizState {
     attemptId: string
@@ -16,6 +16,10 @@ interface QuizState {
     isFinished: boolean
     loading: boolean
     error?: string
+    feedback?: Feedback | null
+    nextItem?: QuizItem
+    results?: QuizResults
+    loadingResults: boolean
 }
 
 const QuizContent = ({ quizId }: { quizId: string }) => {
@@ -25,7 +29,8 @@ const QuizContent = ({ quizId }: { quizId: string }) => {
     const [quizState, setQuizState] = useState<QuizState>({
         attemptId: '',
         isFinished: false,
-        loading: true
+        loading: true,
+        loadingResults: false
     })
     const [isInitialized, setIsInitialized] = useState(false)
 
@@ -60,7 +65,8 @@ const QuizContent = ({ quizId }: { quizId: string }) => {
                     attemptId: response.attemptId,
                     currentItem: response.nextItem,
                     isFinished: false,
-                    loading: false
+                    loading: false,
+                    loadingResults: false
                 })
                 setIsInitialized(true) // Mark as initializing to prevent duplicate calls
             } catch (error) {
@@ -91,13 +97,54 @@ const QuizContent = ({ quizId }: { quizId: string }) => {
 
             setQuizState(prev => ({
                 ...prev,
-                currentItem: response.nextItem,
+                feedback: response.feedback || null,
+                nextItem: response.nextItem,
                 isFinished: response.isFinished
             }))
         } catch (error) {
             setQuizState(prev => ({
                 ...prev,
                 error: error instanceof Error ? error.message : 'Failed to submit answer'
+            }))
+        }
+    }
+
+    const handleNext = async () => {
+        if (quizState.isFinished) {
+            // Quiz is finished, fetch results and clear feedback
+            setQuizState(prev => ({
+                ...prev,
+                feedback: null,
+                loadingResults: true
+            }))
+
+            try {
+                const results = await quizClient.getResults(quizState.attemptId)
+                setQuizState(prev => ({
+                    ...prev,
+                    results: {
+                        attemptId: results.attemptId,
+                        totalQuestions: results.totalQuestions,
+                        correctAnswers: results.correctAnswers,
+                        percentage: results.percentage
+                    },
+                    loadingResults: false
+                }))
+            } catch (error) {
+                console.error('Failed to fetch quiz results:', error)
+                setQuizState(prev => ({
+                    ...prev,
+                    error: error instanceof Error ? error.message : 'Failed to fetch quiz results',
+                    loadingResults: false
+                }))
+            }
+        } else {
+            // Move to next question
+            setQuizState(prev => ({
+                ...prev,
+                currentItem: prev.nextItem,
+                feedback: null,
+                nextItem: undefined
             }))
         }
     }
@@ -129,7 +176,44 @@ const QuizContent = ({ quizId }: { quizId: string }) => {
         )
     }
 
-    if (quizState.isFinished) {
+    // Show completion screen only if finished and no feedback is being shown
+    if (quizState.isFinished && !quizState.feedback) {
+        if (quizState.loadingResults) {
+            return (
+                <Container size="md" py="xl">
+                    <Center h={400}>
+                        <Stack align="center" gap="md">
+                            <Loader size="lg" />
+                            <Text>Loading results...</Text>
+                        </Stack>
+                    </Center>
+                </Container>
+            )
+        }
+
+        if (quizState.results) {
+            return (
+                <Container size="md" py="xl">
+                    <Stack align="center" gap="lg">
+                        <Title order={2}>Quiz Completed!</Title>
+
+                        <Paper p="xl" radius="md" withBorder style={{ minWidth: 300 }}>
+                            <Stack align="center" gap="md">
+                                <Text size="xl" fw={700} c="blue">
+                                    {quizState.results.percentage}%
+                                </Text>
+                                <Text size="lg">
+                                    {quizState.results.correctAnswers} out of {quizState.results.totalQuestions} questions correct
+                                </Text>
+                            </Stack>
+                        </Paper>
+
+                        <Button onClick={handleExit}>Return to Dashboard</Button>
+                    </Stack>
+                </Container>
+            )
+        }
+
         return (
             <Container size="md" py="xl">
                 <Stack align="center" gap="lg">
@@ -163,6 +247,8 @@ const QuizContent = ({ quizId }: { quizId: string }) => {
                 <QuizQuestion
                     item={quizState.currentItem}
                     onAnswer={handleAnswer}
+                    onNext={handleNext}
+                    feedback={quizState.feedback}
                 />
             </Stack>
         </Container>
