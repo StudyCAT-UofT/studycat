@@ -1,6 +1,7 @@
 // app/api/upload-spreadsheet/route.ts
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { BloomCategory, OptionLabel } from "@prisma/client";
 import * as xlsx from "xlsx";
 
 export const runtime = "nodejs";
@@ -51,17 +52,17 @@ export async function POST(request: Request) {
         }
 
         const sheet = workbook.Sheets[sheetName];
-        const rawRows: any[] = xlsx.utils.sheet_to_json(sheet, { defval: null });
+        const rawRows = xlsx.utils.sheet_to_json(sheet, { defval: null }) as Record<string, unknown>[];
 
         // helpers
         const normalizeHeader = (h: string) => h?.toString().trim().toLowerCase();
 
-        const mapBloom = (raw: any) => {
+        const mapBloom = (raw: unknown): BloomCategory | undefined => {
             if (raw == null) return undefined;
             const s = String(raw).trim().toUpperCase();
             // direct match
             const BloomKeys = ["REMEMBER", "UNDERSTAND", "APPLY", "ANALYZE", "EVALUATE", "CREATE"];
-            if (BloomKeys.includes(s)) return s;
+            if (BloomKeys.includes(s)) return s as BloomCategory;
             if (s.startsWith("REC")) return "REMEMBER";
             if (s.startsWith("UND")) return "UNDERSTAND";
             if (s.startsWith("APP")) return "APPLY";
@@ -82,20 +83,24 @@ export async function POST(request: Request) {
 
         // Normalize keys on rows so we can reference case-insensitively
         const parsedRows = rawRows.map((r) => {
-            const out: Record<string, any> = {};
+            const out: Record<string, unknown> = {};
             for (const key of Object.keys(r)) {
                 out[normalizeHeader(key)] = r[key];
             }
             return out;
         });
 
-        const details: any[] = [];
+        type DetailResult =
+            | { externalQuestionId: string | null; status: string }
+            | { externalQuestionId: string; status: string; itemId: string; optionsCreated: number }
+            | { status: string; error: string };
+        const details: DetailResult[] = [];
 
         // process rows sequentially (keeps DB small-batch friendly and easy to reason about)
         for (const row of parsedRows) {
             try {
                 const moduleName = row["module"] || row["module name"] || row["module_name"];
-                const externalQuestionId = row["question_id"] || row["question id"] || row["questionid"];
+                const externalQuestionIdRaw = row["question_id"] || row["question id"] || row["questionid"];
                 const bloomRaw = row["bloom_cat"] || row["bloom cat"] || row["bloom"];
                 const stem = row["stem"] ?? "";
                 const reference = row["reference"] ?? null;
@@ -108,12 +113,19 @@ export async function POST(request: Request) {
                 const irtC = row["irt_c"] != null ? Number(row["irt_c"]) : 0;
                 const correctRaw = row["correct"]; // required by user note (always present)
 
-                if (!moduleName || !externalQuestionId) {
-                    details.push({ externalQuestionId: externalQuestionId ?? null, status: "skipped: missing identifiers" });
+                const externalQuestionId = externalQuestionIdRaw ? String(externalQuestionIdRaw) : null;
+                const moduleNameStr = moduleName ? String(moduleName) : null;
+
+                if (!moduleNameStr || !externalQuestionId) {
+                    details.push({ externalQuestionId, status: "skipped: missing identifiers" });
                     continue;
                 }
 
                 const bloom = mapBloom(bloomRaw);
+                if (!bloom) {
+                    details.push({ externalQuestionId, status: "skipped: invalid bloom category" });
+                    continue;
+                }
 
                 // prepare responses (case-insensitive header names accepted)
                 const responses = [
@@ -131,29 +143,34 @@ export async function POST(request: Request) {
 
                 // find or create module by (offeringId, name)
                 let moduleRecord = await prisma.module.findFirst({
-                    where: { offeringId: offeringId, name: String(moduleName) },
+                    where: { offeringId: offeringId, name: moduleNameStr },
                 });
                 if (!moduleRecord) {
                     moduleRecord = await prisma.module.create({
-                        data: { offeringId: offeringId, name: String(moduleName) },
+                        data: { offeringId: offeringId, name: moduleNameStr },
                     });
                 }
 
                 // skip if item already exists for (courseId, externalQuestionId)
                 const existing = await prisma.item.findFirst({
-                    where: { courseId: courseId, externalQuestionId: String(externalQuestionId) },
+                    where: { courseId: courseId, externalQuestionId },
                 });
                 if (existing) {
-                    details.push({ externalQuestionId: externalQuestionId, status: "skipped: already exists" });
+                    details.push({ externalQuestionId, status: "skipped: already exists" });
                     continue;
                 }
 
                 // Build options, mark correct by either A/B/C/D or by matching option text
-                const optionsToCreate = [];
+                const optionsToCreate: Array<{
+                    label: OptionLabel;
+                    text: string;
+                    justification: string | null;
+                    isCorrect: boolean;
+                }> = [];
                 for (let i = 0; i < 4; i++) {
                     const text = responses[i] ?? "";
                     const justification = justifs[i] ?? null;
-                    const label = labelFromIndex(i);
+                    const label = labelFromIndex(i) as OptionLabel;
                     let isCorrect = false;
 
                     if (correctRaw != null) {
@@ -178,8 +195,8 @@ export async function POST(request: Request) {
                     data: {
                         courseId,
                         moduleId: moduleRecord.id,
-                        externalQuestionId: String(externalQuestionId),
-                        bloom: bloom as any,
+                        externalQuestionId,
+                        bloom,
                         stem: String(stem),
                         reference: reference ? String(reference) : null,
                         figureUrl: figure ? String(figure) : null,

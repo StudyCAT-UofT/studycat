@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { OptionLabel } from '@prisma/client'
+import { OptionLabel, PrismaClient } from '@prisma/client'
 
 export const runtime = 'nodejs'
 
@@ -59,16 +59,11 @@ export async function GET(request: Request) {
 
         const optionLabels = Object.values(OptionLabel) as OptionLabel[];
 
-        const grouped = (await (prisma as any).response.groupBy({
+        const grouped = await (prisma as PrismaClient).response.groupBy({
             by: ['itemId', 'selectedLabel', 'isCorrect'],
             where: { itemId: { in: itemIds } },
             _count: { _all: true },
-        })) as Array<{
-            itemId: string;
-            selectedLabel: string | null;
-            isCorrect: boolean | null;
-            _count: { _all: number };
-        }>;
+        });
 
         // Fetch item metadata (externalQuestionId, stem)
         const itemsMeta = await prisma.item.findMany({
