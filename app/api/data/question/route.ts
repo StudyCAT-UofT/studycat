@@ -57,11 +57,65 @@ export async function GET(request: Request) {
             return NextResponse.json({ quizId, count: 0, items: [] }, { status: 200 })
         }
 
+        // Get all attempt IDs for this quiz to filter responses
+        const attempts = await prisma.attempt.findMany({
+            where: { quizId: String(quizId) },
+            select: { id: true },
+        });
+        const attemptIds = attempts.map((attempt) => attempt.id);
+
+        // If no attempts exist for this quiz, return empty stats
+        if (attemptIds.length === 0) {
+            const itemsMeta = await prisma.item.findMany({
+                where: { id: { in: itemIds } },
+                include: {
+                    module: {
+                        select: { id: true, name: true },
+                    },
+                    options: {
+                        select: { id: true, label: true, text: true, isCorrect: true },
+                    },
+                },
+            });
+
+            const optionLabels = Object.values(OptionLabel) as OptionLabel[];
+
+            const items = itemIds.map((id) => {
+                const meta = itemsMeta.find((it) => it.id === id);
+                const questionId = meta?.externalQuestionId ?? id;
+                const stem = meta?.stem ?? '';
+                const moduleName = meta?.module?.name ?? null;
+                const options = meta?.options ?? [];
+
+                const base = {
+                    questionId,
+                    itemId: id,
+                    stem,
+                    moduleName,
+                    options,
+                    average: 0,
+                    numAttempts: 0,
+                } as Record<string, unknown>;
+
+                for (const label of optionLabels) {
+                    const key = `average${label}`;
+                    base[key] = 0;
+                }
+
+                return base;
+            });
+
+            return NextResponse.json({ quizId, count: items.length, items }, { status: 200 });
+        }
+
         const optionLabels = Object.values(OptionLabel) as OptionLabel[];
 
         const grouped = (await (prisma as any).response.groupBy({
             by: ['itemId', 'selectedLabel', 'isCorrect'],
-            where: { itemId: { in: itemIds } },
+            where: { 
+                itemId: { in: itemIds },
+                attemptId: { in: attemptIds },
+            },
             _count: { _all: true },
         })) as Array<{
             itemId: string;
