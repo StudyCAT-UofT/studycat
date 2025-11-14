@@ -561,10 +561,11 @@ const AnalyticsContent = () => {
                                 <DataTable
                                     records={analyticsData.attempts
                                         .sort((a, b) => b.score - a.score)
-                                        .map((attempt) => {
+                                        .map((attempt, index) => {
                                             const correctCount = attempt.questions.filter(q => q.isCorrect).length
                                             return {
                                                 ...attempt,
+                                                id: `${attempt.userId}-${attempt.startedAt}-${index}`,
                                                 correctCount,
                                                 totalQuestions: attempt.questions.length
                                             }
@@ -607,6 +608,7 @@ const AnalyticsContent = () => {
                                     withTableBorder
                                     withColumnBorders
                                     withRowBorders
+                                    idAccessor="id"
                                 />
                             </Paper>
                         )}
