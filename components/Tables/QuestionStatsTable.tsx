@@ -29,8 +29,8 @@ export const QuestionStatsTable = ({ questions, selectedQuizId }: QuestionStatsT
 
         const sorted = [...questions].sort((a, b) => {
             const { columnAccessor, direction } = sortStatus
-            const aValue: any = a[columnAccessor as keyof QuestionData]
-            const bValue: any = b[columnAccessor as keyof QuestionData]
+            const aValue: QuestionData[keyof QuestionData] = a[columnAccessor as keyof QuestionData]
+            const bValue: QuestionData[keyof QuestionData] = b[columnAccessor as keyof QuestionData]
 
             // Handle null/undefined values
             if (aValue == null && bValue == null) return 0

@@ -161,19 +161,22 @@ const AnalyticsContent = () => {
                 {/* Header with Quiz Selector */}
                 <Group gap="md" align="center" justify="space-between">
                     <Title order={2}>Quiz Analytics</Title>
-                    <Select
-                        value={selectedQuizId}
-                        onChange={(value) => setSelectedQuizId(value)}
-                        data={quizzes.map(quiz => ({
-                            value: quiz.id,
-                            label: quiz.title
-                        }))}
-                        placeholder="Select a quiz"
-                        size="md"
-                        w={300}
-                        searchable
-                        disabled={quizzes.length === 0}
-                    />
+                    <Group gap="sm" align="center">
+                        <Text size="sm" fw={500}>Selected Quiz:</Text>
+                        <Select
+                            value={selectedQuizId}
+                            onChange={(value) => setSelectedQuizId(value)}
+                            data={quizzes.map(quiz => ({
+                                value: quiz.id,
+                                label: quiz.title
+                            }))}
+                            placeholder="Select a quiz"
+                            size="md"
+                            w={300}
+                            searchable
+                            disabled={quizzes.length === 0}
+                        />
+                    </Group>
                 </Group>
 
                 {loading && (

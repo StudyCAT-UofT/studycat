@@ -46,7 +46,7 @@ export const StudentStatsTable = ({ attempts }: StudentStatsTableProps) => {
             accessor: 'score',
             title: 'Score',
             sortable: true,
-            render: (record: any) => (
+            render: (record: AttemptData) => (
                 <Badge
                     color={
                         record.score >= 80 ? 'green' :
