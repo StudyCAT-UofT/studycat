@@ -87,6 +87,8 @@ export const AttemptsOverTimeChart = ({ attempts }: AttemptsOverTimeChartProps) 
                     ]}
                     tickLine="y"
                     withLegend
+                    xAxisLabel="Date"
+                    yAxisLabel="Number of Attempts"
                 />
             ) : (
                 <Text c="dimmed" ta="center" py="xl">No data available</Text>

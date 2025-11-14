@@ -62,6 +62,7 @@ export const ModulePerformanceRadarChart = ({ questions }: ModulePerformanceRada
                             angle={90} 
                             domain={[0, 100]}
                             tick={{ fontSize: 10 }}
+                            label={{ value: '% Correct', position: 'insideStart', offset: 10 }}
                         />
                         <Tooltip 
                             formatter={(value: number) => [`${value.toFixed(1)}%`, '% Correct']}

@@ -50,7 +50,7 @@ export const ScoreDistributionChart = ({ attempts }: ScoreDistributionChartProps
 
     return (
         <Paper withBorder p="md" radius="md">
-            <Title order={4} mb="md">Score Distribution of Completed Attempts</Title>
+            <Title order={4} mb="md">Score Distribution</Title>
             {scoreDistributionData.length > 0 ? (
                 <BarChart
                     h={300}
@@ -59,6 +59,8 @@ export const ScoreDistributionChart = ({ attempts }: ScoreDistributionChartProps
                     series={[{ name: 'count', color: 'blue.6', label: 'Number of Students' }]}
                     tickLine="y"
                     withLegend
+                    xAxisLabel="Score Range (%) of Completed Attempts"
+                    yAxisLabel="Number of Students"
                 />
             ) : (
                 <Text c="dimmed" ta="center" py="xl">No data available</Text>
