@@ -54,17 +54,18 @@ export const ModulePerformanceRadarChart = ({ questions }: ModulePerformanceRada
                 <ResponsiveContainer width="100%" height={400}>
                     <RadarChart data={chartData}>
                         <PolarGrid />
-                        <PolarAngleAxis 
-                            dataKey="module" 
+                        <PolarAngleAxis
+                            dataKey="module"
                             tick={{ fontSize: 12 }}
+                            axisLine={false}
                         />
-                        <PolarRadiusAxis 
-                            angle={90} 
+                        <PolarRadiusAxis
+                            angle={90}
                             domain={[0, 100]}
-                            tick={{ fontSize: 10 }}
-                            label={{ value: '% Correct', position: 'insideStart', offset: 10 }}
+                            tick={false}
+                            axisLine={false}
                         />
-                        <Tooltip 
+                        <Tooltip
                             formatter={(value: number) => [`${value.toFixed(1)}%`, '% Correct']}
                             labelFormatter={(label: string) => `Module: ${label}`}
                         />
