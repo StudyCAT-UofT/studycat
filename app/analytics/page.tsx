@@ -244,7 +244,7 @@ const AnalyticsContent = () => {
                         </SimpleGrid>
 
                         {/* Charts Section */}
-                        <SimpleGrid cols={{ base: 1, lg: 2 }} spacing="md">
+                        <SimpleGrid cols={{ base: 1, md: 2 }} spacing="md">
                             <ScoreDistributionChart attempts={analyticsData.attempts} />
                             <AttemptsOverTimeChart attempts={analyticsData.allAttempts} />
                         </SimpleGrid>
