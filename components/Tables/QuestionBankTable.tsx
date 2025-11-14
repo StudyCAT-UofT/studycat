@@ -84,6 +84,13 @@ export const QuestionBankTable = ({ items, loading, error, onRefresh, selectedRe
         return sorted
     }, [items, sortStatus])
 
+    // Paginate sorted items for display
+    const paginatedItems = useMemo(() => {
+        const start = (page - 1) * pageSize
+        const end = start + pageSize
+        return sortedItems.slice(start, end)
+    }, [sortedItems, page, pageSize])
+
     const columns = [
         {
             accessor: 'externalQuestionId',
@@ -215,7 +222,7 @@ export const QuestionBankTable = ({ items, loading, error, onRefresh, selectedRe
     return (
         <>
             <DataTable
-                records={sortedItems}
+                records={paginatedItems}
                 columns={columns}
                 sortStatus={sortStatus}
                 onSortStatusChange={handleSortStatusChange}
