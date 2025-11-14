@@ -113,6 +113,7 @@ export async function GET(request: Request) {
                 score: scorePct,
                 questions,
                 startedAt: attempt.startedAt.toISOString(),
+                status: attempt.status,
             }
         });
 

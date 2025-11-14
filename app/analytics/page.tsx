@@ -18,10 +18,12 @@ interface AttemptData {
         isCorrect: boolean
     }>
     startedAt: string
+    status?: string
 }
 
 interface AnalyticsData {
     attempts: AttemptData[]
+    allAttempts: AttemptData[] // All attempts including incomplete for chart
     questions: QuestionData[]
     totalStudents: number
     totalAttempts: number // Total attempts including incomplete
@@ -83,9 +85,12 @@ const AnalyticsContent = () => {
         setError(null)
 
         try {
-            // Fetch attempts and questions data in parallel
-            const [attemptsResponse, questionsResponse] = await Promise.all([
+            // Fetch attempts (completed only), all attempts (for chart), and questions data in parallel
+            const [attemptsResponse, allAttemptsResponse, questionsResponse] = await Promise.all([
                 fetch(`/api/data/attempt?quizId=${selectedQuizId}`, {
+                    credentials: 'include'
+                }),
+                fetch(`/api/data/attempt?quizId=${selectedQuizId}&includeIncomplete=true`, {
                     credentials: 'include'
                 }),
                 fetch(`/api/data/question?quizId=${selectedQuizId}`, {
@@ -93,15 +98,17 @@ const AnalyticsContent = () => {
                 })
             ])
 
-            if (!attemptsResponse.ok || !questionsResponse.ok) {
+            if (!attemptsResponse.ok || !allAttemptsResponse.ok || !questionsResponse.ok) {
                 throw new Error('Failed to fetch analytics data')
             }
 
             const attemptsData = await attemptsResponse.json()
+            const allAttemptsData = await allAttemptsResponse.json()
             const questionsData = await questionsResponse.json()
 
             setAnalyticsData({
                 attempts: attemptsData.attempts || [],
+                allAttempts: allAttemptsData.attempts || [],
                 questions: questionsData.items || [],
                 totalStudents: attemptsData.totalStudents || 0,
                 totalAttempts: attemptsData.totalAttempts || 0,
@@ -239,7 +246,7 @@ const AnalyticsContent = () => {
                         {/* Charts Section */}
                         <SimpleGrid cols={{ base: 1, lg: 2 }} spacing="md">
                             <ScoreDistributionChart attempts={analyticsData.attempts} />
-                            <AttemptsOverTimeChart attempts={analyticsData.attempts} />
+                            <AttemptsOverTimeChart attempts={analyticsData.allAttempts} />
                         </SimpleGrid>
 
                         {/* Module Performance Radar Chart */}
