@@ -2,7 +2,7 @@
 
 import { Container, Stack, Title, Select, Card, SimpleGrid, Text, Group, Loader, Center, Alert } from '@mantine/core'
 import { ProtectedRoute, RoleBasedRoute } from '@/components'
-import { ScoreDistributionChart, AttemptsOverTimeChart } from '@/components/Charts'
+import { ScoreDistributionChart, AttemptsOverTimeChart, ModulePerformanceRadarChart } from '@/components/Charts'
 import { QuestionStatsTable, StudentStatsTable } from '@/components/Tables'
 import { useCourse } from '@/lib/course-context'
 import { useEffect, useState, useCallback, useMemo } from 'react'
@@ -227,6 +227,9 @@ const AnalyticsContent = () => {
                             <ScoreDistributionChart attempts={analyticsData.attempts} />
                             <AttemptsOverTimeChart attempts={analyticsData.attempts} />
                         </SimpleGrid>
+
+                        {/* Module Performance Radar Chart */}
+                        <ModulePerformanceRadarChart questions={analyticsData.questions} />
 
                         {/* Question Statistics Table */}
                         <QuestionStatsTable
