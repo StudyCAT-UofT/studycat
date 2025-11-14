@@ -93,7 +93,7 @@ const AnalyticsContent = () => {
                 fetch(`/api/data/attempt?quizId=${selectedQuizId}&includeIncomplete=true`, {
                     credentials: 'include'
                 }),
-                fetch(`/api/data/question?quizId=${selectedQuizId}`, {
+                fetch(`/api/data/question?quizId=${selectedQuizId}&includeIncomplete=true`, {
                     credentials: 'include'
                 })
             ])
