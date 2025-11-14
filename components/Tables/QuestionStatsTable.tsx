@@ -3,25 +3,7 @@
 import { Paper, Title, Group, Badge, Text, Box, Flex } from '@mantine/core'
 import { DataTable, DataTableSortStatus } from 'mantine-datatable'
 import { useMemo, useState, useEffect } from 'react'
-
-export interface QuestionData {
-    questionId: string
-    itemId: string
-    stem: string
-    moduleName: string | null
-    average: number
-    numAttempts: number
-    averageA: number
-    averageB: number
-    averageC: number
-    averageD: number
-    options: Array<{
-        id: string
-        label: string
-        text: string
-        isCorrect: boolean
-    }>
-}
+import { QuestionData } from '@/types'
 
 interface QuestionStatsTableProps {
     questions: QuestionData[]

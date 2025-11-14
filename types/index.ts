@@ -119,3 +119,22 @@ export interface QuizResults {
     correctAnswers: number
     percentage: number
 }
+
+export interface QuestionData {
+    questionId: string
+    itemId: string
+    stem: string
+    moduleName: string | null
+    average: number
+    numAttempts: number
+    averageA: number
+    averageB: number
+    averageC: number
+    averageD: number
+    options: Array<{
+        id: string
+        label: string
+        text: string
+        isCorrect: boolean
+    }>
+}

@@ -3,10 +3,10 @@
 import { Container, Stack, Title, Select, Card, SimpleGrid, Text, Group, Loader, Center, Alert } from '@mantine/core'
 import { ProtectedRoute, RoleBasedRoute } from '@/components'
 import { ScoreDistributionChart, AttemptsOverTimeChart } from '@/components/Charts'
-import { QuestionStatsTable, StudentStatsTable, QuestionData } from '@/components/Analytics'
+import { QuestionStatsTable, StudentStatsTable } from '@/components/Tables'
 import { useCourse } from '@/lib/course-context'
 import { useEffect, useState, useCallback, useMemo } from 'react'
-import { Quiz } from '@/types'
+import { QuestionData, Quiz } from '@/types'
 
 interface AttemptData {
     userId: string

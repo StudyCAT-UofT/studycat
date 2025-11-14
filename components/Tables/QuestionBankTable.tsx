@@ -12,7 +12,7 @@ import {
 } from '@mantine/core'
 import { DataTable, DataTableSortStatus } from 'mantine-datatable'
 import { IconEdit } from '@tabler/icons-react'
-import EditQuestionModal from './EditQuestionModal'
+import EditQuestionModal from '@/components/EditQuestionModal'
 import { getBloomColor } from '@/utils/getBloomColor'
 import { Item } from '@/types'
 
