@@ -126,8 +126,8 @@ const AnalyticsContent = () => {
         if (!analyticsData) {
             return {
                 totalAttempts: 0,
-                averageScore: 0,
-                completionRate: 0,
+                averageScore: null as number | null,
+                completionRate: null as number | null,
                 studentAttemptRate: 0,
                 averageQuestionDifficulty: 0
             }
@@ -137,7 +137,7 @@ const AnalyticsContent = () => {
         const totalAttempts = attempts.length
         const averageScore = totalAttempts > 0
             ? attempts.reduce((sum, a) => sum + a.score, 0) / totalAttempts
-            : 0
+            : null
         const studentAttemptRate = totalStudents > 0
             ? (totalAttempts / totalStudents) * 100
             : 0
@@ -148,7 +148,7 @@ const AnalyticsContent = () => {
         return {
             totalAttempts,
             averageScore,
-            completionRate: 100, // All attempts in the API are completed
+            completionRate: totalAttempts > 0 ? 100 : null, // All attempts in the API are completed, but show N/A if no attempts
             studentAttemptRate,
             averageQuestionDifficulty
         }
@@ -205,13 +205,17 @@ const AnalyticsContent = () => {
                             <Card withBorder padding="md" radius="md">
                                 <Text size="sm" c="dimmed" fw={500}>Average Score</Text>
                                 <Text size="xl" fw={700} mt="xs">
-                                    {metrics.averageScore.toFixed(1)}%
+                                    {metrics.averageScore !== null
+                                        ? `${metrics.averageScore.toFixed(1)}%`
+                                        : 'N/A'}
                                 </Text>
                             </Card>
                             <Card withBorder padding="md" radius="md">
                                 <Text size="sm" c="dimmed" fw={500}>Completion Rate</Text>
                                 <Text size="xl" fw={700} mt="xs">
-                                    {metrics.completionRate.toFixed(1)}%
+                                    {metrics.completionRate !== null
+                                        ? `${metrics.completionRate.toFixed(1)}%`
+                                        : 'N/A'}
                                 </Text>
                             </Card>
                             <Card withBorder padding="md" radius="md">
