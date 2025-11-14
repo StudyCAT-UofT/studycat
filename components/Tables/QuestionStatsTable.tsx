@@ -163,7 +163,7 @@ export const QuestionStatsTable = ({ questions, selectedQuizId }: QuestionStatsT
         },
         {
             accessor: 'numAttempts',
-            title: 'Attempts',
+            title: 'Responses',
             sortable: true,
             width: 100,
         },
