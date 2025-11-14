@@ -87,7 +87,7 @@ export async function GET(request: NextRequest) {
  * 
  * Body:
  * - courseOfferingId (required): The ID of the course offering
- * - usernames (required): Array of usernames to add as students
+ * - students (required): Array of student objects with username, givenName (optional), familyName (optional)
  * 
  * Returns:
  * - 201: Created students with results
@@ -110,24 +110,28 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { courseOfferingId, usernames } = body
+    const { courseOfferingId, students } = body
 
     // Validate required fields
     if (!courseOfferingId) {
       return NextResponse.json({ error: 'Course offering ID is required' }, { status: 400 })
     }
 
-    if (!usernames || !Array.isArray(usernames) || usernames.length === 0) {
-      return NextResponse.json({ error: 'At least one username is required' }, { status: 400 })
+    if (!students || !Array.isArray(students) || students.length === 0) {
+      return NextResponse.json({ error: 'At least one student is required' }, { status: 400 })
     }
 
-    // Filter out empty usernames and trim whitespace
-    const validUsernames = usernames
-      .map((username: string) => username.trim())
-      .filter((username: string) => username.length > 0)
+    // Filter out invalid students and trim whitespace
+    const validStudents = students
+      .map((student: any) => ({
+        username: (student.username || '').trim(),
+        givenName: (student.givenName || '').trim(),
+        familyName: (student.familyName || '').trim()
+      }))
+      .filter((student: any) => student.username.length > 0)
 
-    if (validUsernames.length === 0) {
-      return NextResponse.json({ error: 'At least one valid username is required' }, { status: 400 })
+    if (validStudents.length === 0) {
+      return NextResponse.json({ error: 'At least one valid student is required' }, { status: 400 })
     }
 
     // Verify course offering exists
@@ -142,21 +146,42 @@ export async function POST(request: NextRequest) {
     const results = {
       created: [] as Array<{ username: string; userId: string; enrollmentId: string }>,
       alreadyExists: [] as string[],
-      errors: [] as Array<{ username: string; error: string }>
+      errors: [] as Array<{ username: string; error: string }>,
+      missingNames: 0
     }
 
-    // Process each username
-    for (const username of validUsernames) {
+    // Process each student
+    for (const student of validStudents) {
       try {
-        // Check if user exists, create if not
+        const { username, givenName, familyName } = student
+        
+        // Check if user exists
         let user = await prisma.user.findUnique({
           where: { username }
         })
 
+        const hasMissingNames = !givenName && !familyName
+
         if (!user) {
+          // Create new user with name fields
           user = await prisma.user.create({
-            data: { username }
+            data: { 
+              username,
+              givenName: givenName || '',
+              familyName: familyName || ''
+            }
           })
+        } else {
+          // Update existing user with names if provided and not already set
+          if ((givenName && !user.givenName) || (familyName && !user.familyName)) {
+            user = await prisma.user.update({
+              where: { id: user.id },
+              data: {
+                givenName: givenName || user.givenName,
+                familyName: familyName || user.familyName
+              }
+            })
+          }
         }
 
         // Check if enrollment already exists
@@ -188,10 +213,16 @@ export async function POST(request: NextRequest) {
           userId: user.id,
           enrollmentId: enrollment.id
         })
+
+        // Track missing names only for successfully enrolled students
+        if (hasMissingNames) {
+          results.missingNames++
+        }
       } catch (error) {
-        // Handle individual username errors
+        // Handle individual student errors with detailed logging
         const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-        results.errors.push({ username, error: errorMessage })
+        console.error(`Error processing student ${student.username}:`, error)
+        results.errors.push({ username: student.username, error: errorMessage })
       }
     }
 
