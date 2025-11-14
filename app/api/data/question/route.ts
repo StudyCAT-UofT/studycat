@@ -70,10 +70,17 @@ export async function GET(request: Request) {
             _count: { _all: number };
         }>;
 
-        // Fetch item metadata (externalQuestionId, stem)
+        // Fetch item metadata (externalQuestionId, stem, module)
         const itemsMeta = await prisma.item.findMany({
             where: { id: { in: itemIds } },
-            select: { id: true, externalQuestionId: true, stem: true },
+            include: {
+                module: {
+                    select: { id: true, name: true },
+                },
+                options: {
+                    select: { id: true, label: true, text: true, isCorrect: true },
+                },
+            },
         });
 
         type ChoiceCounts = Record<OptionLabel, number>
@@ -121,9 +128,14 @@ export async function GET(request: Request) {
         }
 
         // Map meta by id for stable order
-        const metaById = itemsMeta.reduce<Record<string, { externalQuestionId?: string | null; stem?: string | null }>>(
+        const metaById = itemsMeta.reduce<Record<string, { externalQuestionId?: string | null; stem?: string | null; moduleName?: string | null; options?: Array<{ id: string; label: string; text: string; isCorrect: boolean }> }>>(
             (acc, it) => {
-                acc[it.id] = { externalQuestionId: it.externalQuestionId, stem: it.stem }
+                acc[it.id] = { 
+                    externalQuestionId: it.externalQuestionId, 
+                    stem: it.stem,
+                    moduleName: it.module?.name ?? null,
+                    options: it.options,
+                }
                 return acc
             },
             {}
@@ -134,13 +146,18 @@ export async function GET(request: Request) {
             const meta = metaById[id] ?? {}
             const questionId = meta.externalQuestionId ?? id
             const stem = meta.stem ?? ''
+            const moduleName = meta.moduleName ?? null
+            const options = meta.options ?? []
 
             const agg = statsMap[id] ?? { numAttempts: 0, correctCount: 0, choiceCounts: initChoiceCounts() }
             const n = agg.numAttempts
 
             const base = {
                 questionId,
+                itemId: id,
                 stem,
+                moduleName,
+                options,
                 average: n > 0 ? agg.correctCount / n : 0,
                 numAttempts: n,
             } as Record<string, unknown>;

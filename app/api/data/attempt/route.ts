@@ -28,6 +28,24 @@ export async function GET(request: Request) {
             return NextResponse.json({ error: 'Quiz ID is required' }, { status: 400 });
         }
 
+        // Get quiz to find course offering
+        const quiz = await prisma.quiz.findUnique({
+            where: { id: quizId },
+            select: { offeringId: true },
+        });
+
+        if (!quiz) {
+            return NextResponse.json({ error: 'Quiz not found' }, { status: 404 });
+        }
+
+        // Get total number of students enrolled in the course offering
+        const totalStudents = await prisma.enrollment.count({
+            where: {
+                offeringId: quiz.offeringId,
+                offeringRole: 'STUDENT',
+            },
+        });
+
         const attempts = await prisma.attempt.findMany({
             where: {
                 quizId,
@@ -35,7 +53,11 @@ export async function GET(request: Request) {
             },
             include: {
                 enrollment: {
-                    select: { userId: true, id: true },
+                    include: {
+                        user: {
+                            select: { id: true, username: true },
+                        },
+                    },
                 },
                 responses: {
                     include: {
@@ -68,8 +90,10 @@ export async function GET(request: Request) {
 
             return {
                 userId: attempt.enrollment?.userId ?? '',
+                username: attempt.enrollment?.user?.username ?? '',
                 score: scorePct,
                 questions,
+                startedAt: attempt.startedAt.toISOString(),
             }
         });
 
@@ -77,6 +101,7 @@ export async function GET(request: Request) {
             {
                 quizId,
                 count: data.length,
+                totalStudents,
                 attempts: data,
             },
             { status: 200 }

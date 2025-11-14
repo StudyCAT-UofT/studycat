@@ -40,6 +40,11 @@ const TAB_CONFIGS: TabConfig[] = [
         route: '/quizzes'
     },
     {
+        value: 'analytics',
+        label: 'Analytics',
+        route: '/analytics'
+    },
+    {
         value: 'students',
         label: 'Students',
         route: '/students'

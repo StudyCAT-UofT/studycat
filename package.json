@@ -16,6 +16,7 @@
     "db:status": "prisma migrate status --schema=external/studycat-schema/schema.prisma"
   },
   "dependencies": {
+    "@mantine/charts": "^8.3.7",
     "@mantine/core": "^8.3.6",
     "@mantine/hooks": "^8.3.6",
     "@mantine/notifications": "^8.3.6",
