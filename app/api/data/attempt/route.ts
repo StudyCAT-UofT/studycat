@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { AttemptStatus } from '@prisma/client'
 
 export const runtime = 'nodejs'
 
@@ -9,19 +10,21 @@ export const runtime = 'nodejs'
  * Returns JSON containing user attempts for a given quiz.
  * 
  * Query Parameters: 
- *  - quizID (required): The ID of the quiz to fetch attempts from
+ *  - quizId (required): The ID of the quiz to fetch attempts from
+ *  - includeIncomplete (optional): If "true", includes incomplete attempts. Defaults to false (only completed attempts).
  * 
  * Returns:
- * - 200: JSON containing quizId, count (number of attempts), and attempts 
+ * - 200: JSON containing quizId, count (number of attempts), totalAttempts (all attempts including incomplete), and attempts 
  *        (object containing userId, score, and questions (list of questions 
  *        answered in order of when they appeared))
- * - 400: Missing course offering ID
+ * - 400: Missing quiz ID
  * - 500: Server error
  */
 export async function GET(request: Request) {
     try {
         const { searchParams } = new URL(request.url);
         const quizId = searchParams.get('quizId');
+        const includeIncomplete = searchParams.get('includeIncomplete') === 'true';
 
         // Validate required parameter
         if (!quizId) {
@@ -46,11 +49,27 @@ export async function GET(request: Request) {
             },
         });
 
+        // Get total attempts count (including incomplete) for completion rate calculation
+        const totalAttempts = await prisma.attempt.count({
+            where: { quizId },
+        });
+
+        // Get count of unique students who have attempted this quiz (including incomplete attempts)
+        // Use groupBy to get distinct enrollmentIds
+        const uniqueEnrollmentIds = await prisma.attempt.groupBy({
+            by: ['enrollmentId'],
+            where: { quizId },
+        });
+        const uniqueStudentsAttemptedCount = uniqueEnrollmentIds.length;
+
+        // Build where clause based on includeIncomplete flag
+        const whereClause: { quizId: string; status?: AttemptStatus } = { quizId };
+        if (!includeIncomplete) {
+            whereClause.status = AttemptStatus.COMPLETED;
+        }
+
         const attempts = await prisma.attempt.findMany({
-            where: {
-                quizId,
-                status: 'COMPLETED', // AttemptStatus.COMPLETED
-            },
+            where: whereClause,
             include: {
                 enrollment: {
                     include: {
@@ -101,6 +120,8 @@ export async function GET(request: Request) {
             {
                 quizId,
                 count: data.length,
+                totalAttempts, // Total attempts including incomplete
+                uniqueStudentsAttempted: uniqueStudentsAttemptedCount, // Unique students who attempted
                 totalStudents,
                 attempts: data,
             },

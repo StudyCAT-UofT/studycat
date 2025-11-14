@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { OptionLabel } from '@prisma/client'
+import { OptionLabel, AttemptStatus } from '@prisma/client'
 
 export const runtime = 'nodejs'
 
@@ -10,7 +10,8 @@ export const runtime = 'nodejs'
  * Returns JSON containing question-level stats for items in a quiz.
  * 
  * Query Parameters: 
- *  - quizID (required): The ID of the quiz to fetch questions
+ *  - quizId (required): The ID of the quiz to fetch questions
+ *  - includeIncomplete (optional): If "true", includes responses from incomplete attempts. Defaults to false (only completed attempts).
  * 
  * Returns:
  * - 200: JSON containing quizId, count (num items in the quiz), and items 
@@ -24,6 +25,7 @@ export async function GET(request: Request) {
     try {
         const { searchParams } = new URL(request.url);
         const quizId = searchParams.get('quizId');
+        const includeIncomplete = searchParams.get('includeIncomplete') === 'true';
 
         // Validate required parameter
         if (!quizId) {
@@ -57,9 +59,15 @@ export async function GET(request: Request) {
             return NextResponse.json({ quizId, count: 0, items: [] }, { status: 200 })
         }
 
-        // Get all attempt IDs for this quiz to filter responses
+        // Get attempt IDs for this quiz to filter responses
+        // Optionally filter by completion status based on includeIncomplete flag
+        const attemptWhereClause: { quizId: string; status?: AttemptStatus } = { quizId: String(quizId) };
+        if (!includeIncomplete) {
+            attemptWhereClause.status = AttemptStatus.COMPLETED;
+        }
+
         const attempts = await prisma.attempt.findMany({
-            where: { quizId: String(quizId) },
+            where: attemptWhereClause,
             select: { id: true },
         });
         const attemptIds = attempts.map((attempt) => attempt.id);
@@ -110,6 +118,8 @@ export async function GET(request: Request) {
 
         const optionLabels = Object.values(OptionLabel) as OptionLabel[];
 
+        // Prisma groupBy doesn't have full TypeScript support, so we use type assertion
+        // eslint-disable-next-line
         const grouped = (await (prisma as any).response.groupBy({
             by: ['itemId', 'selectedLabel', 'isCorrect'],
             where: { 

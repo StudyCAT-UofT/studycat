@@ -24,6 +24,8 @@ interface AnalyticsData {
     attempts: AttemptData[]
     questions: QuestionData[]
     totalStudents: number
+    totalAttempts: number // Total attempts including incomplete
+    uniqueStudentsAttempted: number // Unique students who have attempted
 }
 
 /**
@@ -101,7 +103,9 @@ const AnalyticsContent = () => {
             setAnalyticsData({
                 attempts: attemptsData.attempts || [],
                 questions: questionsData.items || [],
-                totalStudents: attemptsData.totalStudents || 0
+                totalStudents: attemptsData.totalStudents || 0,
+                totalAttempts: attemptsData.totalAttempts || 0,
+                uniqueStudentsAttempted: attemptsData.uniqueStudentsAttempted || 0
             })
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to fetch analytics data')
@@ -133,22 +137,28 @@ const AnalyticsContent = () => {
             }
         }
 
-        const { attempts, questions, totalStudents } = analyticsData
-        const totalAttempts = attempts.length
-        const averageScore = totalAttempts > 0
-            ? attempts.reduce((sum, a) => sum + a.score, 0) / totalAttempts
+        const { attempts, questions, totalStudents, totalAttempts: allAttempts, uniqueStudentsAttempted } = analyticsData
+        const completedAttempts = attempts.length
+        const averageScore = completedAttempts > 0
+            ? attempts.reduce((sum, a) => sum + a.score, 0) / completedAttempts
             : null
+        // Calculate student attempt rate based on unique students who attempted, not total attempts
         const studentAttemptRate = totalStudents > 0
-            ? (totalAttempts / totalStudents) * 100
+            ? (uniqueStudentsAttempted / totalStudents) * 100
             : 0
         const averageQuestionDifficulty = questions.length > 0
             ? questions.reduce((sum, q) => sum + (1 - q.average), 0) / questions.length
             : 0
 
+        // Calculate completion rate: completed attempts / total attempts (including incomplete)
+        const completionRate = allAttempts > 0
+            ? (completedAttempts / allAttempts) * 100
+            : null
+
         return {
-            totalAttempts,
+            totalAttempts: allAttempts, // Show total attempts including incomplete
             averageScore,
-            completionRate: totalAttempts > 0 ? 100 : null, // All attempts in the API are completed, but show N/A if no attempts
+            completionRate,
             studentAttemptRate,
             averageQuestionDifficulty
         }
