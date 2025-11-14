@@ -1,20 +1,33 @@
 import { useCourse } from "@/lib/course-context"
 import { Container, Stack, Title, Group, Button, Text, Center, Loader, Card, Table, Badge } from "@mantine/core"
-import { IconUpload, IconUsers, IconChartBar } from "@tabler/icons-react"
+import { IconUpload } from "@tabler/icons-react"
 import { useRouter } from "next/navigation"
 import { useState, useEffect, useCallback } from "react"
 import { Quiz } from "@/types"
+import { AttemptsOverTimeChart } from "@/components/Charts"
+
+interface AttemptData {
+    startedAt: string
+    status?: string
+}
+
+interface ApiAttempt {
+    startedAt: string
+    status?: string
+}
 
 const InstructorDashboard = () => {
     const { selectedCourseOffering } = useCourse()
     const router = useRouter()
     const [quizzes, setQuizzes] = useState<Quiz[]>([])
+    const [allAttempts, setAllAttempts] = useState<AttemptData[]>([])
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
     const fetchQuizzes = useCallback(async () => {
         if (!selectedCourseOffering?.id) {
             setQuizzes([])
+            setAllAttempts([])
             return
         }
 
@@ -33,14 +46,68 @@ const InstructorDashboard = () => {
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to fetch quizzes')
             setQuizzes([])
+            setAllAttempts([])
         } finally {
             setLoading(false)
         }
     }, [selectedCourseOffering?.id])
 
+    const fetchAllAttempts = useCallback(async () => {
+        if (!selectedCourseOffering?.id || quizzes.length === 0) {
+            setAllAttempts([])
+            return
+        }
+
+        try {
+            // Fetch attempts for all quizzes in parallel
+            const attemptPromises = quizzes.map(async (quiz) => {
+                try {
+                    const response = await fetch(`/api/data/attempt?quizId=${quiz.id}&includeIncomplete=true`, {
+                        credentials: 'include'
+                    })
+                    if (!response.ok) {
+                        return []
+                    }
+                    const data = await response.json()
+                    return (data.attempts || []).map((attempt: ApiAttempt) => ({
+                        startedAt: attempt.startedAt,
+                        status: attempt.status
+                    }))
+                } catch (err) {
+                    console.error(`Failed to fetch attempts for quiz ${quiz.id}:`, err)
+                    return []
+                }
+            })
+
+            const attemptsArrays = await Promise.all(attemptPromises)
+            const combinedAttempts = attemptsArrays.flat()
+
+            // Filter for past week
+            const oneWeekAgo = new Date()
+            oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
+            oneWeekAgo.setHours(0, 0, 0, 0)
+
+            const pastWeekAttempts = combinedAttempts.filter((attempt) => {
+                const startedAt = new Date(attempt.startedAt)
+                return startedAt >= oneWeekAgo
+            })
+
+            setAllAttempts(pastWeekAttempts)
+        } catch (err) {
+            console.error('Failed to fetch attempts:', err)
+            setAllAttempts([])
+        }
+    }, [selectedCourseOffering?.id, quizzes])
+
     useEffect(() => {
         fetchQuizzes()
     }, [fetchQuizzes])
+
+    useEffect(() => {
+        if (quizzes.length > 0) {
+            fetchAllAttempts()
+        }
+    }, [quizzes, fetchAllAttempts])
 
     const getScoreColor = (score: number | null) => {
         if (score === null) return 'gray'
@@ -52,16 +119,14 @@ const InstructorDashboard = () => {
     return (
         <Container size="lg" py="xl">
             <Stack gap="lg">
-                <Group justify="space-between" align="center">
+                <Group align="center">
                     <Title order={2}>Dashboard</Title>
-                    <Button
-                        leftSection={<IconUpload size={16} />}
-                        onClick={() => router.push('/upload')}
-                        disabled={!selectedCourseOffering}
-                    >
-                        Upload Questions
-                    </Button>
                 </Group>
+
+                {/* Attempts Over Time Chart */}
+                {!loading && quizzes.length > 0 && (
+                    <AttemptsOverTimeChart attempts={allAttempts} />
+                )}
 
                 {loading ? (
                     <Center h={300}>
@@ -108,11 +173,7 @@ const InstructorDashboard = () => {
                                                 </Text>
                                             </Table.Td>
                                             <Table.Td>
-                                                <Group gap={4}>
-                                                    <Badge variant="light" color="blue" size="md">
-                                                        {quiz.stats.totalAttempts}
-                                                    </Badge>
-                                                </Group>
+                                                {quiz.stats.totalAttempts}
                                             </Table.Td>
                                             <Table.Td>
                                                 {quiz.stats.averageScore !== null ? (
