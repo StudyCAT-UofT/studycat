@@ -26,8 +26,14 @@ jobs:
           node-version: '20'
           cache: 'pnpm'
 
+      - name: Update submodule
+        run: git submodule update --init --recursive
+
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Generate Prisma client
+        run: pnpm db:generate
 
       - name: Run linting
         run: pnpm run lint
