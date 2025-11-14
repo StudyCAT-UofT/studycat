@@ -1,170 +1,274 @@
 'use client'
 
+import { useState, useMemo } from 'react'
+import {
+    Text,
+    Badge,
+    Group,
+    ActionIcon,
+    Box,
+    Stack
+} from '@mantine/core'
+import { DataTable, DataTableSortStatus } from 'mantine-datatable'
+import { IconEdit } from '@tabler/icons-react'
 import { Quiz } from '@/types'
-import { Card, Stack, Text, Table, Badge, ScrollArea, Skeleton } from '@mantine/core'
-import { useMemo, useCallback } from 'react'
 
 interface QuizzesTableProps {
     quizzes: Quiz[]
     loading: boolean
     error: string | null
+    selectedRecords?: Quiz[]
+    onSelectedRecordsChange?: (records: Quiz[]) => void
+    onEditQuiz?: (quiz: Quiz) => void
 }
 
-export const QuizzesTable = ({ quizzes, loading, error }: QuizzesTableProps) => {
-    const getStatusColor = useCallback((isActive: boolean) => {
-        return isActive ? 'green' : 'gray'
-    }, [])
+export const QuizzesTable = ({
+    quizzes,
+    loading,
+    error,
+    selectedRecords: externalSelectedRecords,
+    onSelectedRecordsChange,
+    onEditQuiz
+}: QuizzesTableProps) => {
+    const [sortStatus, setSortStatus] = useState<DataTableSortStatus<Quiz>>({
+        columnAccessor: 'title',
+        direction: 'asc'
+    })
+    const [internalSelectedRecords, setInternalSelectedRecords] = useState<Quiz[]>([])
 
-    const getTableRows = (quizzes: Quiz[]) => {
-        return quizzes.map((quiz) => (
-            <Table.Tr key={quiz.id}>
-                <Table.Td>
-                    <Stack gap={2}>
-                        <Text size="sm" fw={500}>
-                            {quiz.title}
-                        </Text>
-                        {quiz.description && (
-                            <Text size="xs" c="dimmed" lineClamp={1}>
-                                {quiz.description}
-                            </Text>
-                        )}
-                    </Stack>
-                </Table.Td>
-                <Table.Td>
-                    <Text size="sm">{quiz.module}</Text>
-                    {quiz.modules.length > 1 && (
-                        <Text size="xs" c="dimmed">
-                            +{quiz.modules.length - 1} more
-                        </Text>
-                    )}
-                </Table.Td>
-                <Table.Td>
-                    <Badge color={getStatusColor(quiz.isActive)} size="sm">
-                        {quiz.isActive ? 'Active' : 'Inactive'}
-                    </Badge>
-                </Table.Td>
-                <Table.Td>
-                    <Text size="sm">{quiz.fixedLength}</Text>
-                </Table.Td>
-                <Table.Td>
-                    <Text size="sm">
-                        {new Date(quiz.createdAt).toLocaleDateString()}
-                    </Text>
-                </Table.Td>
-                <Table.Td>
-                    <Stack gap={2}>
-                        {quiz.stats.totalAttempts > 0 ? (
-                            <>
-                                <Text size="xs" c="dimmed">
-                                    Attempts: {quiz.stats.totalAttempts}
-                                </Text>
-                                {quiz.stats.averageScore && (
-                                    <Text size="xs" c="dimmed">
-                                        Avg: {quiz.stats.averageScore.toFixed(1)}%
-                                    </Text>
-                                )}
-                                {quiz.stats.completionRate && (
-                                    <Text size="xs" c="dimmed">
-                                        Complete: {quiz.stats.completionRate.toFixed(1)}%
-                                    </Text>
-                                )}
-                            </>
-                        ) : (
-                            <Text size="xs" c="dimmed">
-                                No attempts yet
-                            </Text>
-                        )}
-                    </Stack>
-                </Table.Td>
-            </Table.Tr>
-        ))
+    // Use external selected records if provided, otherwise use internal state
+    const selectedRecords = externalSelectedRecords !== undefined ? externalSelectedRecords : internalSelectedRecords
+    const setSelectedRecords = onSelectedRecordsChange || setInternalSelectedRecords
+    const [page, setPage] = useState(1)
+    const [pageSize] = useState(20)
+
+    const handleSortStatusChange = (newSortStatus: DataTableSortStatus<Quiz>) => {
+        setSortStatus(newSortStatus)
+        setPage(1) // Reset to first page when sorting changes
     }
 
-    const skeletonRows = useMemo(() =>
-        Array.from({ length: 3 }).map((_, index) => (
-            <Table.Tr key={index}>
-                <Table.Td>
-                    <Skeleton height={20} width={150} />
-                </Table.Td>
-                <Table.Td>
-                    <Skeleton height={20} width={80} />
-                </Table.Td>
-                <Table.Td>
-                    <Skeleton height={24} width={60} radius="xl" />
-                </Table.Td>
-                <Table.Td>
-                    <Skeleton height={20} width={40} />
-                </Table.Td>
-                <Table.Td>
-                    <Skeleton height={20} width={80} />
-                </Table.Td>
-                <Table.Td>
-                    <Stack gap={2}>
-                        <Skeleton height={14} width={70} />
-                        <Skeleton height={14} width={90} />
-                    </Stack>
-                </Table.Td>
-            </Table.Tr>
-        )), [])
+    // Sort the quizzes based on the current sort status
+    const sortedQuizzes = useMemo(() => {
+        const sorted = [...quizzes].sort((a, b) => {
+            const { columnAccessor, direction } = sortStatus
+            const aValue = a[columnAccessor as keyof Quiz]
+            const bValue = b[columnAccessor as keyof Quiz]
 
-    return (
-        <Card withBorder padding="lg" radius="md">
-            <Stack>
-                {loading && (
-                    <ScrollArea>
-                        <Table striped>
-                            <Table.Thead>
-                                <Table.Tr>
-                                    <Table.Th>Quiz Title</Table.Th>
-                                    <Table.Th>Module</Table.Th>
-                                    <Table.Th>Status</Table.Th>
-                                    <Table.Th>Questions</Table.Th>
-                                    <Table.Th>Created</Table.Th>
-                                    <Table.Th>Stats</Table.Th>
-                                </Table.Tr>
-                            </Table.Thead>
-                            <Table.Tbody>
-                                {skeletonRows}
-                            </Table.Tbody>
-                        </Table>
-                    </ScrollArea>
-                )}
+            // Handle null/undefined values
+            if (aValue == null && bValue == null) return 0
+            if (aValue == null) return direction === 'asc' ? 1 : -1
+            if (bValue == null) return direction === 'asc' ? -1 : 1
 
-                {error && (
-                    <Text c="red" size="sm" role="alert" aria-live="polite">
-                        Error: {error}
+            // Handle string comparison
+            if (typeof aValue === 'string' && typeof bValue === 'string') {
+                const aLower = aValue.toLowerCase()
+                const bLower = bValue.toLowerCase()
+                if (aLower < bLower) return direction === 'asc' ? -1 : 1
+                if (aLower > bLower) return direction === 'asc' ? 1 : -1
+                return 0
+            }
+
+            // Handle number comparison
+            if (typeof aValue === 'number' && typeof bValue === 'number') {
+                if (aValue < bValue) return direction === 'asc' ? -1 : 1
+                if (aValue > bValue) return direction === 'asc' ? 1 : -1
+                return 0
+            }
+
+            // Handle date comparison
+            if (columnAccessor === 'createdAt') {
+                const aDate = new Date(aValue as string)
+                const bDate = new Date(bValue as string)
+                if (aDate < bDate) return direction === 'asc' ? -1 : 1
+                if (aDate > bDate) return direction === 'asc' ? 1 : -1
+                return 0
+            }
+
+            // Fallback for other types
+            if (aValue < bValue) return direction === 'asc' ? -1 : 1
+            if (aValue > bValue) return direction === 'asc' ? 1 : -1
+            return 0
+        })
+        return sorted
+    }, [quizzes, sortStatus])
+
+    const getStatusColor = (isActive: boolean) => {
+        return isActive ? 'green' : 'gray'
+    }
+
+    const columns = [
+        {
+            accessor: 'title',
+            title: 'Quiz Title',
+            sortable: true,
+            width: 250,
+            render: (quiz: Quiz) => (
+                <Stack gap={2}>
+                    <Text size="sm" fw={500}>
+                        {quiz.title}
                     </Text>
-                )}
-
-                {!loading && !error && (
-                    <>
-                        {quizzes.length > 0 ? (
-                            <ScrollArea>
-                                <Table striped highlightOnHover role="table" aria-label="Quizzes table">
-                                    <Table.Thead>
-                                        <Table.Tr>
-                                            <Table.Th>Quiz Title</Table.Th>
-                                            <Table.Th>Module</Table.Th>
-                                            <Table.Th>Status</Table.Th>
-                                            <Table.Th>Questions</Table.Th>
-                                            <Table.Th>Created</Table.Th>
-                                            <Table.Th>Stats</Table.Th>
-                                        </Table.Tr>
-                                    </Table.Thead>
-                                    <Table.Tbody>
-                                        {getTableRows(quizzes)}
-                                    </Table.Tbody>
-                                </Table>
-                            </ScrollArea>
-                        ) : (
-                            <Text c="dimmed" ta="center" py="xl">
-                                No quizzes found for this course.
+                    {quiz.description && (
+                        <Text size="xs" c="dimmed" lineClamp={1}>
+                            {quiz.description}
+                        </Text>
+                    )}
+                </Stack>
+            )
+        },
+        {
+            accessor: 'module',
+            title: 'Module',
+            sortable: true,
+            width: 150,
+            render: (quiz: Quiz) => (
+                <Stack gap={2}>
+                    {quiz.includedModules.map((module, index) => (
+                        <Badge key={index} size="sm" variant="light">
+                            {module}
+                        </Badge>
+                    ))}
+                </Stack>
+            )
+        },
+        {
+            accessor: 'isActive',
+            title: 'Status',
+            sortable: true,
+            width: 100,
+            render: (quiz: Quiz) => (
+                <Badge color={getStatusColor(quiz.isActive)} size="sm">
+                    {quiz.isActive ? 'Active' : 'Inactive'}
+                </Badge>
+            )
+        },
+        {
+            accessor: 'fixedLength',
+            title: 'Questions',
+            sortable: true,
+            width: 100,
+            render: (quiz: Quiz) => (
+                <Text size="sm">{quiz.fixedLength}</Text>
+            )
+        },
+        {
+            accessor: 'createdAt',
+            title: 'Created',
+            sortable: true,
+            width: 120,
+            render: (quiz: Quiz) => (
+                <Text size="sm">
+                    {new Date(quiz.createdAt).toLocaleDateString()}
+                </Text>
+            )
+        },
+        {
+            accessor: 'stats',
+            title: 'Stats',
+            sortable: false,
+            width: 150,
+            render: (quiz: Quiz) => (
+                <Stack gap={2}>
+                    {quiz.stats.totalAttempts > 0 ? (
+                        <>
+                            <Text size="xs" c="dimmed">
+                                Attempts: {quiz.stats.totalAttempts}
                             </Text>
-                        )}
-                    </>
+                            {quiz.stats.averageScore && (
+                                <Text size="xs" c="dimmed">
+                                    Avg: {quiz.stats.averageScore.toFixed(1)}%
+                                </Text>
+                            )}
+                            {quiz.stats.completionRate && (
+                                <Text size="xs" c="dimmed">
+                                    Complete: {quiz.stats.completionRate.toFixed(1)}%
+                                </Text>
+                            )}
+                        </>
+                    ) : (
+                        <Text size="xs" c="dimmed">
+                            No attempts yet
+                        </Text>
+                    )}
+                </Stack>
+            )
+        },
+        {
+            accessor: 'actions',
+            title: 'Actions',
+            width: 100,
+            sticky: 'right',
+            sortable: false,
+            render: (quiz: Quiz) => (
+                <Group gap="xs">
+                    <ActionIcon
+                        variant="subtle"
+                        onClick={(e) => {
+                            e.stopPropagation()
+                            if (onEditQuiz) {
+                                onEditQuiz(quiz)
+                            }
+                        }}
+                    >
+                        <IconEdit size={16} />
+                    </ActionIcon>
+                </Group>
+            )
+        }
+    ]
+
+    const expandedRowContent = ({ record }: { record: Quiz }) => (
+        <Box p="md" style={{ backgroundColor: '#f8f9fa' }}>
+            <Stack gap="md">
+                {record.includedModules.length > 0 && (
+                    <div>
+                        <Text fw={500} mb="xs">Included Modules:</Text>
+                        <Group gap="xs">
+                            {record.includedModules.map((module, index) => (
+                                <Badge key={index} size="sm" variant="light">
+                                    {module}
+                                </Badge>
+                            ))}
+                        </Group>
+                        {/* TODO - include detailed quiz stats here */}
+                    </div>
                 )}
             </Stack>
-        </Card>
+        </Box>
+    )
+
+    if (error) {
+        return (
+            <Text c="red" size="sm">
+                Error: {error}
+            </Text>
+        )
+    }
+
+    return (
+        <DataTable
+            records={sortedQuizzes}
+            columns={columns}
+            sortStatus={sortStatus}
+            onSortStatusChange={handleSortStatusChange}
+            selectedRecords={selectedRecords}
+            onSelectedRecordsChange={setSelectedRecords}
+            rowExpansion={{
+                content: expandedRowContent
+            }}
+            fetching={loading}
+            minHeight={200}
+            striped
+            highlightOnHover
+            withTableBorder
+            withColumnBorders
+            withRowBorders
+            page={page}
+            onPageChange={setPage}
+            totalRecords={sortedQuizzes.length}
+            recordsPerPage={pageSize}
+            paginationActiveBackgroundColor="blue"
+            idAccessor="id"
+            noRecordsText="No quizzes found for this course."
+        />
     )
 }
-

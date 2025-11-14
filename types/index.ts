@@ -31,8 +31,6 @@ export interface Quiz {
     id: string
     title: string
     description: string | null
-    modules: string[]
-    module: string // Primary module for display
     fixedLength: number
     timeLimit: number | null // Not in schema but kept for compatibility
     maxAttempts: number | null // Not in schema but kept for compatibility
@@ -55,4 +53,69 @@ export interface QuizItem {
     skill: string
     stem: string
     options: string[]
+    figure_url?: string | null
+    reference?: string | null
+}
+
+// Quiz Attempt Interfaces
+export interface Feedback {
+    correctAnswerIndex: number
+    selectedAnswerIndex: number
+    isCorrect: boolean
+    justification: string | null
+}
+
+export interface InitAttemptRequest {
+    quizId: string
+    concepts?: string[]
+    priorMu?: number
+    priorSigma2?: number
+}
+
+export interface InitAttemptResponse {
+    attemptId: string
+    quizId: string
+    enrollmentId: string
+    theta: Record<string, number>
+    nextItem?: QuizItem
+    nextAction: string
+    startedAt: string
+}
+
+export interface StepAttemptRequest {
+    attemptId: string
+    itemId: string
+    answerIndex: number
+    responseTimeMs?: number
+}
+
+export interface StepAttemptResponse {
+    attemptId: string
+    theta: Record<string, number>
+    mastery: Record<string, boolean>
+    nextAction: string
+    nextItem?: QuizItem
+    isFinished: boolean
+    feedback?: Feedback
+}
+
+export interface AttemptResultsResponse {
+    attemptId: string
+    totalQuestions: number
+    correctAnswers: number
+    percentage: number
+    responses: Array<{
+        id: string
+        itemId: string
+        selectedLabel: string
+        isCorrect: boolean
+        answeredAt: string
+    }>
+}
+
+export interface QuizResults {
+    attemptId: string
+    totalQuestions: number
+    correctAnswers: number
+    percentage: number
 }
