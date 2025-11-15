@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@mantine/charts':
+        specifier: ^8.3.7
+        version: 8.3.7(@mantine/core@8.3.6(@mantine/hooks@8.3.6(react@19.1.0))(@types/react@19.2.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(@mantine/hooks@8.3.6(react@19.1.0))(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(recharts@3.4.1(@types/react@19.2.0)(react-dom@19.1.0(react@19.1.0))(react-is@16.13.1)(react@19.1.0)(redux@5.0.1))
       '@mantine/core':
         specifier: ^8.3.6
         version: 8.3.6(@mantine/hooks@8.3.6(react@19.1.0))(@types/react@19.2.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
@@ -465,6 +468,15 @@ packages:
     engines: {node: ^18.17.0 || ^20.3.0 || >=21.0.0}
     cpu: [x64]
     os: [win32]
+
+  '@mantine/charts@8.3.7':
+    resolution: {integrity: sha512-7yJZOwbrpgqjhtrv5jFnh7wYrtXxYofBcSfJ133VT/kdqrNknrooPMgvsN7hRnxYSkJ+k0boApngwZQzggxl2g==}
+    peerDependencies:
+      '@mantine/core': 8.3.7
+      '@mantine/hooks': 8.3.7
+      react: ^18.x || ^19.x
+      react-dom: ^18.x || ^19.x
+      recharts: '>=2.13.3'
 
   '@mantine/core@8.3.6':
     resolution: {integrity: sha512-paTl+0x+O/QtgMtqVJaG8maD8sfiOdgPmLOyG485FmeGZ1L3KMdEkhxZtmdGlDFsLXhmMGQ57ducT90bvhXX5A==}
@@ -2656,6 +2668,14 @@ snapshots:
 
   '@img/sharp-win32-x64@0.34.4':
     optional: true
+
+  '@mantine/charts@8.3.7(@mantine/core@8.3.6(@mantine/hooks@8.3.6(react@19.1.0))(@types/react@19.2.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(@mantine/hooks@8.3.6(react@19.1.0))(react-dom@19.1.0(react@19.1.0))(react@19.1.0)(recharts@3.4.1(@types/react@19.2.0)(react-dom@19.1.0(react@19.1.0))(react-is@16.13.1)(react@19.1.0)(redux@5.0.1))':
+    dependencies:
+      '@mantine/core': 8.3.6(@mantine/hooks@8.3.6(react@19.1.0))(@types/react@19.2.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      '@mantine/hooks': 8.3.6(react@19.1.0)
+      react: 19.1.0
+      react-dom: 19.1.0(react@19.1.0)
+      recharts: 3.4.1(@types/react@19.2.0)(react-dom@19.1.0(react@19.1.0))(react-is@16.13.1)(react@19.1.0)(redux@5.0.1)
 
   '@mantine/core@8.3.6(@mantine/hooks@8.3.6(react@19.1.0))(@types/react@19.2.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)':
     dependencies:
