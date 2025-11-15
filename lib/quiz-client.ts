@@ -2,6 +2,8 @@
  * Client utility for interacting with quiz attempt endpoints
  */
 
+import type { FeedbackData } from '@/types';
+
 interface InitAttemptRequest {
   quizId: string;
   concepts?: string[];
@@ -101,6 +103,24 @@ export class QuizClient {
     if (!response.ok) {
       const errorData = await response.json();
       throw new Error(errorData.error || 'Failed to fetch quiz results');
+    }
+
+    return response.json();
+  }
+
+  async getFeedback(attemptId: string): Promise<FeedbackData> {
+    const response = await fetch(`${this.baseUrl}/feedback`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify({ attemptId }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to fetch quiz feedback');
     }
 
     return response.json();
