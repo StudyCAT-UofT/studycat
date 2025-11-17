@@ -12,7 +12,7 @@ import {
 } from '@mantine/core'
 import { DataTable, DataTableSortStatus } from 'mantine-datatable'
 import { IconEdit } from '@tabler/icons-react'
-import EditQuestionModal from './EditQuestionModal'
+import EditQuestionModal from '@/components/EditQuestionModal'
 import { getBloomColor } from '@/utils/getBloomColor'
 import { Item } from '@/types'
 
@@ -83,6 +83,13 @@ export const QuestionBankTable = ({ items, loading, error, onRefresh, selectedRe
         })
         return sorted
     }, [items, sortStatus])
+
+    // Paginate sorted items for display
+    const paginatedItems = useMemo(() => {
+        const start = (page - 1) * pageSize
+        const end = start + pageSize
+        return sortedItems.slice(start, end)
+    }, [sortedItems, page, pageSize])
 
     const columns = [
         {
@@ -215,7 +222,7 @@ export const QuestionBankTable = ({ items, loading, error, onRefresh, selectedRe
     return (
         <>
             <DataTable
-                records={sortedItems}
+                records={paginatedItems}
                 columns={columns}
                 sortStatus={sortStatus}
                 onSortStatusChange={handleSortStatusChange}

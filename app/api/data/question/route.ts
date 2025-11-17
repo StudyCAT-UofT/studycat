@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { OptionLabel, PrismaClient } from '@prisma/client'
+import { OptionLabel, AttemptStatus, PrismaClient } from '@prisma/client'
 
 export const runtime = 'nodejs'
 
@@ -10,7 +10,8 @@ export const runtime = 'nodejs'
  * Returns JSON containing question-level stats for items in a quiz.
  * 
  * Query Parameters: 
- *  - quizID (required): The ID of the quiz to fetch questions
+ *  - quizId (required): The ID of the quiz to fetch questions
+ *  - includeIncomplete (optional): If "true", includes responses from incomplete attempts. Defaults to false (only completed attempts).
  * 
  * Returns:
  * - 200: JSON containing quizId, count (num items in the quiz), and items 
@@ -24,6 +25,7 @@ export async function GET(request: Request) {
     try {
         const { searchParams } = new URL(request.url);
         const quizId = searchParams.get('quizId');
+        const includeIncomplete = searchParams.get('includeIncomplete') === 'true';
 
         // Validate required parameter
         if (!quizId) {
@@ -57,18 +59,85 @@ export async function GET(request: Request) {
             return NextResponse.json({ quizId, count: 0, items: [] }, { status: 200 })
         }
 
+        // Get attempt IDs for this quiz to filter responses
+        // Optionally filter by completion status based on includeIncomplete flag
+        const attemptWhereClause: { quizId: string; status?: AttemptStatus } = { quizId: String(quizId) };
+        if (!includeIncomplete) {
+            attemptWhereClause.status = AttemptStatus.COMPLETED;
+        }
+
+        const attempts = await prisma.attempt.findMany({
+            where: attemptWhereClause,
+            select: { id: true },
+        });
+        const attemptIds = attempts.map((attempt) => attempt.id);
+
+        // If no attempts exist for this quiz, return empty stats
+        if (attemptIds.length === 0) {
+            const itemsMeta = await prisma.item.findMany({
+                where: { id: { in: itemIds } },
+                include: {
+                    module: {
+                        select: { id: true, name: true },
+                    },
+                    options: {
+                        select: { id: true, label: true, text: true, isCorrect: true },
+                    },
+                },
+            });
+
+            const optionLabels = Object.values(OptionLabel) as OptionLabel[];
+
+            const items = itemIds.map((id) => {
+                const meta = itemsMeta.find((it) => it.id === id);
+                const questionId = meta?.externalQuestionId ?? id;
+                const stem = meta?.stem ?? '';
+                const moduleName = meta?.module?.name ?? null;
+                const options = meta?.options ?? [];
+
+                const base = {
+                    questionId,
+                    itemId: id,
+                    stem,
+                    moduleName,
+                    options,
+                    average: 0,
+                    numAttempts: 0,
+                } as Record<string, unknown>;
+
+                for (const label of optionLabels) {
+                    const key = `average${label}`;
+                    base[key] = 0;
+                }
+
+                return base;
+            });
+
+            return NextResponse.json({ quizId, count: items.length, items }, { status: 200 });
+        }
+
         const optionLabels = Object.values(OptionLabel) as OptionLabel[];
 
         const grouped = await (prisma as PrismaClient).response.groupBy({
             by: ['itemId', 'selectedLabel', 'isCorrect'],
-            where: { itemId: { in: itemIds } },
+            where: { 
+                itemId: { in: itemIds },
+                attemptId: { in: attemptIds },
+            },
             _count: { _all: true },
         });
 
-        // Fetch item metadata (externalQuestionId, stem)
+        // Fetch item metadata (externalQuestionId, stem, module)
         const itemsMeta = await prisma.item.findMany({
             where: { id: { in: itemIds } },
-            select: { id: true, externalQuestionId: true, stem: true },
+            include: {
+                module: {
+                    select: { id: true, name: true },
+                },
+                options: {
+                    select: { id: true, label: true, text: true, isCorrect: true },
+                },
+            },
         });
 
         type ChoiceCounts = Record<OptionLabel, number>
@@ -116,9 +185,14 @@ export async function GET(request: Request) {
         }
 
         // Map meta by id for stable order
-        const metaById = itemsMeta.reduce<Record<string, { externalQuestionId?: string | null; stem?: string | null }>>(
+        const metaById = itemsMeta.reduce<Record<string, { externalQuestionId?: string | null; stem?: string | null; moduleName?: string | null; options?: Array<{ id: string; label: string; text: string; isCorrect: boolean }> }>>(
             (acc, it) => {
-                acc[it.id] = { externalQuestionId: it.externalQuestionId, stem: it.stem }
+                acc[it.id] = { 
+                    externalQuestionId: it.externalQuestionId, 
+                    stem: it.stem,
+                    moduleName: it.module?.name ?? null,
+                    options: it.options,
+                }
                 return acc
             },
             {}
@@ -129,13 +203,18 @@ export async function GET(request: Request) {
             const meta = metaById[id] ?? {}
             const questionId = meta.externalQuestionId ?? id
             const stem = meta.stem ?? ''
+            const moduleName = meta.moduleName ?? null
+            const options = meta.options ?? []
 
             const agg = statsMap[id] ?? { numAttempts: 0, correctCount: 0, choiceCounts: initChoiceCounts() }
             const n = agg.numAttempts
 
             const base = {
                 questionId,
+                itemId: id,
                 stem,
+                moduleName,
+                options,
                 average: n > 0 ? agg.correctCount / n : 0,
                 numAttempts: n,
             } as Record<string, unknown>;

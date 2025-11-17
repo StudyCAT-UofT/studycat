@@ -119,3 +119,82 @@ export interface QuizResults {
     correctAnswers: number
     percentage: number
 }
+
+export interface QuestionData {
+    questionId: string
+    itemId: string
+    stem: string
+    moduleName: string | null
+    average: number
+    numAttempts: number
+    averageA: number
+    averageB: number
+    averageC: number
+    averageD: number
+    options: Array<{
+        id: string
+        label: string
+        text: string
+        isCorrect: boolean
+    }>
+}
+
+// Quiz Feedback Interfaces
+export interface ModulePerformance {
+    moduleId: string
+    moduleName: string
+    theta: number
+    performanceLevel: 'Developing' | 'Proficient' | 'Advanced'
+    performanceValue: number // 0-100 scale for visualization
+    questionsAttempted: number
+    questionsCorrect: number
+}
+
+export interface DetailedQuestionReview {
+    questionNumber: number
+    itemId: string
+    moduleId: string
+    moduleName: string
+    bloomLevel: string
+    stem: string
+    figureUrl: string | null
+    reference: string | null
+    selectedAnswerIndex: number
+    correctAnswerIndex: number
+    isCorrect: boolean
+    options: Array<{
+        label: string
+        text: string
+        justification: string | null
+        isCorrect: boolean
+    }>
+    answeredAt: string
+    responseTimeMs: number
+}
+
+export interface FeedbackData {
+    attemptId: string
+    quizId: string
+    quizTitle: string
+    status: 'IN_PROGRESS' | 'COMPLETED' | 'ABANDONED'
+    startedAt: string
+    finishedAt: string | null
+    totalTimeMs: number
+    
+    // Performance summary
+    questionsAttempted: number
+    questionsCorrect: number
+    questionsIncorrect: number
+    percentage: number
+    fixedLength: number
+    
+    // Module performance for spiderweb plot
+    modulePerformance: ModulePerformance[]
+    
+    // Detailed question review
+    questions: DetailedQuestionReview[]
+    
+    // Continue quiz logic
+    canContinue: boolean
+    continueReason: 'not_started' | 'in_progress' | 'reached_limit' | 'completed' | null
+}
