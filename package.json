@@ -2,11 +2,16 @@
   "name": "studycat",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
     "start": "next start",
     "lint": "eslint",
+    "test": "vitest --config vitest.config.mts",
+    "test:ui": "vitest --ui --config vitest.config.mts",
+    "test:run": "vitest run --config vitest.config.mts",
+    "test:coverage": "vitest run --coverage --config vitest.config.mts",
     "db:seed": "tsx scripts/seed.ts",
     "db:generate": "prisma generate --schema=external/studycat-schema/schema.prisma --generator=client",
     "db:migrate": "prisma migrate dev --schema=external/studycat-schema/schema.prisma",
@@ -34,18 +39,25 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
     "@types/js-cookie": "^3.0.6",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^5.1.1",
+    "@vitest/ui": "^4.0.10",
     "eslint": "^9",
     "eslint-config-next": "15.5.4",
+    "jsdom": "^27.2.0",
     "postcss": "^8.5.6",
     "postcss-preset-mantine": "^1.18.0",
     "postcss-simple-vars": "^7.0.1",
     "prisma": "^6.16.2",
     "tsx": "^4.19.2",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.0.10"
   }
 }
