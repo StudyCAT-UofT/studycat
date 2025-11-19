@@ -5,7 +5,7 @@ import { ProtectedRoute, RoleBasedRoute } from '@/components'
 import { useCourse } from '@/lib/course-context'
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { IconPlus, IconTrash } from '@tabler/icons-react'
-import AddStudentsModal from '@/components/Modals/AddStudentsModal'
+import { AddStudentsModal } from '@/components/Modals'
 import { StudentsTable } from '@/components/Tables'
 
 interface Student {

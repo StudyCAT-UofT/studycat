@@ -1,13 +1,14 @@
 'use client'
 
 import { Container, Stack, Title, Select, Card, SimpleGrid, Text, Group, Loader, Center, Alert, Button, Menu } from '@mantine/core'
-import { ProtectedRoute, RoleBasedRoute, ExportDataModal } from '@/components'
+import { ProtectedRoute, RoleBasedRoute } from '@/components'
 import { ScoreDistributionChart, AttemptsOverTimeChart, ModulePerformanceRadarChart } from '@/components/Charts'
 import { QuestionStatsTable, StudentStatsTable } from '@/components/Tables'
 import { useCourse } from '@/lib/course-context'
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { QuestionData, Quiz } from '@/types'
 import { IconChevronDown, IconDownload } from '@tabler/icons-react'
+import { ExportDataModal } from '@/components/Modals'
 
 interface AttemptData {
     userId: string
