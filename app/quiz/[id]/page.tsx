@@ -1,6 +1,6 @@
 'use client'
 
-import { Container, Stack, Text, Title, Button, Group, Alert, Loader, Center, Paper } from '@mantine/core'
+import { Container, Stack, Text, Title, Button, Group, Alert, Loader, Center } from '@mantine/core'
 import { ProtectedRoute, RoleBasedRoute, QuizFeedback } from '@/components'
 import { useCourse } from '@/lib/course-context'
 import { useAuth } from '@/lib/auth-context'
@@ -71,7 +71,9 @@ const QuizContent = ({ quizId }: { quizId: string }) => {
                     currentItem: response.nextItem,
                     isFinished: false,
                     loading: false,
-                    loadingResults: false
+                    loadingResults: false,
+                    showFeedback: false,
+                    loadingFeedback: false
                 })
                 setIsInitialized(true) // Mark as initializing to prevent duplicate calls
             } catch (error) {

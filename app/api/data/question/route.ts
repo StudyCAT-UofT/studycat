@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { OptionLabel, AttemptStatus } from '@prisma/client'
+import { OptionLabel, AttemptStatus, PrismaClient } from '@prisma/client'
 
 export const runtime = 'nodejs'
 
@@ -118,21 +118,14 @@ export async function GET(request: Request) {
 
         const optionLabels = Object.values(OptionLabel) as OptionLabel[];
 
-        // Prisma groupBy doesn't have full TypeScript support, so we use type assertion
-        // eslint-disable-next-line
-        const grouped = (await (prisma as any).response.groupBy({
+        const grouped = await (prisma as PrismaClient).response.groupBy({
             by: ['itemId', 'selectedLabel', 'isCorrect'],
             where: { 
                 itemId: { in: itemIds },
                 attemptId: { in: attemptIds },
             },
             _count: { _all: true },
-        })) as Array<{
-            itemId: string;
-            selectedLabel: string | null;
-            isCorrect: boolean | null;
-            _count: { _all: number };
-        }>;
+        });
 
         // Fetch item metadata (externalQuestionId, stem, module)
         const itemsMeta = await prisma.item.findMany({

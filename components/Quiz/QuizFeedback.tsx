@@ -19,6 +19,7 @@ import { IconCheck, IconX, IconClock, IconInfoCircle } from '@tabler/icons-react
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from 'recharts'
 import type { FeedbackData, DetailedQuestionReview } from '@/types'
 import { getBloomColor } from '@/utils/getBloomColor'
+import Image from 'next/image'
 
 interface QuizFeedbackProps {
     feedbackData: FeedbackData
@@ -187,7 +188,7 @@ export default function QuizFeedback({ feedbackData, onContinue, onReturnToDashb
                     </Group>
                     {feedbackData.canContinue && feedbackData.continueReason === 'reached_limit' && (
                         <Text size="sm" c="dimmed" ta="center" mt="md">
-                            You've reached the target of {feedbackData.fixedLength} questions, but you can continue practicing!
+                            You&apos;ve reached the target of {feedbackData.fixedLength} questions, but you can continue practicing!
                         </Text>
                     )}
                 </Paper>
@@ -197,12 +198,12 @@ export default function QuizFeedback({ feedbackData, onContinue, onReturnToDashb
                     <Paper p="xl" radius="md" withBorder>
                         <Stack gap="lg">
                             <Title order={2}>Module Performance</Title>
-                            
+
                             <Alert icon={<IconInfoCircle size={20} />} color="blue" variant="light">
                                 <Text size="sm">
-                                    <strong>Overall Mastery:</strong> This shows your overall understanding across all past quiz attempts, not just this quiz. 
-                                    Performance levels: <strong>Developing</strong> (building foundations), 
-                                    <strong> Proficient</strong> (solid understanding), 
+                                    <strong>Overall Mastery:</strong> This shows your overall understanding across all past quiz attempts, not just this quiz.
+                                    Performance levels: <strong>Developing</strong> (building foundations),
+                                    <strong> Proficient</strong> (solid understanding),
                                     <strong> Advanced</strong> (mastery achieved)
                                 </Text>
                             </Alert>
@@ -214,12 +215,12 @@ export default function QuizFeedback({ feedbackData, onContinue, onReturnToDashb
                             <ResponsiveContainer width="100%" height={400}>
                                 <RadarChart data={radarData}>
                                     <PolarGrid />
-                                    <PolarAngleAxis 
-                                        dataKey="module" 
+                                    <PolarAngleAxis
+                                        dataKey="module"
                                         tick={{ fontSize: 12 }}
                                     />
-                                    <PolarRadiusAxis 
-                                        angle={90} 
+                                    <PolarRadiusAxis
+                                        angle={90}
                                         domain={[0, 100]}
                                         tick={{ fontSize: 12 }}
                                     />
@@ -333,7 +334,7 @@ export default function QuizFeedback({ feedbackData, onContinue, onReturnToDashb
                                                 {/* Figure if present */}
                                                 {question.figureUrl && (
                                                     <Box>
-                                                        <img
+                                                        <Image
                                                             src={question.figureUrl}
                                                             alt="Question figure"
                                                             style={{ maxWidth: '100%', height: 'auto' }}
