@@ -1,12 +1,13 @@
 'use client'
 
-import { Container, Stack, Title, Select, Card, SimpleGrid, Text, Group, Loader, Center, Alert } from '@mantine/core'
-import { ProtectedRoute, RoleBasedRoute } from '@/components'
+import { Container, Stack, Title, Select, Card, SimpleGrid, Text, Group, Loader, Center, Alert, Button, Menu } from '@mantine/core'
+import { ProtectedRoute, RoleBasedRoute, ExportDataModal } from '@/components'
 import { ScoreDistributionChart, AttemptsOverTimeChart, ModulePerformanceRadarChart } from '@/components/Charts'
 import { QuestionStatsTable, StudentStatsTable } from '@/components/Tables'
 import { useCourse } from '@/lib/course-context'
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { QuestionData, Quiz } from '@/types'
+import { IconChevronDown, IconDownload } from '@tabler/icons-react'
 
 interface AttemptData {
     userId: string
@@ -34,6 +35,8 @@ interface AnalyticsData {
  * Main content component for the analytics page
  * Displays comprehensive quiz analytics with charts and metrics
  */
+type ExportDataType = 'attempt' | 'question' | 'theta' | null
+
 const AnalyticsContent = () => {
     const { selectedCourseOffering } = useCourse()
     const [quizzes, setQuizzes] = useState<Quiz[]>([])
@@ -41,6 +44,10 @@ const AnalyticsContent = () => {
     const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const [exportModalOpen, setExportModalOpen] = useState(false)
+    const [exportDataType, setExportDataType] = useState<ExportDataType>(null)
+    const [includeIncomplete, setIncludeIncomplete] = useState(false)
+    const [exportLoading, setExportLoading] = useState(false)
 
     /**
      * Fetches quizzes for the selected course offering
@@ -171,6 +178,82 @@ const AnalyticsContent = () => {
         }
     }, [analyticsData])
 
+    /**
+     * Gets the selected quiz title
+     */
+    const selectedQuizTitle = useMemo(() => {
+        return quizzes.find(q => q.id === selectedQuizId)?.title || 'Unknown Quiz'
+    }, [quizzes, selectedQuizId])
+
+    /**
+     * Opens the export confirmation modal for the specified data type
+     */
+    const handleExportClick = (dataType: ExportDataType) => {
+        setExportDataType(dataType)
+        setIncludeIncomplete(false)
+        setExportModalOpen(true)
+    }
+
+    /**
+     * Downloads JSON data as a file
+     */
+    const downloadJson = (data: unknown, filename: string) => {
+        const jsonStr = JSON.stringify(data, null, 2)
+        const blob = new Blob([jsonStr], { type: 'application/json' })
+        const url = URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = url
+        link.download = filename
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        URL.revokeObjectURL(url)
+    }
+
+    /**
+     * Handles the export confirmation and downloads the data
+     */
+    const handleExportConfirm = useCallback(async () => {
+        if (!selectedQuizId || !exportDataType) return
+
+        setExportLoading(true)
+        try {
+            let url = ''
+            let filename = ''
+
+            if (exportDataType === 'attempt') {
+                url = `/api/data/attempt?quizId=${selectedQuizId}&includeIncomplete=${includeIncomplete}`
+                filename = `attempt-data-${selectedQuizId}${includeIncomplete ? '-all' : '-completed'}.json`
+            } else if (exportDataType === 'question') {
+                url = `/api/data/question?quizId=${selectedQuizId}&includeIncomplete=${includeIncomplete}`
+                filename = `question-data-${selectedQuizId}${includeIncomplete ? '-all' : '-completed'}.json`
+            } else if (exportDataType === 'theta') {
+                if (!selectedCourseOffering?.id) {
+                    throw new Error('Course offering ID is required for theta data')
+                }
+                url = `/api/data/theta?courseOfferingId=${selectedCourseOffering.id}`
+                filename = `theta-data-${selectedCourseOffering.id}.json`
+            }
+
+            const response = await fetch(url, {
+                credentials: 'include'
+            })
+
+            if (!response.ok) {
+                throw new Error(`Failed to fetch ${exportDataType} data`)
+            }
+
+            const data = await response.json()
+            downloadJson(data, filename)
+            setExportModalOpen(false)
+            setExportDataType(null)
+        } catch (err) {
+            setError(err instanceof Error ? err.message : `Failed to export ${exportDataType} data`)
+        } finally {
+            setExportLoading(false)
+        }
+    }, [selectedQuizId, exportDataType, includeIncomplete, selectedCourseOffering?.id])
+
 
     return (
         <Container size="xl" py="xl">
@@ -188,11 +271,33 @@ const AnalyticsContent = () => {
                                 label: quiz.title
                             }))}
                             placeholder="Select a quiz"
-                            size="md"
                             w={300}
                             searchable
                             disabled={quizzes.length === 0}
                         />
+                        <Menu>
+                            <Menu.Target>
+                                <Button
+                                    variant="default"
+                                    disabled={!selectedQuizId}
+                                    leftSection={<IconDownload size={18} />}
+                                    rightSection={<IconChevronDown size={18} />}
+                                >
+                                    Export
+                                </Button>
+                            </Menu.Target>
+                            <Menu.Dropdown>
+                                <Menu.Item onClick={() => handleExportClick('attempt')}>
+                                    Attempt Data
+                                </Menu.Item>
+                                <Menu.Item onClick={() => handleExportClick('question')}>
+                                    Question Data
+                                </Menu.Item>
+                                <Menu.Item onClick={() => handleExportClick('theta')}>
+                                    Theta Data
+                                </Menu.Item>
+                            </Menu.Dropdown>
+                        </Menu>
                     </Group>
                 </Group>
 
@@ -275,7 +380,22 @@ const AnalyticsContent = () => {
                     </Alert>
                 )}
             </Stack>
-        </Container>
+
+            {/* Export Confirmation Modal */}
+            <ExportDataModal
+                opened={exportModalOpen}
+                onClose={() => {
+                    setExportModalOpen(false)
+                    setExportDataType(null)
+                }}
+                exportDataType={exportDataType}
+                quizTitle={selectedQuizTitle}
+                includeIncomplete={includeIncomplete}
+                onIncludeIncompleteChange={setIncludeIncomplete}
+                onConfirm={handleExportConfirm}
+                loading={exportLoading}
+            />
+        </Container >
     )
 }
 
