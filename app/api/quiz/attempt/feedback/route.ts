@@ -112,11 +112,11 @@ export const POST = async (request: NextRequest) => {
 
     // Initialize modules from quiz scope
     for (const moduleId of includedModuleIds) {
-      const module = attempt.quiz.offering.modules.find(m => m.id === moduleId);
-      if (module) {
+      const m = attempt.quiz.offering.modules.find(m => m.id === moduleId);
+      if (m) {
         modulePerformanceMap.set(moduleId, {
           moduleId: moduleId,
-          moduleName: module.name,
+          moduleName: m.name,
           theta: 0, // Default, will be updated from theta data
           questionsAttempted: 0,
           questionsCorrect: 0,

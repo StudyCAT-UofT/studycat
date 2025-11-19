@@ -83,7 +83,7 @@ export function getPerformanceColor(value: number): string {
  * Determine if a student should see resource recommendations
  * Based on performance plateau detection (future enhancement)
  */
-export function shouldShowResources(theta: number, previousTheta?: number): boolean {
+export function shouldShowResources(theta: number): boolean {
     // For now, show resources for developing level
     // Future: implement plateau detection
     return theta < 0

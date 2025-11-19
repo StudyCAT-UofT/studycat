@@ -1,13 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { fastApiClient, type FastAPIStepRequest } from '@/lib/fastapi-client';
-
-interface StepAttemptRequest {
-  attemptId: string;
-  itemId: string;
-  answerIndex: number;
-  responseTimeMs?: number;
-}
 import type { StepAttemptRequest } from '@/types';
 
 
