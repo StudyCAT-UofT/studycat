@@ -1,7 +1,5 @@
 import { useCourse } from "@/lib/course-context"
-import { Container, Stack, Title, Group, Button, Text, Center, Loader, Card, Table, Badge } from "@mantine/core"
-import { IconUpload } from "@tabler/icons-react"
-import { useRouter } from "next/navigation"
+import { Container, Stack, Title, Group, Text, Center, Loader, Card, Table, Badge } from "@mantine/core"
 import { useState, useEffect, useCallback } from "react"
 import { Quiz } from "@/types"
 import { AttemptsOverTimeChart } from "@/components/Charts"
@@ -18,7 +16,6 @@ interface ApiAttempt {
 
 const InstructorDashboard = () => {
     const { selectedCourseOffering } = useCourse()
-    const router = useRouter()
     const [quizzes, setQuizzes] = useState<Quiz[]>([])
     const [allAttempts, setAllAttempts] = useState<AttemptData[]>([])
     const [loading, setLoading] = useState(false)
