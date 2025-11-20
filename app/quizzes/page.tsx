@@ -1,12 +1,13 @@
 'use client'
 
 import { Container, Stack, Title, Badge, Group, Button, Modal, Text, Box } from '@mantine/core'
-import { ProtectedRoute, RoleBasedRoute, EditQuizModal } from '@/components'
+import { ProtectedRoute, RoleBasedRoute } from '@/components'
 import { useCourse } from '@/lib/course-context'
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { Quiz } from '@/types'
 import { IconPlus, IconTrash } from '@tabler/icons-react'
 import { QuizzesTable } from '@/components/Tables'
+import { EditQuizModal } from '@/components/Modals'
 
 
 /**
