@@ -1,14 +1,14 @@
 'use client'
 
-import { Container, Stack, Text, Title, Button, Group, Alert, Loader, Center, Paper } from '@mantine/core'
-import { ProtectedRoute, RoleBasedRoute } from '@/components'
+import { Container, Stack, Text, Title, Button, Group, Alert, Loader, Center } from '@mantine/core'
+import { ProtectedRoute, RoleBasedRoute, QuizFeedback } from '@/components'
 import { useCourse } from '@/lib/course-context'
 import { useAuth } from '@/lib/auth-context'
 import { useRouter } from 'next/navigation'
 import { useState, useEffect, use } from 'react'
 import QuizQuestion from '@/components/Quiz/QuizQuestion'
 import { quizClient } from '@/lib/quiz-client'
-import { QuizItem, Feedback, QuizResults } from '@/types'
+import { QuizItem, Feedback, QuizResults, FeedbackData } from '@/types'
 
 interface QuizState {
     attemptId: string
@@ -20,6 +20,9 @@ interface QuizState {
     nextItem?: QuizItem
     results?: QuizResults
     loadingResults: boolean
+    showFeedback: boolean
+    feedbackData?: FeedbackData
+    loadingFeedback: boolean
 }
 
 const QuizContent = ({ quizId }: { quizId: string }) => {
@@ -30,7 +33,9 @@ const QuizContent = ({ quizId }: { quizId: string }) => {
         attemptId: '',
         isFinished: false,
         loading: true,
-        loadingResults: false
+        loadingResults: false,
+        showFeedback: false,
+        loadingFeedback: false
     })
     const [isInitialized, setIsInitialized] = useState(false)
 
@@ -66,7 +71,9 @@ const QuizContent = ({ quizId }: { quizId: string }) => {
                     currentItem: response.nextItem,
                     isFinished: false,
                     loading: false,
-                    loadingResults: false
+                    loadingResults: false,
+                    showFeedback: false,
+                    loadingFeedback: false
                 })
                 setIsInitialized(true) // Mark as initializing to prevent duplicate calls
             } catch (error) {
@@ -111,33 +118,8 @@ const QuizContent = ({ quizId }: { quizId: string }) => {
 
     const handleNext = async () => {
         if (quizState.isFinished) {
-            // Quiz is finished, fetch results and clear feedback
-            setQuizState(prev => ({
-                ...prev,
-                feedback: null,
-                loadingResults: true
-            }))
-
-            try {
-                const results = await quizClient.getResults(quizState.attemptId)
-                setQuizState(prev => ({
-                    ...prev,
-                    results: {
-                        attemptId: results.attemptId,
-                        totalQuestions: results.totalQuestions,
-                        correctAnswers: results.correctAnswers,
-                        percentage: results.percentage
-                    },
-                    loadingResults: false
-                }))
-            } catch (error) {
-                console.error('Failed to fetch quiz results:', error)
-                setQuizState(prev => ({
-                    ...prev,
-                    error: error instanceof Error ? error.message : 'Failed to fetch quiz results',
-                    loadingResults: false
-                }))
-            }
+            // Quiz is finished, show feedback screen
+            await showFeedbackScreen()
         } else {
             // Move to next question
             setQuizState(prev => ({
@@ -149,7 +131,69 @@ const QuizContent = ({ quizId }: { quizId: string }) => {
         }
     }
 
-    const handleExit = () => {
+    const showFeedbackScreen = async () => {
+        setQuizState(prev => ({
+            ...prev,
+            loadingFeedback: true,
+            feedback: null
+        }))
+
+        try {
+            const feedbackData = await quizClient.getFeedback(quizState.attemptId)
+            setQuizState(prev => ({
+                ...prev,
+                showFeedback: true,
+                feedbackData,
+                loadingFeedback: false
+            }))
+        } catch (error) {
+            console.error('Failed to fetch quiz feedback:', error)
+            setQuizState(prev => ({
+                ...prev,
+                error: error instanceof Error ? error.message : 'Failed to fetch quiz feedback',
+                loadingFeedback: false
+            }))
+        }
+    }
+
+    const handleContinueQuiz = () => {
+        // Reset to quiz mode, will fetch next question
+        setQuizState(prev => ({
+            ...prev,
+            showFeedback: false,
+            feedbackData: undefined,
+            isFinished: false,
+            loading: true
+        }))
+
+        // Re-initialize or continue the quiz by fetching the next item
+        // Since the attempt is still IN_PROGRESS, we can continue
+        // We'll need to manually fetch the next item
+        fetchNextQuestion()
+    }
+
+    const fetchNextQuestion = async () => {
+        try {
+            // We need to get the next question from the FastAPI service
+            // For now, we'll reload the page to restart the quiz flow
+            // A more sophisticated approach would maintain state better
+            window.location.reload()
+        } catch (error) {
+            console.error('Failed to continue quiz:', error)
+            setQuizState(prev => ({
+                ...prev,
+                error: error instanceof Error ? error.message : 'Failed to continue quiz',
+                loading: false
+            }))
+        }
+    }
+
+    const handleExit = async () => {
+        // Show feedback screen instead of directly exiting
+        await showFeedbackScreen()
+    }
+
+    const handleReturnToDashboard = () => {
         router.push('/')
     }
 
@@ -176,52 +220,30 @@ const QuizContent = ({ quizId }: { quizId: string }) => {
         )
     }
 
-    // Show completion screen only if finished and no feedback is being shown
-    if (quizState.isFinished && !quizState.feedback) {
-        if (quizState.loadingResults) {
+    // Show feedback screen
+    if (quizState.showFeedback) {
+        if (quizState.loadingFeedback) {
             return (
                 <Container size="md" py="xl">
                     <Center h={400}>
                         <Stack align="center" gap="md">
                             <Loader size="lg" />
-                            <Text>Loading results...</Text>
+                            <Text>Loading feedback...</Text>
                         </Stack>
                     </Center>
                 </Container>
             )
         }
 
-        if (quizState.results) {
+        if (quizState.feedbackData) {
             return (
-                <Container size="md" py="xl">
-                    <Stack align="center" gap="lg">
-                        <Title order={2}>Quiz Completed!</Title>
-
-                        <Paper p="xl" radius="md" withBorder style={{ minWidth: 300 }}>
-                            <Stack align="center" gap="md">
-                                <Text size="xl" fw={700} c="blue">
-                                    {quizState.results.percentage}%
-                                </Text>
-                                <Text size="lg">
-                                    {quizState.results.correctAnswers} out of {quizState.results.totalQuestions} questions correct
-                                </Text>
-                            </Stack>
-                        </Paper>
-
-                        <Button onClick={handleExit}>Return to Dashboard</Button>
-                    </Stack>
-                </Container>
+                <QuizFeedback
+                    feedbackData={quizState.feedbackData}
+                    onContinue={handleContinueQuiz}
+                    onReturnToDashboard={handleReturnToDashboard}
+                />
             )
         }
-
-        return (
-            <Container size="md" py="xl">
-                <Stack align="center" gap="lg">
-                    <Title order={2}>Quiz Completed!</Title>
-                    <Button onClick={handleExit}>Return to Dashboard</Button>
-                </Stack>
-            </Container>
-        )
     }
 
     if (!quizState.currentItem) {

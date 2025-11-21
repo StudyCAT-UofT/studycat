@@ -2,11 +2,13 @@
 
 import { Container, Stack, Title, Group, TextInput, MultiSelect, Button, Card, Flex, Modal, Text, Box } from '@mantine/core'
 import { IconSearch, IconFilter, IconX, IconPlus, IconTrash, IconUpload } from '@tabler/icons-react'
-import { ProtectedRoute, RoleBasedRoute, QuestionBankTable, EditQuestionModal } from '@/components'
+import { ProtectedRoute, RoleBasedRoute } from '@/components'
 import { useCourse } from '@/lib/course-context'
 import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Item } from '@/types'
+import { QuestionBankTable } from '@/components/Tables'
+import { EditQuestionModal } from '@/components/Modals'
 
 
 const QuestionBankContent = () => {

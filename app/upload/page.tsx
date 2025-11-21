@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Container, Stack, Title, Card, Text, Button, FileInput, Alert, List, Group, Loader, Box, Center } from '@mantine/core'
+import { Container, Stack, Title, Card, Text, Button, FileInput, Alert, List, Group, Loader, Box } from '@mantine/core'
 import { IconUpload, IconInfoCircle, IconCheck, IconX, IconAlertCircle } from '@tabler/icons-react'
 import { useRouter } from 'next/navigation'
 import { notifications } from '@mantine/notifications'
@@ -25,13 +25,13 @@ const UploadPageContent = () => {
     const validateSpreadsheet = async (file: File) => {
         setValidating(true)
         setValidationStatus(null)
-        
+
         try {
             const arrayBuffer = await file.arrayBuffer()
             const buffer = Buffer.from(arrayBuffer)
             const workbook = xlsx.read(buffer, { type: 'buffer' })
             const sheetName = workbook.SheetNames[0]
-            
+
             if (!sheetName) {
                 setValidationStatus({
                     isValid: false,
@@ -41,8 +41,8 @@ const UploadPageContent = () => {
             }
 
             const sheet = workbook.Sheets[sheetName]
-            const rows: any[] = xlsx.utils.sheet_to_json(sheet, { defval: null })
-            
+            const rows = xlsx.utils.sheet_to_json(sheet, { defval: null }) as Record<string, unknown>[]
+
             if (rows.length === 0) {
                 setValidationStatus({
                     isValid: false,
@@ -53,7 +53,7 @@ const UploadPageContent = () => {
 
             // Get column headers (normalized to lowercase)
             const headers = Object.keys(rows[0]).map(h => h.toLowerCase().trim())
-            
+
             // Required columns (case-insensitive matches)
             const requiredColumns = [
                 { names: ['module', 'module name', 'module_name'], display: 'Module' },
@@ -68,7 +68,7 @@ const UploadPageContent = () => {
             ]
 
             const missingColumns: string[] = []
-            
+
             for (const col of requiredColumns) {
                 const found = col.names.some(name => headers.includes(name))
                 if (!found) {
@@ -88,10 +88,11 @@ const UploadPageContent = () => {
                     message: `All required columns found. Ready to import ${rows.length} row(s).`
                 })
             }
-        } catch (err: any) {
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : 'Unknown error'
             setValidationStatus({
                 isValid: false,
-                message: `Failed to read spreadsheet: ${err.message}`
+                message: `Failed to read spreadsheet: ${errorMessage}`
             })
         } finally {
             setValidating(false)
@@ -101,7 +102,7 @@ const UploadPageContent = () => {
     const handleFileChange = (selectedFile: File | null) => {
         setFile(selectedFile)
         setValidationStatus(null)
-        
+
         if (selectedFile) {
             validateSpreadsheet(selectedFile)
         }
@@ -109,13 +110,13 @@ const UploadPageContent = () => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
-        
+
         // Validation
         if (!selectedCourseOffering) {
             setError('Please select a course offering from the dashboard')
             return
         }
-        
+
         if (!file) {
             setError('Please choose a file to upload')
             return
@@ -140,16 +141,24 @@ const UploadPageContent = () => {
                 body: formData,
             })
 
-            const data = await response.json()
-            
+            const data = await response.json() as {
+                details: Array<{
+                    status: string
+                    externalQuestionId?: string | null
+                    itemId?: string
+                    optionsCreated?: number
+                    error?: string
+                }>
+            }
+
             if (!response.ok) {
-                throw new Error(data?.error || 'Upload failed')
+                throw new Error((data as { error?: string })?.error || 'Upload failed')
             }
 
             // Count the results
-            const created = data.details.filter((d: any) => d.status === 'created').length
-            const skipped = data.details.filter((d: any) => d.status?.includes('skipped')).length
-            const errors = data.details.filter((d: any) => d.status === 'error').length
+            const created = data.details.filter((d) => d.status === 'created').length
+            const skipped = data.details.filter((d) => d.status?.includes('skipped')).length
+            const errors = data.details.filter((d) => d.status === 'error').length
 
             // Show success notification
             notifications.show({
@@ -164,11 +173,12 @@ const UploadPageContent = () => {
             setTimeout(() => {
                 router.push('/question-bank')
             }, 2000)
-        } catch (err: any) {
-            setError(err.message || 'Failed to upload spreadsheet')
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : 'Failed to upload spreadsheet'
+            setError(errorMessage)
             notifications.show({
                 title: 'Upload Failed',
-                message: err.message || 'An error occurred during upload',
+                message: errorMessage,
                 color: 'red',
                 icon: <IconX size={16} />,
                 autoClose: 5000,
@@ -208,7 +218,7 @@ const UploadPageContent = () => {
                         <Card withBorder padding="lg" radius="md" shadow="sm">
                             <Stack gap="md">
                                 <Text fw={500} size="lg">Select Your Spreadsheet</Text>
-                                
+
                                 <Box
                                     style={{
                                         border: '2px dashed #228be6',
@@ -224,7 +234,7 @@ const UploadPageContent = () => {
                                         <IconUpload size={48} stroke={1.5} color="#228be6" />
                                         <FileInput
                                             placeholder="Click to choose .xlsx or .xls file"
-                        accept=".xlsx,.xls"
+                                            accept=".xlsx,.xls"
                                             value={file}
                                             onChange={handleFileChange}
                                             disabled={!selectedCourseOffering || loading}
@@ -259,9 +269,9 @@ const UploadPageContent = () => {
                                 )}
 
                                 {validationStatus && !validating && (
-                                    <Alert 
-                                        icon={validationStatus.isValid ? <IconCheck /> : <IconAlertCircle />} 
-                                        title={validationStatus.isValid ? "Valid Format" : "Invalid Format"} 
+                                    <Alert
+                                        icon={validationStatus.isValid ? <IconCheck /> : <IconAlertCircle />}
+                                        title={validationStatus.isValid ? "Valid Format" : "Invalid Format"}
                                         color={validationStatus.isValid ? "green" : "red"}
                                     >
                                         {validationStatus.message}
@@ -295,7 +305,7 @@ const UploadPageContent = () => {
                                 <List size="sm" spacing="xs">
                                     <List.Item><strong>Module</strong> - Module name</List.Item>
                                     <List.Item><strong>Question_ID</strong> - Unique question identifier</List.Item>
-                                    <List.Item><strong>Bloom_Cat</strong> - Bloom's taxonomy category</List.Item>
+                                    <List.Item><strong>Bloom_Cat</strong> - Bloom&apos;s taxonomy category</List.Item>
                                     <List.Item><strong>Stem</strong> - Question text</List.Item>
                                     <List.Item><strong>Response_A, Response_B, Response_C, Response_D</strong> - Answer options</List.Item>
                                     <List.Item><strong>Justification_A, Justification_B, Justification_C, Justification_D</strong> - Explanations</List.Item>
@@ -324,7 +334,7 @@ const UploadPageContent = () => {
                             </Button>
                         </Group>
                     </Stack>
-            </form>
+                </form>
             </Stack>
         </Container>
     )

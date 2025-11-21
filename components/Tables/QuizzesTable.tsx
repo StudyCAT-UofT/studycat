@@ -92,6 +92,13 @@ export const QuizzesTable = ({
         return sorted
     }, [quizzes, sortStatus])
 
+    // Paginate sorted quizzes for display
+    const paginatedQuizzes = useMemo(() => {
+        const start = (page - 1) * pageSize
+        const end = start + pageSize
+        return sortedQuizzes.slice(start, end)
+    }, [sortedQuizzes, page, pageSize])
+
     const getStatusColor = (isActive: boolean) => {
         return isActive ? 'green' : 'gray'
     }
@@ -246,7 +253,7 @@ export const QuizzesTable = ({
 
     return (
         <DataTable
-            records={sortedQuizzes}
+            records={paginatedQuizzes}
             columns={columns}
             sortStatus={sortStatus}
             onSortStatusChange={handleSortStatusChange}
