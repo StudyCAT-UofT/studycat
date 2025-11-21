@@ -47,27 +47,70 @@ export async function GET(request: NextRequest) {
         offeringRole: 'STUDENT'
       },
       include: {
-        user: {
-          select: {
-            id: true,
-            username: true,
-            createdAt: true
-          }
-        }
+        user: true
       },
       orderBy: {
         createdAt: 'desc'
       }
     })
 
-    // Transform enrollment data into student format
-    const students = enrollments.map(enrollment => ({
-      id: enrollment.id,
-      userId: enrollment.user.id,
-      username: enrollment.user.username,
-      enrolledAt: enrollment.createdAt.toISOString(),
-      createdAt: enrollment.user.createdAt.toISOString()
-    }))
+    // Fetch quiz performance data for each student
+    const studentsWithStats = await Promise.all(
+      enrollments.map(async (enrollment) => {
+        // Get all attempts for this enrollment in this course offering
+        const attempts = await prisma.attempt.findMany({
+          where: {
+            enrollmentId: enrollment.id,
+            quiz: {
+              offeringId: courseOfferingId
+            }
+          },
+          include: {
+            responses: {
+              select: {
+                isCorrect: true
+              }
+            }
+          },
+          orderBy: {
+            startedAt: 'desc'
+          }
+        })
+
+        // Calculate stats
+        const totalAttempts = attempts.length
+        const completedAttempts = attempts.filter(a => a.status === 'COMPLETED')
+        
+        // Calculate average score from completed attempts
+        let averageScore: number | null = null
+        if (completedAttempts.length > 0) {
+          const scores = completedAttempts.map(attempt => {
+            const totalQuestions = attempt.responses.length
+            if (totalQuestions === 0) return 0
+            const correctAnswers = attempt.responses.filter((r: { isCorrect: boolean }) => r.isCorrect).length
+            return (correctAnswers / totalQuestions) * 100
+          })
+          averageScore = scores.reduce((sum, score) => sum + score, 0) / scores.length
+        }
+
+        // Get last activity date
+        const lastActivity = attempts.length > 0 ? attempts[0].startedAt.toISOString() : null
+
+        return {
+          id: enrollment.id,
+          userId: enrollment.userId,
+          username: enrollment.user.username,
+          givenName: ('givenName' in enrollment.user ? enrollment.user.givenName : '') || '',
+          familyName: ('familyName' in enrollment.user ? enrollment.user.familyName : '') || '',
+          enrolledAt: enrollment.createdAt.toISOString(),
+          totalAttempts,
+          averageScore,
+          lastActivity
+        }
+      })
+    )
+
+    const students = studentsWithStats
 
     return NextResponse.json({ students })
   } catch (error) {
