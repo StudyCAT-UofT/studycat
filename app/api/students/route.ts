@@ -123,12 +123,12 @@ export async function POST(request: NextRequest) {
 
     // Filter out invalid students and trim whitespace
     const validStudents = students
-      .map((student: any) => ({
+      .map((student: { username?: string; givenName?: string; familyName?: string }) => ({
         username: (student.username || '').trim(),
         givenName: (student.givenName || '').trim(),
         familyName: (student.familyName || '').trim()
       }))
-      .filter((student: any) => student.username.length > 0)
+      .filter((student: { username: string; givenName: string; familyName: string }) => student.username.length > 0)
 
     if (validStudents.length === 0) {
       return NextResponse.json({ error: 'At least one valid student is required' }, { status: 400 })

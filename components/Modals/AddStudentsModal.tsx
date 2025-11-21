@@ -102,7 +102,7 @@ const AddStudentsModal = ({
                     })
                     setValidating(false)
                 },
-                error: (error) => {
+                error: (error: Error) => {
                     setValidationStatus({
                         isValid: false,
                         message: `Failed to parse CSV: ${error.message}`
@@ -110,10 +110,10 @@ const AddStudentsModal = ({
                     setValidating(false)
                 }
             })
-        } catch (err: any) {
+        } catch (err: unknown) {
             setValidationStatus({
                 isValid: false,
-                message: `Failed to read file: ${err.message}`
+                message: `Failed to read file: ${err instanceof Error ? err.message : 'Unknown error'}`
             })
             setValidating(false)
         }
@@ -150,15 +150,15 @@ const AddStudentsModal = ({
         try {
             const text = await file.text()
             
-            Papa.parse<any>(text, {
+            Papa.parse<Record<string, string>>(text, {
                 header: true,
                 skipEmptyLines: true,
                 complete: async (results) => {
                     try {
                         // Map CSV rows to student data with flexible column naming
-                        const students: StudentRow[] = results.data.map((row: any) => {
+                        const students: StudentRow[] = results.data.map((row: Record<string, string>) => {
                             // Normalize column names
-                            const normalizedRow: any = {}
+                            const normalizedRow: Record<string, string> = {}
                             Object.keys(row).forEach(key => {
                                 normalizedRow[key.toLowerCase().trim()] = row[key]?.trim() || ''
                             })
@@ -202,12 +202,11 @@ const AddStudentsModal = ({
                         // Determine if operation was successful
                         const totalCreated = created.length
                         const totalErrors = errors.length
-                        const isSuccess = totalCreated > 0 || (totalCreated === 0 && totalErrors === 0 && alreadyExists.length > 0)
                         const isFailure = totalCreated === 0 && totalErrors > 0
 
                         if (isFailure) {
                             // All failed - show error notification with details
-                            const errorDetails = errors.map((e: any) => `${e.username}: ${e.error}`).join('\n')
+                            const errorDetails = errors.map((e: { username: string; error: string }) => `${e.username}: ${e.error}`).join('\n')
                             notifications.show({
                                 title: 'Failed to Add Students',
                                 message: `${totalErrors} error${totalErrors !== 1 ? 's' : ''} occurred:\n${errorDetails}`,
@@ -259,7 +258,7 @@ const AddStudentsModal = ({
                         setLoading(false)
                     }
                 },
-                error: (error) => {
+                error: (error: Error) => {
                     setError(`Failed to parse CSV: ${error.message}`)
                     notifications.show({
                         title: 'CSV Parse Error',
