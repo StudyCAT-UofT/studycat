@@ -14,12 +14,13 @@ import {
     Card,
     Alert,
     Box,
+    Image,
+    Flex,
 } from '@mantine/core'
 import { IconCheck, IconX, IconClock, IconInfoCircle } from '@tabler/icons-react'
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from 'recharts'
 import type { FeedbackData, DetailedQuestionReview } from '@/types'
 import { getBloomColor } from '@/utils/getBloomColor'
-import Image from 'next/image'
 
 interface QuizFeedbackProps {
     feedbackData: FeedbackData
@@ -333,13 +334,14 @@ export default function QuizFeedback({ feedbackData, onContinue, onReturnToDashb
 
                                                 {/* Figure if present */}
                                                 {question.figureUrl && (
-                                                    <Box>
+                                                    <Flex mah="500px" justify="center">
                                                         <Image
                                                             src={question.figureUrl}
                                                             alt="Question figure"
-                                                            style={{ maxWidth: '100%', height: 'auto' }}
+                                                            w="auto"
+                                                            fit="contain"
                                                         />
-                                                    </Box>
+                                                    </Flex>
                                                 )}
 
                                                 {/* Reference if present */}
