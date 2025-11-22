@@ -73,6 +73,15 @@ export const StudentsTable = ({
                 const bLower = bValue.toLowerCase()
                 if (aLower < bLower) return direction === 'asc' ? -1 : 1
                 if (aLower > bLower) return direction === 'asc' ? 1 : -1
+                
+                // If sorting by family name and values are equal, sort by given name
+                if (columnAccessor === 'familyName') {
+                    const aGivenName = (a.givenName || '').toLowerCase()
+                    const bGivenName = (b.givenName || '').toLowerCase()
+                    if (aGivenName < bGivenName) return direction === 'asc' ? -1 : 1
+                    if (aGivenName > bGivenName) return direction === 'asc' ? 1 : -1
+                }
+                
                 return 0
             }
 
@@ -103,7 +112,7 @@ export const StudentsTable = ({
     const columns = [
         {
             accessor: 'familyName',
-            title: 'Last Name',
+            title: 'Family Name',
             sortable: true,
             width: 150,
             render: (student: Student) => (
@@ -114,7 +123,7 @@ export const StudentsTable = ({
         },
         {
             accessor: 'givenName',
-            title: 'First Name',
+            title: 'Given Name',
             sortable: true,
             width: 150,
             render: (student: Student) => (
@@ -181,7 +190,7 @@ export const StudentsTable = ({
         },
         {
             accessor: 'lastActivity',
-            title: 'Last Activity',
+            title: 'Latest Attempt',
             sortable: true,
             width: 130,
             render: (student: Student) => (
