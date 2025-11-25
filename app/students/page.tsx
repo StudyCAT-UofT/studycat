@@ -12,8 +12,12 @@ interface Student {
     id: string
     userId: string
     username: string
+    givenName: string
+    familyName: string
     enrolledAt: string
-    createdAt: string
+    totalAttempts: number
+    averageScore: number | null
+    lastActivity: string | null
 }
 
 /**

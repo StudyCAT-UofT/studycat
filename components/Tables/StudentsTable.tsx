@@ -1,15 +1,19 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { Text } from '@mantine/core'
+import { Text, Badge, Group } from '@mantine/core'
 import { DataTable, DataTableSortStatus } from 'mantine-datatable'
 
 interface Student {
     id: string
     userId: string
     username: string
+    givenName: string
+    familyName: string
     enrolledAt: string
-    createdAt: string
+    totalAttempts: number
+    averageScore: number | null
+    lastActivity: string | null
 }
 
 interface StudentsTableProps {
@@ -28,9 +32,16 @@ export const StudentsTable = ({
     onSelectedRecordsChange
 }: StudentsTableProps) => {
     const [sortStatus, setSortStatus] = useState<DataTableSortStatus<Student>>({
-        columnAccessor: 'username',
+        columnAccessor: 'familyName',
         direction: 'asc'
     })
+
+    const getScoreColor = (score: number | null) => {
+        if (score === null) return 'gray'
+        if (score >= 80) return 'green'
+        if (score >= 60) return 'yellow'
+        return 'red'
+    }
     const [internalSelectedRecords, setInternalSelectedRecords] = useState<Student[]>([])
 
     // Use external selected records if provided, otherwise use internal state
@@ -62,15 +73,31 @@ export const StudentsTable = ({
                 const bLower = bValue.toLowerCase()
                 if (aLower < bLower) return direction === 'asc' ? -1 : 1
                 if (aLower > bLower) return direction === 'asc' ? 1 : -1
+                
+                // If sorting by family name and values are equal, sort by given name
+                if (columnAccessor === 'familyName') {
+                    const aGivenName = (a.givenName || '').toLowerCase()
+                    const bGivenName = (b.givenName || '').toLowerCase()
+                    if (aGivenName < bGivenName) return direction === 'asc' ? -1 : 1
+                    if (aGivenName > bGivenName) return direction === 'asc' ? 1 : -1
+                }
+                
                 return 0
             }
 
             // Handle date comparison
-            if (columnAccessor === 'enrolledAt' || columnAccessor === 'createdAt') {
+            if (columnAccessor === 'enrolledAt' || columnAccessor === 'lastActivity') {
                 const aDate = new Date(aValue as string)
                 const bDate = new Date(bValue as string)
                 if (aDate < bDate) return direction === 'asc' ? -1 : 1
                 if (aDate > bDate) return direction === 'asc' ? 1 : -1
+                return 0
+            }
+
+            // Handle numeric comparison
+            if (typeof aValue === 'number' && typeof bValue === 'number') {
+                if (aValue < bValue) return direction === 'asc' ? -1 : 1
+                if (aValue > bValue) return direction === 'asc' ? 1 : -1
                 return 0
             }
 
@@ -84,12 +111,34 @@ export const StudentsTable = ({
 
     const columns = [
         {
+            accessor: 'familyName',
+            title: 'Family Name',
+            sortable: true,
+            width: 150,
+            render: (student: Student) => (
+                <Text size="sm" fw={500}>
+                    {student.familyName || '—'}
+                </Text>
+            )
+        },
+        {
+            accessor: 'givenName',
+            title: 'Given Name',
+            sortable: true,
+            width: 150,
+            render: (student: Student) => (
+                <Text size="sm" fw={500}>
+                    {student.givenName || '—'}
+                </Text>
+            )
+        },
+        {
             accessor: 'username',
             title: 'Username',
             sortable: true,
-            width: 200,
+            width: 150,
             render: (student: Student) => (
-                <Text size="sm" fw={500}>
+                <Text size="sm">
                     {student.username}
                 </Text>
             )
@@ -98,7 +147,7 @@ export const StudentsTable = ({
             accessor: 'enrolledAt',
             title: 'Enrolled Date',
             sortable: true,
-            width: 150,
+            width: 130,
             render: (student: Student) => (
                 <Text size="sm">
                     {new Date(student.enrolledAt).toLocaleDateString()}
@@ -106,13 +155,47 @@ export const StudentsTable = ({
             )
         },
         {
-            accessor: 'createdAt',
-            title: 'Account Created',
+            accessor: 'totalAttempts',
+            title: 'Total Attempts',
             sortable: true,
-            width: 150,
+            width: 130,
             render: (student: Student) => (
                 <Text size="sm">
-                    {new Date(student.createdAt).toLocaleDateString()}
+                    {student.totalAttempts}
+                </Text>
+            )
+        },
+        {
+            accessor: 'averageScore',
+            title: 'Average Score',
+            sortable: true,
+            width: 140,
+            render: (student: Student) => (
+                student.averageScore !== null ? (
+                    <Group gap={4}>
+                        <Badge
+                            variant="light"
+                            color={getScoreColor(student.averageScore)}
+                            size="md"
+                        >
+                            {student.averageScore.toFixed(1)}%
+                        </Badge>
+                    </Group>
+                ) : (
+                    <Badge variant="light" color="gray" size="md">
+                        No data
+                    </Badge>
+                )
+            )
+        },
+        {
+            accessor: 'lastActivity',
+            title: 'Latest Attempt',
+            sortable: true,
+            width: 130,
+            render: (student: Student) => (
+                <Text size="sm">
+                    {student.lastActivity ? new Date(student.lastActivity).toLocaleDateString() : '—'}
                 </Text>
             )
         }
