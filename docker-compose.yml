@@ -11,5 +11,20 @@ services:
       - "5432:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: mssql
+    ports:
+      - "1433:1433"
+    environment:
+      ACCEPT_EULA: "Y"
+      SA_PASSWORD: "studycatPassword123!"
+      MSSQL_PID: "Developer"
+    profiles: ["manual"]  # Prevent service from starting automatically
+    volumes:
+      - mssql_data:/var/opt/mssql
+    restart: unless-stopped
+
 volumes:
   db_data:
+  mssql_data:
