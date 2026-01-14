@@ -82,10 +82,9 @@ export async function GET(request: Request) {
             }
           }
         },
-        // Include offering to access modules for includedModuleIds
-        offering: {
+        quizModules: {
           include: {
-            modules: {
+            module: {
               select: {
                 id: true,
                 name: true
@@ -118,14 +117,9 @@ export async function GET(request: Request) {
 
       // Calculate completion rate (completed attempts / total attempts)
       const completionRate = totalAttempts > 0 ? (completedAttempts.length / totalAttempts) * 100 : null
-
-      // Create a mapping of module IDs to names for includedModuleIds
-      const moduleIdToName = new Map(quiz.offering.modules.map(module => [module.id, module.name]))
       
       // Convert includedModuleIds to module names
-      const includedModuleNames = quiz.includedModuleIds
-        .map(moduleId => moduleIdToName.get(moduleId))
-        .filter(name => name !== undefined) // Filter out any undefined names
+      const includedModuleNames = quiz.quizModules.map(qm => qm.module.name)
 
       // Use the included module names as the modules for display
       const modules = includedModuleNames
