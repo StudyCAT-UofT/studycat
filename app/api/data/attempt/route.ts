@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { AttemptStatus } from '@prisma/client'
 
 export const runtime = 'nodejs'
 
@@ -63,9 +62,9 @@ export async function GET(request: Request) {
         const uniqueStudentsAttemptedCount = uniqueEnrollmentIds.length;
 
         // Build where clause based on includeIncomplete flag
-        const whereClause: { quizId: string; status?: AttemptStatus } = { quizId };
+        const whereClause: { quizId: string; status?: string } = { quizId };
         if (!includeIncomplete) {
-            whereClause.status = AttemptStatus.COMPLETED;
+            whereClause.status = "COMPLETED";
         }
 
         const attempts = await prisma.attempt.findMany({

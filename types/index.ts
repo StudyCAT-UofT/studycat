@@ -203,3 +203,7 @@ export interface FeedbackData {
     canContinue: boolean
     continueReason: 'not_started' | 'in_progress' | 'reached_limit' | 'completed' | null
 }
+
+export type OptionLabel = 'A' | 'B' | 'C' | 'D';
+
+export const optionLabels: OptionLabel[] = ['A', 'B', 'C', 'D'];

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { OptionLabel, AttemptStatus, PrismaClient } from '@prisma/client'
+import { PrismaClient } from '@prisma/client'
+import { OptionLabel, optionLabels } from '@/types'
 
 export const runtime = 'nodejs'
 
@@ -37,16 +38,18 @@ export async function GET(request: Request) {
 
         const quiz = await prisma.quiz.findUnique({
             where: { id: String(quizId) },
-            select: { includedModuleIds: true },
+            select: { quizModules: {include: {module: {select: {id: true}}}} },
         });
 
         if (!quiz) {
             throw new Error('Quiz not found');
         }
 
+        const includedModuleIds = quiz.quizModules.map(qm => qm.module.id)
+
         const quizItems = await prisma.item.findMany({
             where: {
-                moduleId: { in: quiz.includedModuleIds },
+                moduleId: { in: includedModuleIds },
                 active: true, // optional: filter to only active items
             },
             select: { id: true },
@@ -61,9 +64,9 @@ export async function GET(request: Request) {
 
         // Get attempt IDs for this quiz to filter responses
         // Optionally filter by completion status based on includeIncomplete flag
-        const attemptWhereClause: { quizId: string; status?: AttemptStatus } = { quizId: String(quizId) };
+        const attemptWhereClause: { quizId: string; status?: string } = { quizId: String(quizId) };
         if (!includeIncomplete) {
-            attemptWhereClause.status = AttemptStatus.COMPLETED;
+            attemptWhereClause.status = "COMPLETED";
         }
 
         const attempts = await prisma.attempt.findMany({
@@ -86,7 +89,7 @@ export async function GET(request: Request) {
                 },
             });
 
-            const optionLabels = Object.values(OptionLabel) as OptionLabel[];
+            const optionLabels = ['A', 'B', 'C', 'D'];
 
             const items = itemIds.map((id) => {
                 const meta = itemsMeta.find((it) => it.id === id);
@@ -115,8 +118,6 @@ export async function GET(request: Request) {
 
             return NextResponse.json({ quizId, count: items.length, items }, { status: 200 });
         }
-
-        const optionLabels = Object.values(OptionLabel) as OptionLabel[];
 
         const grouped = await (prisma as PrismaClient).response.groupBy({
             by: ['itemId', 'selectedLabel', 'isCorrect'],
@@ -149,7 +150,7 @@ export async function GET(request: Request) {
         };
 
         const initChoiceCounts = (): Record<OptionLabel, number> => {
-            const counts = {} as ChoiceCounts;
+            const counts: ChoiceCounts = {} as ChoiceCounts;
             for (const label of optionLabels) counts[label] = 0;
             return counts;
         };
