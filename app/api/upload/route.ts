@@ -1,8 +1,8 @@
 // app/api/upload-spreadsheet/route.ts
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { BloomCategory, OptionLabel } from "@prisma/client";
 import * as xlsx from "xlsx";
+import { BloomCategory, OptionLabel } from '@/types'
 
 export const runtime = "nodejs";
 
