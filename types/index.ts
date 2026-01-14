@@ -207,3 +207,7 @@ export interface FeedbackData {
 export type OptionLabel = 'A' | 'B' | 'C' | 'D';
 
 export const optionLabels: OptionLabel[] = ['A', 'B', 'C', 'D'];
+
+export type BloomCategory = 'REMEMBER' | 'UNDERSTAND' | 'APPLY' | 'ANALYZE' | 'EVALUATE' | 'CREATE';
+
+export const bloomCategories: BloomCategory[] = ['REMEMBER', 'UNDERSTAND', 'APPLY', 'ANALYZE', 'EVALUATE', 'CREATE'];
