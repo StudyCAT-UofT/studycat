@@ -226,11 +226,20 @@ export async function POST(request: Request) {
       data: {
         title,
         offeringId: courseOfferingId,
-        includedModuleIds,
         active,
         fixedLength,
         createdById: session.userId
       }
+    })
+
+    // Create QuizModule entries linking the quiz to modules
+    const quizModulesData = includedModuleIds.map((moduleId: string) => ({
+      quizId: quiz.id,
+      moduleId
+    }))
+
+    await prisma.quizModule.createMany({
+      data: quizModulesData
     })
 
     return NextResponse.json({ quiz }, { status: 201 })
