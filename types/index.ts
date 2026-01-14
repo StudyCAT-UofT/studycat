@@ -44,7 +44,7 @@ export interface Quiz {
         averageScore: number | null
         completionRate: number | null
     }
-    includedModules: string[]
+    quizModules: QuizModule[]
     includedBlooms: string[]
 }
 
@@ -55,6 +55,11 @@ export interface QuizItem {
     options: string[]
     figure_url?: string | null
     reference?: string | null
+}
+
+export interface QuizModule {
+    quizId: string    
+    moduleId: String 
 }
 
 // Quiz Attempt Interfaces
@@ -176,7 +181,7 @@ export interface FeedbackData {
     attemptId: string
     quizId: string
     quizTitle: string
-    status: 'IN_PROGRESS' | 'COMPLETED' | 'ABANDONED'
+    status: string
     startedAt: string
     finishedAt: string | null
     totalTimeMs: number
