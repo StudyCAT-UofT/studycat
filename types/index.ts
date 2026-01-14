@@ -34,6 +34,7 @@ export interface Quiz {
     fixedLength: number
     timeLimit: number | null // Not in schema but kept for compatibility
     maxAttempts: number | null // Not in schema but kept for compatibility
+    modules: string[] | null
     isActive: boolean
     dueDate: string | null // Not in schema but kept for compatibility
     createdAt: string
@@ -59,7 +60,7 @@ export interface QuizItem {
 
 export interface QuizModule {
     quizId: string    
-    moduleId: String 
+    moduleId: string 
 }
 
 // Quiz Attempt Interfaces
