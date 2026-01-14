@@ -16,7 +16,7 @@
     "db:generate": "prisma generate --schema=external/studycat-schema/schema.prisma --generator=client",
     "db:migrate": "prisma migrate dev --schema=external/studycat-schema/schema.prisma",
     "db:migrate:deploy": "prisma migrate deploy --schema=external/studycat-schema/schema.prisma",
-    "db:migrate:reset": "prisma migrate reset --schema=external/studycat-schema/schema.prisma",
+    "db:migrate:reset": "prisma migrate reset --schema=external/studycat-schema/schema.prisma --force",
     "db:studio": "prisma studio --schema=external/studycat-schema/schema.prisma",
     "db:status": "prisma migrate status --schema=external/studycat-schema/schema.prisma"
   },
@@ -45,8 +45,8 @@
     "@testing-library/user-event": "^14.6.1",
     "@types/js-cookie": "^3.0.6",
     "@types/jsonwebtoken": "^9.0.10",
-    "@types/papaparse": "^5.5.0",
     "@types/node": "^20",
+    "@types/papaparse": "^5.5.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^5.1.1",
@@ -58,7 +58,7 @@
     "postcss": "^8.5.6",
     "postcss-preset-mantine": "^1.18.0",
     "postcss-simple-vars": "^7.0.1",
-    "prisma": "^6.16.2",
+    "prisma": "^6.16.3",
     "tsx": "^4.19.2",
     "typescript": "^5",
     "vitest": "^4.0.10"
