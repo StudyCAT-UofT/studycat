@@ -684,9 +684,16 @@ const main = async () => {
       offeringId: offering.id,
       title: 'Programming Basics Quiz',
       fixedLength: 5,
-      includedModuleIds: [module1.id, module2.id],
-      includedBlooms: ['REMEMBER', 'UNDERSTAND', 'APPLY', 'ANALYZE', 'EVALUATE', 'CREATE'],
+      includedBlooms: "'REMEMBER', 'UNDERSTAND', 'APPLY', 'ANALYZE', 'EVALUATE', 'CREATE'",
       createdById: instructor.id,
+      quizModules: {
+      createMany: {
+        data: [
+          { moduleId: module1.id },
+          { moduleId: module2.id },
+        ],
+      },
+    },
     },
   })
 
@@ -770,15 +777,15 @@ const main = async () => {
       status: 'COMPLETED',
       fixedLengthN: 5,
       engineVersion: '1.0.0',
-      scopeSnapshot: {
+      scopeSnapshot: JSON.stringify({
         includedModuleIds: [module1.id, module2.id],
         includedBlooms: ['REMEMBER', 'UNDERSTAND', 'APPLY', 'ANALYZE', 'EVALUATE', 'CREATE'],
         eligibleItemIds: [item1.id, item2.id, item3.id, item4.id, item5.id, item6.id, item7.id, item8.id, item9.id, item10.id, item11.id, item12.id],
-      },
-      engineMasteryAtFinish: {
+      }),
+      engineMasteryAtFinish: JSON.stringify({
         [module1.id]: 0.85,
         [module2.id]: 0.75,
-      },
+      }),
     },
   })
 
@@ -813,9 +820,9 @@ const main = async () => {
         askedAt: new Date('2024-10-01T10:00:00Z'),
         answeredAt: new Date('2024-10-01T10:02:30Z'),
         responseTimeMs: 150000, // 2.5 minutes
-        engineMasterySnapshot: {
+        engineMasterySnapshot: JSON.stringify({
           [module1.id]: 0.7,
-        },
+        }),
       },
       {
         attemptId: attempt.id,
@@ -826,9 +833,9 @@ const main = async () => {
         askedAt: new Date('2024-10-01T10:03:00Z'),
         answeredAt: new Date('2024-10-01T10:06:45Z'),
         responseTimeMs: 225000, // 3.75 minutes
-        engineMasterySnapshot: {
+        engineMasterySnapshot: JSON.stringify({
           [module1.id]: 0.8,
-        },
+        }),
       },
       {
         attemptId: attempt.id,
@@ -839,10 +846,10 @@ const main = async () => {
         askedAt: new Date('2024-10-01T10:07:00Z'),
         answeredAt: new Date('2024-10-01T10:10:15Z'),
         responseTimeMs: 195000, // 3.25 minutes
-        engineMasterySnapshot: {
+        engineMasterySnapshot: JSON.stringify({
           [module1.id]: 0.8,
           [module2.id]: 0.6,
-        },
+        }),
       },
       {
         attemptId: attempt.id,
@@ -853,10 +860,10 @@ const main = async () => {
         askedAt: new Date('2024-10-01T10:11:00Z'),
         answeredAt: new Date('2024-10-01T10:13:20Z'),
         responseTimeMs: 140000, // 2.33 minutes
-        engineMasterySnapshot: {
+        engineMasterySnapshot: JSON.stringify({
           [module1.id]: 0.85,
           [module2.id]: 0.6,
-        },
+        }),
       },
       {
         attemptId: attempt.id,
@@ -867,10 +874,10 @@ const main = async () => {
         askedAt: new Date('2024-10-01T10:14:00Z'),
         answeredAt: new Date('2024-10-01T10:17:30Z'),
         responseTimeMs: 210000, // 3.5 minutes
-        engineMasterySnapshot: {
+        engineMasterySnapshot: JSON.stringify({
           [module1.id]: 0.85,
           [module2.id]: 0.6,
-        },
+        }),
       },
     ],
   })
@@ -983,9 +990,15 @@ const main = async () => {
       offeringId: offering.id,
       title: 'Data Structures Quiz',
       fixedLength: 5,
-      includedModuleIds: [module2.id],
-      includedBlooms: ['REMEMBER', 'UNDERSTAND', 'APPLY'],
+      includedBlooms: "'REMEMBER', 'UNDERSTAND', 'APPLY'",
       createdById: instructor.id,
+      quizModules: {
+        createMany: {
+          data: [
+            { moduleId: module2.id },
+          ],
+        },
+      }
     },
   })
 
@@ -1008,10 +1021,17 @@ const main = async () => {
       offeringId: offering.id,
       title: 'Old Midterm Exam (Archived)',
       fixedLength: 10,
-      includedModuleIds: [module1.id, module2.id],
-      includedBlooms: ['REMEMBER', 'UNDERSTAND', 'APPLY', 'ANALYZE', 'EVALUATE', 'CREATE'],
+      includedBlooms: "'REMEMBER', 'UNDERSTAND', 'APPLY', 'ANALYZE', 'EVALUATE', 'CREATE'",
       createdById: instructor.id,
       active: false,
+      quizModules: {
+        createMany: {
+          data: [
+            { moduleId: module1.id },
+            { moduleId: module2.id },
+          ],
+        },
+      }
     },
   })
 
@@ -1038,11 +1058,11 @@ const main = async () => {
       status: 'IN_PROGRESS',
       fixedLengthN: 5,
       engineVersion: '1.0.0',
-      scopeSnapshot: {
+      scopeSnapshot: JSON.stringify({
         includedModuleIds: [module1.id, module2.id],
         includedBlooms: ['REMEMBER', 'UNDERSTAND', 'APPLY', 'ANALYZE', 'EVALUATE', 'CREATE'],
         eligibleItemIds: [item1.id, item2.id, item3.id, item4.id, item5.id, item6.id, item7.id, item8.id, item9.id, item10.id, item11.id, item12.id],
-      },
+      }),
     },
   })
 
@@ -1066,9 +1086,9 @@ const main = async () => {
         askedAt: new Date('2024-10-02T14:00:00Z'),
         answeredAt: new Date('2024-10-02T14:03:00Z'),
         responseTimeMs: 180000,
-        engineMasterySnapshot: {
+        engineMasterySnapshot: JSON.stringify({
           [module1.id]: 0.5,
-        },
+        }),
       },
       {
         attemptId: inProgressAttempt.id,
@@ -1079,10 +1099,10 @@ const main = async () => {
         askedAt: new Date('2024-10-02T14:04:00Z'),
         answeredAt: new Date('2024-10-02T14:07:00Z'),
         responseTimeMs: 180000,
-        engineMasterySnapshot: {
+        engineMasterySnapshot: JSON.stringify({
           [module1.id]: 0.5,
           [module2.id]: 0.4,
-        },
+        }),
       },
     ],
   })
@@ -1109,14 +1129,14 @@ const main = async () => {
       status: 'COMPLETED',
       fixedLengthN: 5,
       engineVersion: '1.0.0',
-      scopeSnapshot: {
+      scopeSnapshot: JSON.stringify({
         includedModuleIds: [module2.id],
         includedBlooms: ['REMEMBER', 'UNDERSTAND', 'APPLY'],
         eligibleItemIds: [item3.id, item7.id, item8.id, item9.id, item11.id],
-      },
-      engineMasteryAtFinish: {
+      }),
+      engineMasteryAtFinish: JSON.stringify({
         [module2.id]: 0.65,
-      },
+      }),
     },
   })
 
@@ -1131,9 +1151,9 @@ const main = async () => {
         askedAt: new Date('2024-10-03T09:00:00Z'),
         answeredAt: new Date('2024-10-03T09:04:00Z'),
         responseTimeMs: 240000,
-        engineMasterySnapshot: {
+        engineMasterySnapshot: JSON.stringify({
           [module2.id]: 0.3,
-        },
+        }),
       },
       {
         attemptId: attempt3.id,
@@ -1144,9 +1164,9 @@ const main = async () => {
         askedAt: new Date('2024-10-03T09:05:00Z'),
         answeredAt: new Date('2024-10-03T09:08:00Z'),
         responseTimeMs: 180000,
-        engineMasterySnapshot: {
+        engineMasterySnapshot: JSON.stringify({
           [module2.id]: 0.5,
-        },
+        }),
       },
       {
         attemptId: attempt3.id,
@@ -1157,9 +1177,9 @@ const main = async () => {
         askedAt: new Date('2024-10-03T09:09:00Z'),
         answeredAt: new Date('2024-10-03T09:12:00Z'),
         responseTimeMs: 180000,
-        engineMasterySnapshot: {
+        engineMasterySnapshot: JSON.stringify({
           [module2.id]: 0.4,
-        },
+        }),
       },
     ],
   })
@@ -1176,11 +1196,11 @@ const main = async () => {
       status: 'ABANDONED',
       fixedLengthN: 5,
       engineVersion: '1.0.0',
-      scopeSnapshot: {
+      scopeSnapshot: JSON.stringify({
         includedModuleIds: [module1.id, module2.id],
         includedBlooms: ['REMEMBER', 'UNDERSTAND', 'APPLY', 'ANALYZE', 'EVALUATE', 'CREATE'],
         eligibleItemIds: [item1.id, item2.id, item3.id, item4.id, item5.id, item6.id, item7.id, item8.id, item9.id, item10.id, item11.id, item12.id],
-      },
+      }),
     },
   })
 
@@ -1195,9 +1215,9 @@ const main = async () => {
       askedAt: new Date('2024-10-04T10:00:00Z'),
       answeredAt: new Date('2024-10-04T10:03:00Z'),
       responseTimeMs: 180000,
-      engineMasterySnapshot: {
+      engineMasterySnapshot: JSON.stringify({
         [module1.id]: 0.4,
-      },
+      }),
     },
   })
 
