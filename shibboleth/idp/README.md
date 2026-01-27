@@ -24,7 +24,8 @@ This directory contains the configuration and Docker image for a mock Shibboleth
                                  │
                     Authenticates against:
                     ┌──────────────┐
-                    │  htpasswd    │
+                    │   OpenLDAP   │
+                    │  Port: 389   │
                     │  (Test Users)│
                     └──────────────┘
 ```
@@ -38,12 +39,12 @@ idp/
 ├── customized-shibboleth-idp/          # IdP configuration
 │   ├── conf/
 │   │   ├── attribute-filter.xml        # Attribute release policy
-│   │   ├── attribute-resolver.xml      # User attribute mapping
+│   │   ├── attribute-resolver.xml      # User attribute mapping (LDAP)
 │   │   ├── idp.properties             # IdP settings
+│   │   ├── ldap.properties            # LDAP connection configuration
 │   │   └── authn/
-│   │       └── password-authn-config.xml  # htpasswd authentication
+│   │       └── password-authn-config.xml  # LDAP authentication
 │   ├── credentials/
-│   │   ├── htpasswd                    # Test user passwords
 │   │   ├── idp-browser.p12            # Browser TLS certificate
 │   │   ├── idp-backchannel.p12        # Backchannel TLS certificate
 │   │   └── [other credential files]
@@ -58,24 +59,26 @@ idp/
 
 ## 🧪 Test Users
 
-Three test users are configured with htpasswd authentication:
+Three test users are configured in OpenLDAP with Password authentication:
 
-| Username   | Password     | Email                      | Affiliation | StudyCAT Role |
-|------------|--------------|----------------------------|-------------|---------------|
-| student    | password123  | student@studycat.local     | member      | Student       |
-| instructor | password123  | instructor@studycat.local  | member      | Instructor    |
-| admin      | password123  | admin@studycat.local       | member      | Admin         |
+| Username   | Password     | Email                      | Affiliations | StudyCAT Role |
+|------------|--------------|----------------------------|--------------|---------------|
+| student    | password123  | student@studycat.local     | member, student | Student       |
+| instructor | password123  | instructor@studycat.local  | member, faculty, staff | Instructor    |
+| admin      | password123  | admin@studycat.local       | member, staff, employee | Admin         |
 
-**Note:** Currently all users have "member" affiliation due to htpasswd limitations. Role mapping will be handled by the StudyCAT application based on username/email.
+**Note:** Affiliations are mapped based on username in the IdP's attribute resolver. The StudyCAT application should use these affiliations for role-based access control.
 
 ## 🔑 Credentials & Passwords
 
-All passwords used: **`abc123`**
+**IdP Keystore Passwords**: `abc123`
 - PKCS12 keystore password (browser)
 - PKCS12 keystore password (backchannel)
 - Sealer keystore password
 
-Test user passwords: **`password123`**
+**OpenLDAP Admin Password**: `admin123`
+
+**Test User Passwords**: All users have password `password123`
 
 ## 🚀 Building the Image
 

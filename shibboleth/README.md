@@ -21,9 +21,10 @@
 
 This directory contains a complete Shibboleth Single Sign-On (SSO) implementation for StudyCAT, consisting of:
 
+- **OpenLDAP**: User directory service for authentication
 - **Identity Provider (IdP)**: Mock Shibboleth IdP for development/testing
 - **Service Provider (SP)**: Shibboleth SP with Apache reverse proxy
-- **Docker Compose**: Orchestration for both services
+- **Docker Compose**: Orchestration for all services
 
 ### Current Status
 
@@ -52,33 +53,47 @@ This directory contains a complete Shibboleth Single Sign-On (SSO) implementatio
 │   Browser   │ ──────────────────────────> │  Service Provider│
 │             │                              │    (Apache +     │
 └─────────────┘                              │    mod_shib)     │
-       │                                     └──────────────────┘
-       │ Redirect (no session)                       │
-       │                                             │
-       ↓                                             │
+      │                                     └──────────────────┘
+      │ Redirect (no session)                       │
+      │                                             │
+      ↓                                             │
 ┌─────────────────────────┐                         │
 │   Identity Provider     │ <───────────────────────┘
 │  (Shibboleth IdP)       │    SAML AuthnRequest
 │  idp.studycat.local     │
 └─────────────────────────┘
-       │
-       │ SAML Response (assertion)
-       ↓
+      │                │
+      │ Show login     │ LDAP bind/search
+      │ form           ↓
+      │          ┌──────────────┐
+      │          │   OpenLDAP   │
+      │          │  (port 389)  │
+      │          │              │
+      ↓          │  Test users: │
+┌─────────────┐ │  - student   │
+│   Browser   │ │  - instructor│
+│  enters     │ │  - admin     │
+│  username/  │ └──────────────┘
+│  password   │
+└─────────────┘
+      │
+      │ SAML Response (assertion)
+      ↓
 ┌─────────────┐
 │   Browser   │ ─────> SP validates ─────> Create session
 └─────────────┘        assertion            Extract attributes
-                                                   │
-                                                   ↓
-                                            ┌──────────────┐
-                                            │   Next.js    │
-                                            │   App        │
-                                            │ (localhost:  │
-                                            │  3000)       │
-                                            └──────────────┘
-                                            Receives headers:
-                                            X-Remote-User
-                                            X-Remote-Mail
-                                            X-Remote-Affiliation
+                                                  │
+                                                  ↓
+                                           ┌──────────────┐
+                                           │   Next.js    │
+                                           │   App        │
+                                           │ (localhost:  │
+                                           │  3000)       │
+                                           └──────────────┘
+                                           Receives headers:
+                                           X-Remote-User
+                                           X-Remote-Mail
+                                           X-Remote-Affiliation
 ```
 
 ---
@@ -123,9 +138,10 @@ docker compose logs -f sp
 
 You should see:
 ```
-NAME           IMAGE                  STATUS
-studycat_idp   studycat-idp:latest    Up
-studycat_sp    studycat-sp:latest     Up
+NAME            IMAGE                   STATUS
+studycat_ldap   osixia/openldap:1.5.0   Up
+studycat_idp    studycat-idp:latest     Up
+studycat_sp     studycat-sp:latest      Up
 ```
 
 ### Testing the SSO Flow
@@ -136,8 +152,10 @@ studycat_sp    studycat-sp:latest     Up
 
 3. **Accept SSL warnings** (self-signed certificates)
 
-4. **You'll be automatically authenticated** as `student`
-   - No login form needed (Function authentication)
+4. **Enter login credentials**:
+   - Username: `student`, `instructor`, or `admin`
+   - Password: `password123`
+   - Submit the login form
    - Redirected back to SP
 
 5. **Check your session**: `https://sp.studycat.local/Shibboleth.sso/Session`
@@ -173,10 +191,11 @@ Expected session output:
 **Key Files**:
 - `Dockerfile` - IdP Docker image definition
 - `customized-shibboleth-idp/conf/idp.properties` - Main configuration
-- `customized-shibboleth-idp/conf/attribute-resolver.xml` - Attribute definitions
+- `customized-shibboleth-idp/conf/attribute-resolver.xml` - Attribute definitions (LDAP-backed)
 - `customized-shibboleth-idp/conf/attribute-filter.xml` - Attribute release policy
 - `customized-shibboleth-idp/conf/relying-party.xml` - SP trust configuration
-- `customized-shibboleth-idp/conf/authn/function-authn-config.xml` - Authentication
+- `customized-shibboleth-idp/conf/authn/password-authn-config.xml` - Password authentication (LDAP)
+- `customized-shibboleth-idp/conf/ldap.properties` - LDAP connection settings
 
 **Configuration Details**:
 ```yaml
@@ -185,15 +204,24 @@ Scope: studycat.local
 Ports:
   - 4443: Browser TLS (HTTPS)
   - 8443: Backchannel TLS
-Authentication: Function (auto-login as "student")
+Authentication: Password (LDAP-backed)
+User Directory: OpenLDAP (port 389)
 Encryption: Disabled (for testing)
 ```
 
-**Attributes Released**:
+**Test Users** (all with password `password123`):
+
+| Username | Password | Affiliations | Role Mapping |
+|----------|----------|--------------|--------------|
+| `student` | `password123` | member, student | Student |
+| `instructor` | `password123` | member, faculty, staff | Instructor |
+| `admin` | `password123` | member, staff, employee | Admin |
+
+**Attributes Released** (example for `student`):
 - `eduPersonPrincipalName` (eppn): `student@studycat.local`
 - `uid`: `student`
 - `mail`: `student@studycat.local`
-- `displayName`: `student`
+- `displayName`: Test Student
 - `eduPersonAffiliation`: `member`, `student`
 - `eduPersonScopedAffiliation`: `member@studycat.local`, `student@studycat.local`
 
@@ -242,6 +270,22 @@ X-Remote-Affiliation: member;student
 **Shibboleth Profile**:
 ```yaml
 services:
+  ldap:
+    image: osixia/openldap:1.5.0
+    container_name: studycat_ldap
+    ports:
+      - "389:389"
+      - "636:636"
+    environment:
+      LDAP_ORGANISATION: "StudyCAT"
+      LDAP_DOMAIN: "studycat.local"
+      LDAP_ADMIN_PASSWORD: "admin123"
+      LDAP_TLS: "false"
+    profiles: ["shibboleth"]
+    volumes:
+      - ldap_data:/var/lib/ldap
+      - ldap_config:/etc/ldap/slapd.d
+
   idp:
     image: studycat-idp:latest
     container_name: studycat_idp
@@ -252,6 +296,8 @@ services:
       JETTY_BROWSER_SSL_KEYSTORE_PASSWORD: abc123
       JETTY_BACKCHANNEL_SSL_KEYSTORE_PASSWORD: abc123
     profiles: ["shibboleth"]
+    depends_on:
+      - ldap
 
   sp:
     image: studycat-sp:latest
@@ -270,6 +316,10 @@ services:
       - idp
     volumes:
       - ./shibboleth/sp/config/idp-metadata.xml:/etc/shibboleth/metadata/idp-metadata.xml:ro
+
+volumes:
+  ldap_data:
+  ldap_config:
 ```
 
 ---
@@ -317,8 +367,8 @@ Location: https://idp.studycat.local:4443/idp/profile/SAML2/Redirect/SSO?SAMLReq
 **Test Flow**:
 1. Visit: `https://sp.studycat.local/Shibboleth.sso/Login`
 2. Accept SSL warnings (twice - SP and IdP)
-3. Automatically authenticated as `student`
-4. Check session: `https://sp.studycat.local/Shibboleth.sso/Session`
+3. Enter login credentials (e.g., username: `student`, password: `password123`)
+4. After successful authentication, check session: `https://sp.studycat.local/Shibboleth.sso/Session`
 
 **Success Indicators**:
 - ✅ Session XML shows attributes
@@ -506,6 +556,8 @@ useEffect(() => {
 
 | Port | Service | Purpose |
 |------|---------|---------|
+| 389 | OpenLDAP | LDAP directory (user authentication) |
+| 636 | OpenLDAP | LDAPS (TLS, not used) |
 | 80 | SP | HTTP (redirects to 443) |
 | 443 | SP | HTTPS (main access point) |
 | 4443 | IdP | Browser TLS |
@@ -515,12 +567,16 @@ useEffect(() => {
 
 ### Credentials
 
-**All IdP Passwords**: `abc123`
+**IdP TLS Keystore Passwords**: `abc123`
 - Browser TLS keystore
 - Backchannel TLS keystore
 
-**Test User**: Auto-authenticated as `student`
-- No manual login required (Function authentication)
+**OpenLDAP Admin Password**: `admin123`
+
+**Test User Passwords**: All users have password `password123`
+- `student` → Student role
+- `instructor` → Instructor role  
+- `admin` → Admin role
 
 ### Entity IDs
 
@@ -533,11 +589,12 @@ useEffect(() => {
 
 ### Current Setup (Development/Testing)
 
-- ✅ Function authentication (auto-login)
+- ✅ Password authentication with OpenLDAP
+- ✅ Test users (student, instructor, admin)
 - ✅ Self-signed certificates
 - ✅ Unencrypted SAML assertions
 - ✅ All attributes released to any SP
-- ✅ Simple passwords
+- ✅ Simple passwords (`password123`)
 - ✅ Local DNS (via `/etc/hosts`)
 
 ### Future Production Setup
@@ -568,8 +625,9 @@ shibboleth/
 │   │   │   ├── attribute-filter.xml
 │   │   │   ├── relying-party.xml
 │   │   │   ├── metadata-providers.xml
+│   │   │   ├── ldap.properties            # LDAP connection config
 │   │   │   └── authn/
-│   │   │       └── function-authn-config.xml
+│   │   │       └── password-authn-config.xml  # LDAP authentication
 │   │   ├── credentials/               # Certificates and keys
 │   │   ├── metadata/                  # SAML metadata
 │   │   │   ├── idp-metadata.xml
@@ -687,10 +745,11 @@ curl -k -I https://sp.studycat.local/Shibboleth.sso/Metadata
 **🎯 Success Criteria**:
 Your SSO implementation is fully working when you can:
 1. Visit `https://sp.studycat.local/`
-2. Automatically authenticate as `student`
+2. Log in with test credentials (e.g., `student` / `password123`)
 3. See session with attributes at `/Shibboleth.sso/Session`
-4. Next.js app receives Shibboleth headers
-5. StudyCAT application creates user session based on headers
+4. Test all three user types (student, instructor, admin)
+5. Next.js app receives Shibboleth headers
+6. StudyCAT application creates user session based on headers and affiliations
 
 ---
 
