@@ -1,0 +1,89 @@
+# StudyCAT LDAP Bootstrap - Test Users
+# This file populates the LDAP directory with test users for Shibboleth authentication
+
+# Create organizational unit for people
+dn: ou=people,dc=studycat,dc=local
+objectClass: organizationalUnit
+objectClass: top
+ou: people
+
+# Create organizational unit for groups
+dn: ou=groups,dc=studycat,dc=local
+objectClass: organizationalUnit
+objectClass: top
+ou: groups
+
+# Student User
+dn: uid=student,ou=people,dc=studycat,dc=local
+objectClass: inetOrgPerson
+objectClass: person
+objectClass: top
+objectClass: eduPerson
+uid: student
+cn: Test Student
+sn: Student
+givenName: Test
+mail: student@studycat.local
+displayName: Test Student
+eduPersonPrincipalName: student@studycat.local
+eduPersonAffiliation: member
+eduPersonAffiliation: student
+userPassword: {SHA}W6ph5Mm5Pz8GgiULbPgzG37mj9g=
+
+# Instructor User
+dn: uid=instructor,ou=people,dc=studycat,dc=local
+objectClass: inetOrgPerson
+objectClass: person
+objectClass: top
+objectClass: eduPerson
+uid: instructor
+cn: Test Instructor
+sn: Instructor
+givenName: Test
+mail: instructor@studycat.local
+displayName: Test Instructor
+eduPersonPrincipalName: instructor@studycat.local
+eduPersonAffiliation: member
+eduPersonAffiliation: faculty
+eduPersonAffiliation: staff
+userPassword: {SHA}W6ph5Mm5Pz8GgiULbPgzG37mj9g=
+
+# Admin User
+dn: uid=admin,ou=people,dc=studycat,dc=local
+objectClass: inetOrgPerson
+objectClass: person
+objectClass: top
+objectClass: eduPerson
+uid: admin
+cn: Test Admin
+sn: Admin
+givenName: Test
+mail: admin@studycat.local
+displayName: Test Admin
+eduPersonPrincipalName: admin@studycat.local
+eduPersonAffiliation: member
+eduPersonAffiliation: staff
+eduPersonAffiliation: employee
+userPassword: {SHA}W6ph5Mm5Pz8GgiULbPgzG37mj9g=
+
+# Create groups
+dn: cn=students,ou=groups,dc=studycat,dc=local
+objectClass: groupOfNames
+objectClass: top
+cn: students
+description: Student group
+member: uid=student,ou=people,dc=studycat,dc=local
+
+dn: cn=instructors,ou=groups,dc=studycat,dc=local
+objectClass: groupOfNames
+objectClass: top
+cn: instructors
+description: Instructor group
+member: uid=instructor,ou=people,dc=studycat,dc=local
+
+dn: cn=admins,ou=groups,dc=studycat,dc=local
+objectClass: groupOfNames
+objectClass: top
+cn: admins
+description: Admin group
+member: uid=admin,ou=people,dc=studycat,dc=local
