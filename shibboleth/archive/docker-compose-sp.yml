@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  studycat-sp:
+    image: tier/shibboleth-sp:latest
+    container_name: studycat_sp
+    hostname: sp.studycat.local
+    ports:
+      - "8080:80"
+      - "8443:443"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+      - "idp.studycat.local:host-gateway"
+    volumes:
+      # Mount our configuration files
+      - ./config/shibboleth2.xml:/etc/shibboleth/shibboleth2.xml:ro
+      - ./config/attribute-map.xml:/etc/shibboleth/attribute-map.xml:ro
+      - ./config/attribute-policy.xml:/etc/shibboleth/attribute-policy.xml:ro
+      - ./config/idp-metadata.xml:/etc/shibboleth/idp-metadata.xml:ro
+      
+      # Mount certificates
+      - ./certificates/sp-key.pem:/etc/shibboleth/sp-key.pem:ro
+      - ./certificates/sp-cert.pem:/etc/shibboleth/sp-cert.pem:ro
+      - ./certificates/sp-signing-key.pem:/etc/shibboleth/sp-signing-key.pem:ro
+      - ./certificates/sp-signing-cert.pem:/etc/shibboleth/sp-signing-cert.pem:ro
+      
+      # Mount Apache config
+      - ./config/apache-studycat.conf:/etc/httpd/conf.d/studycat.conf:ro
+      
+      # Logs (optional - for debugging)
+      - ./logs/shibboleth:/var/log/shibboleth
+      - ./logs/httpd:/var/log/httpd
+    environment:
+      - TZ=America/Toronto
+    restart: unless-stopped
+    depends_on:
+      - idp
+    networks:
+      - shibboleth-net
+
+  idp:
+    image: studycat-idp:latest
+    container_name: studycat_idp
+    hostname: idp.studycat.local
+    ports:
+      - "4443:4443"
+      - "8443:8443"
+    environment:
+      JETTY_BROWSER_SSL_KEYSTORE_PASSWORD: abc123
+      JETTY_BACKCHANNEL_SSL_KEYSTORE_PASSWORD: abc123
+      JETTY_MAX_HEAP: 1024m
+    restart: unless-stopped
+    networks:
+      - shibboleth-net
+
+networks:
+  shibboleth-net:
+    driver: bridge
