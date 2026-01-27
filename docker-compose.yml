@@ -24,6 +24,46 @@ services:
     volumes:
       - mssql_data:/var/opt/mssql
     restart: unless-stopped
+  
+  # Shibboleth Identity Provider (Mock IdP for SSO testing)
+  idp:
+    image: studycat-idp:latest
+    container_name: studycat_idp
+    ports:
+      - "4443:4443"  # Browser TLS (HTTPS)
+      - "8443:8443"  # Backchannel TLS
+    environment:
+      JETTY_BROWSER_SSL_KEYSTORE_PASSWORD: abc123
+      JETTY_BACKCHANNEL_SSL_KEYSTORE_PASSWORD: abc123
+      JETTY_MAX_HEAP: 1024m
+    profiles: ["shibboleth"]  # Only start with: docker compose --profile shibboleth up
+    restart: unless-stopped
+  
+  # Shibboleth Service Provider (Reverse proxy with SSO protection)
+  sp:
+    image: studycat-sp:latest
+    container_name: studycat_sp
+    ports:
+      - "80:80"      # HTTP (redirects to HTTPS)
+      - "443:443"    # HTTPS (main access point)
+    extra_hosts:
+      - "host.docker.internal:host-gateway"  # Allow SP to reach Next.js on host
+    environment:
+      HOSTNAME: sp.studycat.local
+      SERVICE_TO_PROTECT: host.docker.internal
+      SERVICE_PORT: "3000"
+      IDP_ENTITY_ID: https://idp.studycat.local/idp/shibboleth
+      IDP_METADATA_URL: https://idp.studycat.local:4443/idp/shibboleth
+      SUPPORT_EMAIL: admin@studycat.local
+      SHIB_METADATA_BACKUP_URL: https://idp.studycat.local:4443/idp/shibboleth
+      SHIB_DOWNLOAD_METADATA: "false"  # Use local metadata file instead
+    profiles: ["shibboleth"]  # Only start with: docker compose --profile shibboleth up
+    depends_on:
+      - idp
+    restart: unless-stopped
+    volumes:
+      # Mount the IdP metadata file
+      - ./shibboleth/sp/config/idp-metadata.xml:/etc/shibboleth/metadata/idp-metadata.xml:ro
 
 volumes:
   db_data:
