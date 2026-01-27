@@ -25,6 +25,29 @@ services:
       - mssql_data:/var/opt/mssql
     restart: unless-stopped
   
+  # OpenLDAP Directory Server (for Shibboleth IdP authentication)
+  ldap:
+    image: osixia/openldap:1.5.0
+    container_name: studycat_ldap
+    environment:
+      LDAP_ORGANISATION: "StudyCAT"
+      LDAP_DOMAIN: "studycat.local"
+      LDAP_ADMIN_PASSWORD: "admin123"
+      LDAP_CONFIG_PASSWORD: "config123"
+      LDAP_READONLY_USER: "false"
+      LDAP_RFC2307BIS_SCHEMA: "true"
+      LDAP_REMOVE_CONFIG_AFTER_SETUP: "true"
+      LDAP_TLS: "false"
+    ports:
+      - "389:389"   # LDAP port
+      - "636:636"   # LDAPS port (TLS)
+    volumes:
+      - ldap_data:/var/lib/ldap
+      - ldap_config:/etc/ldap/slapd.d
+      - ./shibboleth/ldap/bootstrap.ldif:/container/service/slapd/assets/config/bootstrap/ldif/custom/bootstrap.ldif
+    profiles: ["shibboleth"]  # Only start with: docker compose --profile shibboleth up
+    restart: unless-stopped
+
   # Shibboleth Identity Provider (Mock IdP for SSO testing)
   idp:
     image: studycat-idp:latest
@@ -37,6 +60,8 @@ services:
       JETTY_BACKCHANNEL_SSL_KEYSTORE_PASSWORD: abc123
       JETTY_MAX_HEAP: 1024m
     profiles: ["shibboleth"]  # Only start with: docker compose --profile shibboleth up
+    depends_on:
+      - ldap
     restart: unless-stopped
   
   # Shibboleth Service Provider (Reverse proxy with SSO protection)
@@ -68,3 +93,5 @@ services:
 volumes:
   db_data:
   mssql_data:
+  ldap_data:
+  ldap_config:
