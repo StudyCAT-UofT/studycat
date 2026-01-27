@@ -1,0 +1,8 @@
+# Exclude temporary files
+*.pem
+*.md
+.DS_Store
+
+# Exclude Dockerfile itself
+Dockerfile
+.dockerignore
