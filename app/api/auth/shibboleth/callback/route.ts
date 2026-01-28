@@ -48,19 +48,24 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // CRITICAL TODO: Implement proper role mapping from Shibboleth affiliations
-    // Currently defaulting to 'student' - THIS NEEDS TO BE FIXED
-    // 
-    // Proper mapping should be:
-    // - If affiliation contains "student" → role = 'student'
-    // - If affiliation contains "faculty" or "staff" → role = 'instructor'
-    // - If affiliation contains "employee" → role = 'admin'
-    //
-    // Example affiliation values from Shibboleth:
-    // - student: "member;student@studycat.local"
-    // - instructor: "member;faculty@studycat.local;staff@studycat.local"
-    // - admin: "member;staff@studycat.local;employee@studycat.local"
-    const role: 'student' | 'instructor' | 'admin' = 'student'; // TEMPORARY DEFAULT
+    // Map Shibboleth affiliation to application role
+    // Priority: Admin > Instructor > Student
+    const affiliationLower = (affiliation || '').toLowerCase();
+    let role: 'student' | 'instructor' | 'admin' = 'student'; // Default
+
+    if (affiliationLower.includes('employee') || affiliationLower.includes('admin')) {
+      role = 'admin';
+    } else if (
+      affiliationLower.includes('faculty') || 
+      affiliationLower.includes('staff') || 
+      affiliationLower.includes('instructor')
+    ) {
+      role = 'instructor';
+    } else {
+      role = 'student';
+    }
+
+    console.log(`Mapped affiliation '${affiliation}' to role '${role}'`);
 
     // Find or create user in database
     let user = await prisma.user.findUnique({
