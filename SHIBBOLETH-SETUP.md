@@ -80,7 +80,7 @@ Add these lines:
 cd /path/to/studycat
 
 # Start database, IdP, SP, and OpenLDAP
-docker compose --profile shibboleth up -d
+docker compose --profile shibboleth up -d --build
 
 # Generate Prisma client and run migrations
 pnpm db:generate
