@@ -604,6 +604,17 @@ lsof -i :4443
    - Next.js validates JWT
    - User is authenticated!
 
+### Role Mapping
+
+The application maps Shibboleth attributes to internal user roles (`student`, `instructor`, `admin`) based on the `scoped-affiliation` or `affiliation` attribute.
+
+**Mapping Logic:**
+1. **Admin**: If affiliation contains `employee` or `admin`.
+2. **Instructor**: If affiliation contains `faculty`, `staff`, or `instructor`.
+3. **Student**: Default role if no other matches found (or explicitly `student`).
+
+This logic is implemented in `app/api/auth/shibboleth/callback/route.ts`.
+
 ### Key Files
 
 **IdP:**
