@@ -20,11 +20,11 @@ services:
       ACCEPT_EULA: "Y"
       SA_PASSWORD: "studycatPassword123!"
       MSSQL_PID: "Developer"
-    profiles: ["manual"]  # Prevent service from starting automatically
+    profiles: [ "manual" ] # Prevent service from starting automatically
     volumes:
       - mssql_data:/var/opt/mssql
     restart: unless-stopped
-  
+
   # OpenLDAP Directory Server (for Shibboleth IdP authentication)
   ldap:
     image: osixia/openldap:1.5.0
@@ -39,40 +39,42 @@ services:
       LDAP_REMOVE_CONFIG_AFTER_SETUP: "true"
       LDAP_TLS: "false"
     ports:
-      - "389:389"   # LDAP port
-      - "636:636"   # LDAPS port (TLS)
+      - "389:389" # LDAP port
+      - "636:636" # LDAPS port (TLS)
     volumes:
       - ldap_data:/var/lib/ldap
       - ldap_config:/etc/ldap/slapd.d
       # Note: bootstrap.ldif has mount issues on macOS - users added manually after startup
-    profiles: ["shibboleth"]  # Only start with: docker compose --profile shibboleth up
+    profiles: [ "shibboleth" ] # Only start with: docker compose --profile shibboleth up
     restart: unless-stopped
 
   # Shibboleth Identity Provider (Mock IdP for SSO testing)
   idp:
+    build: ./shibboleth/idp
     image: studycat-idp:latest
     container_name: studycat_idp
     ports:
-      - "4443:4443"  # Browser TLS (HTTPS)
-      - "8443:8443"  # Backchannel TLS
+      - "4443:4443" # Browser TLS (HTTPS)
+      - "8443:8443" # Backchannel TLS
     environment:
       JETTY_BROWSER_SSL_KEYSTORE_PASSWORD: abc123
       JETTY_BACKCHANNEL_SSL_KEYSTORE_PASSWORD: abc123
       JETTY_MAX_HEAP: 1024m
-    profiles: ["shibboleth"]  # Only start with: docker compose --profile shibboleth up
+    profiles: [ "shibboleth" ] # Only start with: docker compose --profile shibboleth up
     depends_on:
       - ldap
     restart: unless-stopped
-  
+
   # Shibboleth Service Provider (Reverse proxy with SSO protection)
   sp:
+    build: ./shibboleth/sp
     image: studycat-sp:latest
     container_name: studycat_sp
     ports:
-      - "80:80"      # HTTP (redirects to HTTPS)
-      - "443:443"    # HTTPS (main access point)
+      - "80:80" # HTTP (redirects to HTTPS)
+      - "443:443" # HTTPS (main access point)
     extra_hosts:
-      - "host.docker.internal:host-gateway"  # Allow SP to reach Next.js on host
+      - "host.docker.internal:host-gateway" # Allow SP to reach Next.js on host
     environment:
       HOSTNAME: sp.studycat.local
       SERVICE_TO_PROTECT: host.docker.internal
@@ -81,8 +83,8 @@ services:
       IDP_METADATA_URL: https://idp.studycat.local:4443/idp/shibboleth
       SUPPORT_EMAIL: admin@studycat.local
       SHIB_METADATA_BACKUP_URL: https://idp.studycat.local:4443/idp/shibboleth
-      SHIB_DOWNLOAD_METADATA: "false"  # Use local metadata file instead
-    profiles: ["shibboleth"]  # Only start with: docker compose --profile shibboleth up
+      SHIB_DOWNLOAD_METADATA: "false" # Use local metadata file instead
+    profiles: [ "shibboleth" ] # Only start with: docker compose --profile shibboleth up
     depends_on:
       - idp
     restart: unless-stopped
