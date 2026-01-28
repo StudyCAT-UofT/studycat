@@ -3,6 +3,8 @@
 **Status**: ✅ **WORKING** - Authentication infrastructure fully operational  
 **Last Updated**: January 27, 2026
 
+> **📖 For complete step-by-step setup instructions from scratch, see [`../SHIBBOLETH-SETUP.md`](../SHIBBOLETH-SETUP.md)**
+
 ---
 
 ## 📋 Table of Contents
@@ -41,8 +43,21 @@ This directory contains a complete Shibboleth Single Sign-On (SSO) implementatio
 - Session creation with attributes
 - Ready to pass attributes to Next.js app
 
-⏳ **Pending**:
-- Next.js application integration (reading Shibboleth headers)
+✅ **Application Integration**: Basic integration complete
+- Shibboleth callback route implemented
+- JWT token creation with attributes
+- Session management working
+- Logout flow with Shibboleth redirect
+
+⚠️ **CRITICAL FIX REQUIRED**:
+- **Role Mapping Not Implemented**: Currently all users default to 'student' role
+  - Callback route reads affiliation header but doesn't parse it
+  - Need to map Shibboleth affiliations to application roles:
+    * `student` affiliation → `student` role
+    * `faculty`/`staff` affiliation → `instructor` role
+    * `employee` affiliation → `admin` role
+  - See: `app/api/auth/shibboleth/callback/route.ts` (line ~50)
+  - **Impact**: Role-based access control will not work correctly until fixed
 
 ---
 
