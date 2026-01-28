@@ -32,11 +32,12 @@ COPY certificates/sp-signing-key.pem /etc/shibboleth/sp-key.pem
 # The image looks for metadata at /etc/shibboleth/metadata/idp-metadata.xml
 COPY config/idp-metadata.xml /etc/shibboleth/metadata/idp-metadata.xml
 
-# Copy custom Shibboleth configuration files (optional - if we need custom settings)
-# The jefferyb image has defaults, but we can override them if needed
-# For now, we'll let the jefferyb image use its default configs with our env vars
-# COPY config/shibboleth2.xml /etc/shibboleth/shibboleth2.xml
-# COPY config/attribute-map.xml /etc/shibboleth/attribute-map.xml
+# Copy custom Shibboleth configuration files
+COPY config/shibboleth2.xml /etc/shibboleth/shibboleth2.xml
+COPY config/attribute-map.xml /etc/shibboleth/attribute-map.xml
+# Copy protected routes config
+COPY config/protected-routes.conf /etc/apache2/conf-available/protected-routes.conf
+COPY config/shibboleth-headers.conf /etc/apache2/conf-available/shibboleth-headers.conf
 
 # Set proper permissions
 USER root
@@ -44,9 +45,21 @@ RUN chmod 644 /etc/apache2/ssl/ssl.crt && \
     chmod 600 /etc/apache2/ssl/ssl.key && \
     chmod 644 /etc/shibboleth/sp-cert.pem && \
     chmod 600 /etc/shibboleth/sp-key.pem && \
-    chmod 644 /etc/shibboleth/metadata/idp-metadata.xml
+    chmod 644 /etc/shibboleth/metadata/idp-metadata.xml && \
+    chmod 644 /etc/shibboleth/shibboleth2.xml && \
+    chmod 644 /etc/shibboleth/attribute-map.xml && \
+    chmod 644 /etc/apache2/conf-available/protected-routes.conf && \
+    chmod 644 /etc/apache2/conf-available/shibboleth-headers.conf
 
 # Expose ports (80 for HTTP, 443 for HTTPS)
 EXPOSE 80 443
 
-# The base image already has a proper CMD, so we don't need to override it
+# Override default CMD to run Ansible, then patch the config
+# 1. Inject ProxyPass exclusion for Shibboleth.sso
+# 2. Change ProxyPreserveHost from Off to On
+# 3. Disable Shibboleth on root path (AuthType None)
+# 4. Disable requireSession on root path
+# 5. Allow public access on root path
+# 6. Include protected routes config
+# 7. Include headers mapping config
+CMD ["/bin/sh", "-c", "ansible-playbook /opt/playbooks/shibboleth-playbook.yaml --diff && a2enmod headers && sed -i '/ProxyPass \\/ http/i ProxyPass /Shibboleth.sso !' /etc/apache2/sites-enabled/000-default.conf && sed -i 's/ProxyPreserveHost Off/ProxyPreserveHost On/' /etc/apache2/sites-enabled/000-default.conf && sed -i '/<Location \\/>/,/<\\/Location>/ s/AuthType shibboleth/AuthType None/' /etc/apache2/sites-enabled/000-default.conf && sed -i '/<Location \\/>/,/<\\/Location>/ s/ShibRequestSetting requireSession 1/ShibRequestSetting requireSession 0/' /etc/apache2/sites-enabled/000-default.conf && sed -i '/<Location \\/>/,/<\\/Location>/ s/require valid-user/Require all granted/' /etc/apache2/sites-enabled/000-default.conf && sed -i '/<\\/VirtualHost>/i Include /etc/apache2/conf-available/protected-routes.conf' /etc/apache2/sites-enabled/000-default.conf && sed -i '/<\\/VirtualHost>/i Include /etc/apache2/conf-available/shibboleth-headers.conf' /etc/apache2/sites-enabled/000-default.conf && service apache2 restart && service shibd start && tail -f /var/log/apache2/access.log -f /var/log/apache2/error.log -f /var/log/apache2/other_vhosts_access.log -f /var/log/shibboleth/shibd.log -f /var/log/shibboleth/shibd_warn.log -f /var/log/shibboleth/signature.log -f /var/log/shibboleth/transaction.log"]
