@@ -44,7 +44,7 @@ services:
     volumes:
       - ldap_data:/var/lib/ldap
       - ldap_config:/etc/ldap/slapd.d
-      - ./shibboleth/ldap/bootstrap.ldif:/container/service/slapd/assets/config/bootstrap/ldif/custom/bootstrap.ldif
+      # Note: bootstrap.ldif has mount issues on macOS - users added manually after startup
     profiles: ["shibboleth"]  # Only start with: docker compose --profile shibboleth up
     restart: unless-stopped
 
