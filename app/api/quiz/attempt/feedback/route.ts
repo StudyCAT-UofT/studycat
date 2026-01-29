@@ -39,6 +39,9 @@ export const POST = async (request: NextRequest) => {
                 modules: true,
               },
             },
+            quizModules: {
+              select: { moduleId: true }
+            }
           },
         },
         enrollment: {
@@ -99,7 +102,7 @@ export const POST = async (request: NextRequest) => {
       : Date.now() - new Date(attempt.startedAt).getTime();
 
     // Get module IDs included in this quiz
-    const includedModuleIds = attempt.quiz.includedModuleIds;
+    const includedModuleIds = attempt.quiz.quizModules.map(qm => qm.moduleId) || [];
 
     // Build module performance data
     const modulePerformanceMap = new Map<string, {

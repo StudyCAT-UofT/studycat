@@ -129,7 +129,7 @@ export const QuizzesTable = ({
             width: 150,
             render: (quiz: Quiz) => (
                 <Stack gap={2}>
-                    {quiz.includedModules.map((module, index) => (
+                    {quiz.modules?.map((module, index) => (
                         <Badge key={index} size="sm" variant="light">
                             {module}
                         </Badge>
@@ -226,11 +226,11 @@ export const QuizzesTable = ({
     const expandedRowContent = ({ record }: { record: Quiz }) => (
         <Box p="md" style={{ backgroundColor: '#f8f9fa' }}>
             <Stack gap="md">
-                {record.includedModules.length > 0 && (
+                {record.modules && (
                     <div>
                         <Text fw={500} mb="xs">Included Modules:</Text>
                         <Group gap="xs">
-                            {record.includedModules.map((module, index) => (
+                            {record.modules?.map((module, index) => (
                                 <Badge key={index} size="sm" variant="light">
                                     {module}
                                 </Badge>

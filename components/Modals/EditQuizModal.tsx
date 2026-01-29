@@ -87,10 +87,9 @@ const EditQuizModal = ({
     // Map module names to IDs when modules are loaded and we're editing
     useEffect(() => {
         if (opened && !isCreating && quiz && availableModules.length > 0) {
-            const moduleIds = quiz.includedModules.map(moduleName => {
-                const m = availableModules.find(m => m.name === moduleName)
-                return m?.id || ''
-            }).filter(id => id !== '')
+            const moduleIds = quiz.quizModules
+            ?.map(qm => qm.moduleId)
+            .filter(Boolean) || []
 
             setFormData(prev => ({
                 ...prev,

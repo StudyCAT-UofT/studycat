@@ -36,7 +36,10 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     // Check if quiz exists
     const existingQuiz = await prisma.quiz.findUnique({
       where: { id },
-      include: { offering: true }
+      include: { 
+        offering: true,
+        quizModules: true
+       }
     })
 
     if (!existingQuiz) {
@@ -44,6 +47,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     }
 
     // Validate includedModuleIds if provided
+    let validModuleIds: string[] | undefined
     if (includedModuleIds && Array.isArray(includedModuleIds) && includedModuleIds.length > 0) {
       const modules = await prisma.module.findMany({
         where: {
@@ -55,6 +59,8 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       if (modules.length !== includedModuleIds.length) {
         return NextResponse.json({ error: 'One or more modules not found or do not belong to this course offering' }, { status: 400 })
       }
+
+      validModuleIds = modules.map(m => m.id)
     }
 
     // Validate fixedLength if provided
@@ -67,9 +73,22 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       where: { id },
       data: {
         ...(title !== undefined && { title }),
-        ...(includedModuleIds !== undefined && { includedModuleIds }),
         ...(active !== undefined && { active }),
-        ...(fixedLength !== undefined && { fixedLength })
+        ...(fixedLength !== undefined && { fixedLength }),
+        ...(validModuleIds !== undefined && {
+          quizModules: {
+            // Remove modules that are no longer included
+            deleteMany: {
+              moduleId: { notIn: validModuleIds }
+            },
+            // Add new modules (skip duplicates)
+            create: validModuleIds
+              .filter(
+                moduleId => !existingQuiz.quizModules.some(qm => qm.moduleId === moduleId)
+              )
+              .map(moduleId => ({ moduleId }))
+          }
+        })
       }
     })
 

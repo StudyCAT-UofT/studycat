@@ -126,7 +126,7 @@ export const POST = async (request: NextRequest) => {
         data: {
           status: 'COMPLETED',
           finishedAt: new Date(),
-          engineMasteryAtFinish: fastApiData.mastery,
+          engineMasteryAtFinish: JSON.stringify(fastApiData.mastery),
         },
       });
     }
@@ -136,7 +136,7 @@ export const POST = async (request: NextRequest) => {
     await prisma.response.update({
       where: { id: response.id },
       data: {
-        engineMasterySnapshot: fastApiData.mastery,
+        engineMasterySnapshot: JSON.stringify(fastApiData.mastery),
       },
     });
 
