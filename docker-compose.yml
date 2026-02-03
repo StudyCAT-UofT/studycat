@@ -34,17 +34,14 @@ services:
       LDAP_DOMAIN: "studycat.local"
       LDAP_ADMIN_PASSWORD: "admin123"
       LDAP_CONFIG_PASSWORD: "config123"
-      LDAP_READONLY_USER: "false"
       LDAP_RFC2307BIS_SCHEMA: "true"
-      LDAP_REMOVE_CONFIG_AFTER_SETUP: "true"
+      LDAP_REMOVE_CONFIG_AFTER_SETUP: "false" 
       LDAP_TLS: "false"
-    ports:
-      - "389:389" # LDAP port
-      - "636:636" # LDAPS port (TLS)
     volumes:
       - ldap_data:/var/lib/ldap
       - ldap_config:/etc/ldap/slapd.d
-      # Note: bootstrap.ldif has mount issues on macOS - users added manually after startup
+      # Mount the WHOLE folder to the prepopulate directory
+      - ./shibboleth/ldap:/container/service/slapd/assets/config/bootstrap/ldif/custom
     profiles: [ "shibboleth" ] # Only start with: docker compose --profile shibboleth up
     restart: unless-stopped
 
@@ -89,8 +86,15 @@ services:
       - idp
     restart: unless-stopped
     volumes:
-      # Mount the IdP metadata file
+      # Mount the metadata
       - ./shibboleth/sp/config/idp-metadata.xml:/etc/shibboleth/metadata/idp-metadata.xml:ro
+      
+      # Mount the ACTUAL files (ensure these are files on your PC, not folders)
+      - ./shibboleth/sp/certificates/sp-key.pem:/etc/shibboleth/sp-key.pem:ro
+      - ./shibboleth/sp/certificates/sp-cert.pem:/etc/shibboleth/sp-cert.pem:ro
+      
+      # Mount the attribute map so you actually get user data
+      - ./shibboleth/sp/config/attribute-map.xml:/etc/shibboleth/attribute-map.xml:ro
 
 volumes:
   db_data:
