@@ -92,7 +92,7 @@
         MetadataProvider - tells SP where to find IdP metadata
         We'll load it from a local file
         -->
-        <MetadataProvider type="XML" validate="true" path="/etc/shibboleth/idp-metadata.xml"/>
+        <MetadataProvider type="XML" validate="true" path="metadata/idp-metadata.xml"/>
 
         <!--
         TrustEngine - how to verify signatures from IdP
@@ -118,12 +118,8 @@
         CredentialResolver - SP's signing and encryption credentials
         -->
         <CredentialResolver type="File">
-            <Key>
-                <Path>/etc/shibboleth/sp-signing-key.pem</Path>
-            </Key>
-            <Certificate>
-                <Path>/etc/shibboleth/sp-signing-cert.pem</Path>
-            </Certificate>
+            <Key><Path>..\certificates\sp-key.pem</Path></Key>
+            <Certificate><Path>..\certificates\sp-cert.pem</Path></Certificate>
         </CredentialResolver>
 
     </ApplicationDefaults>
