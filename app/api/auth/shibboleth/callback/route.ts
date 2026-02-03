@@ -10,9 +10,6 @@ export async function GET(request: NextRequest) {
     const isMockMode = searchParams.get('mock') === 'true' && process.env.ENABLE_MOCK_SHIBBOLETH === 'true';
 
     let utorid: string | null = null;
-    let email: string | null = null;
-    let displayName: string | null = null;
-    let affiliation: string | null = null;
 
     if (isMockMode) {
       // Mock mode: read from query parameters
@@ -25,17 +22,9 @@ export async function GET(request: NextRequest) {
       utorid = request.headers.get('uid') || 
                request.headers.get('remote_user')?.split('@')[0] ||
                request.headers.get('eppn')?.split('@')[0];
-      email = request.headers.get('mail');
-      displayName = request.headers.get('displayname') ||
-                    request.headers.get('cn');
-      affiliation = request.headers.get('scoped-affiliation') ||
-                    request.headers.get('affiliation');
       
       console.log('Real Shibboleth authentication:', { 
         utorid, 
-        email, 
-        displayName, 
-        affiliation 
       });
       console.log('All headers:', Object.fromEntries(request.headers.entries()));
     }
@@ -48,25 +37,6 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Map Shibboleth affiliation to application role
-    // Priority: Admin > Instructor > Student
-    const affiliationLower = (affiliation || '').toLowerCase();
-    let role: 'student' | 'instructor' | 'admin' = 'student'; // Default
-
-    if (affiliationLower.includes('employee') || affiliationLower.includes('admin')) {
-      role = 'admin';
-    } else if (
-      affiliationLower.includes('faculty') || 
-      affiliationLower.includes('staff') || 
-      affiliationLower.includes('instructor')
-    ) {
-      role = 'instructor';
-    } else {
-      role = 'student';
-    }
-
-    console.log(`Mapped affiliation '${affiliation}' to role '${role}'`);
-
     // Find or create user in database
     let user = await prisma.user.findUnique({
       where: {
@@ -74,24 +44,10 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    if (!user) {
-      // User doesn't exist - create them (SSO auto-provisioning)
-      user = await prisma.user.create({
-        data: {
-          username: utorid,
-          givenName: displayName?.split(' ')[0] || utorid,
-          familyName: displayName?.split(' ').slice(1).join(' ') || '',
-        }
-      });
-      console.log('Created new user via Shibboleth SSO:', { username: utorid });
-    }
-
     // Create session token using JWT function with full payload
     const tokenPayload = {
       userId: user.id,
-      email: email || `${user.username}@studycat.local`,
-      role: role,
-      displayName: displayName || `${user.givenName} ${user.familyName}`.trim() || user.username,
+      username: utorid
     };
     console.log('Creating JWT token with payload:', tokenPayload);
     
