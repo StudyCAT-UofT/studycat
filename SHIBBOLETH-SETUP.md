@@ -90,6 +90,57 @@ pnpm db:migrate
 pnpm dev
 ```
 
+## 🔐 Shibboleth Security Setup
+Since security certificates (.pem files) are unique to each environment and are excluded from Git, every developer must generate their own local keys and register them with the Identity Provider (IdP).
+
+### Run the Generation Script
+We provide a script to automate the folder creation and key generation. Run this from the project root:
+
+```
+mkdir shibboleth/sp/certificates
+
+# Ensure the script is executable
+chmod +x generate-shib-certs.sh
+
+# Run the script
+./generate-shib-certs.sh
+```
+
+What to do during the prompt: The script will trigger an interactive OpenSSL session.
+
+You can safely hit Enter to skip most fields.
+
+Important: When it asks for Common Name (CN), type sp.studycat.local.
+
+### Update the Identity Provider (IdP)
+The IdP cannot talk to your local machine until it has your new Public Certificate.
+
+Open shibboleth/sp/certificates/sp-cert.pem in your editor.
+
+Copy the long string of text between the -----BEGIN CERTIFICATE----- and -----END CERTIFICATE----- lines.
+
+On your IdP server (or local IdP container), open the metadata file: shibboleth-idp/metadata/sp-metadata.xml
+
+Find the <ds:X509Certificate> tag and replace its contents with the string you copied.
+
+Restart the IdP (e.g., restart the Jetty or Docker container) to refresh the metadata.
+
+### Restart the Service Provider
+Finally, restart your Shibboleth SP container to load the new keys:
+
+```
+docker-compose restart sp
+```
+
+### ⚠️ Troubleshooting: "Unable to resolve any key decryption keys"
+If you see this error in your browser after authenticating:
+
+Mismatch: Your local sp-key.pem does not match the sp-cert.pem you gave to the IdP. This happens if you ran the script twice but only updated the IdP once.
+
+Permissions: Ensure sp-key.pem is not world-readable (chmod 600).
+
+Paths: Double-check that the paths in shibboleth2.xml are absolute and correct.
+
 ### 3. Test the Setup
 
 1. Open browser: `https://sp.studycat.local/`

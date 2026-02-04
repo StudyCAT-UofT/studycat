@@ -118,8 +118,8 @@
         CredentialResolver - SP's signing and encryption credentials
         -->
         <CredentialResolver type="File">
-            <Key><Path>..\certificates\sp-key.pem</Path></Key>
-            <Certificate><Path>..\certificates\sp-cert.pem</Path></Certificate>
+            <Key><Path>../certificate/sp-key.pem</Path></Key>
+            <Certificate><Path>../certificates/sp-cert.pem</Path></Certificate>
         </CredentialResolver>
 
     </ApplicationDefaults>
