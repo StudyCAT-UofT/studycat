@@ -1,12 +1,10 @@
 import { cookies } from 'next/headers'
-import { verifyToken as verifyJWT, JWTPayload } from './jwt'
+import { verifyToken as verifyJWT, signToken, JWTPayload } from './jwt'
 
 // Re-export JWTPayload as UserSession for backwards compatibility
 export type UserSession = JWTPayload
 
 export const createToken = (user: Omit<JWTPayload, 'iat' | 'exp'>): string => {
-  // Use the jwt.ts signToken function
-  const { signToken } = require('./jwt')
   return signToken(user)
 }
 

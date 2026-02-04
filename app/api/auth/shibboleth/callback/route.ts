@@ -2,7 +2,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { signToken } from '@/lib/jwt';
-import { setSessionCookie } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
   try {
@@ -37,7 +36,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Find or create user in database
-    let user = await prisma.user.findUnique({
+    const user = await prisma.user.findUnique({
       where: {
         username: utorid
       }
