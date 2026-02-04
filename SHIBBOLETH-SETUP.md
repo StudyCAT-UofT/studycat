@@ -666,6 +666,10 @@ The application maps Shibboleth attributes to internal user roles (`student`, `i
 
 This logic is implemented in `app/api/auth/shibboleth/callback/route.ts`.
 
+### Logout Behavior
+
+StudyCAT implements **local logout only**—when a user logs out, only the application's JWT session is cleared while the Shibboleth IdP session remains active. This replicates the behavior of other university applications like MarkUs, since users typically don't expect logging out of a single application to sign them out of all university services. If a user logs out and clicks "Login" again, they will be automatically re-authenticated without entering credentials (until their IdP session expires).
+
 ### Key Files
 
 **IdP:**
