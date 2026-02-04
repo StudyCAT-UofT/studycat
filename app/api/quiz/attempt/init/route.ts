@@ -42,11 +42,14 @@ export const POST = async (request: NextRequest) => {
             item: true,
           },
         },
+        quizModules: {
+          select: { moduleId: true }
+        }
       },
     });
 
     // Get module IDs for the FastAPI service
-    const moduleIds = quiz?.includedModuleIds || [];
+    const moduleIds = quiz?.quizModules.map(qm => qm.moduleId) || [];
 
     if (!quiz) {
       return NextResponse.json(
@@ -82,11 +85,11 @@ export const POST = async (request: NextRequest) => {
         },
         fixedLengthN: quiz.fixedLength,
         status: 'IN_PROGRESS',
-        scopeSnapshot: {
-          includedModuleIds: quiz.includedModuleIds,
+        scopeSnapshot: JSON.stringify({
+          includedModuleIds: moduleIds,
           includedBlooms: quiz.includedBlooms,
           eligibleItemIds: quiz.quizItems.map(qi => qi.itemId),
-        },
+        }),
       },
     });
 

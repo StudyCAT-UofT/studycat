@@ -34,6 +34,7 @@ export interface Quiz {
     fixedLength: number
     timeLimit: number | null // Not in schema but kept for compatibility
     maxAttempts: number | null // Not in schema but kept for compatibility
+    modules: string[] | null
     isActive: boolean
     dueDate: string | null // Not in schema but kept for compatibility
     createdAt: string
@@ -44,7 +45,7 @@ export interface Quiz {
         averageScore: number | null
         completionRate: number | null
     }
-    includedModules: string[]
+    quizModules: QuizModule[]
     includedBlooms: string[]
 }
 
@@ -55,6 +56,11 @@ export interface QuizItem {
     options: string[]
     figure_url?: string | null
     reference?: string | null
+}
+
+export interface QuizModule {
+    quizId: string    
+    moduleId: string 
 }
 
 // Quiz Attempt Interfaces
@@ -176,7 +182,7 @@ export interface FeedbackData {
     attemptId: string
     quizId: string
     quizTitle: string
-    status: 'IN_PROGRESS' | 'COMPLETED' | 'ABANDONED'
+    status: string
     startedAt: string
     finishedAt: string | null
     totalTimeMs: number
@@ -198,3 +204,11 @@ export interface FeedbackData {
     canContinue: boolean
     continueReason: 'not_started' | 'in_progress' | 'reached_limit' | 'completed' | null
 }
+
+export type OptionLabel = 'A' | 'B' | 'C' | 'D';
+
+export const optionLabels: OptionLabel[] = ['A', 'B', 'C', 'D'];
+
+export type BloomCategory = 'REMEMBER' | 'UNDERSTAND' | 'APPLY' | 'ANALYZE' | 'EVALUATE' | 'CREATE';
+
+export const bloomCategories: BloomCategory[] = ['REMEMBER', 'UNDERSTAND', 'APPLY', 'ANALYZE', 'EVALUATE', 'CREATE'];

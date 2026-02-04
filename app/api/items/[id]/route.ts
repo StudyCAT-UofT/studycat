@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { BloomCategory } from '@prisma/client'
+import { BloomCategory, bloomCategories } from '@/types'
 
 export const runtime = 'nodejs'
 
@@ -107,11 +107,11 @@ export async function PUT(
     }
 
     // Validate bloom category
-    if (!Object.values(BloomCategory).includes(bloom)) {
+    if (!bloomCategories.includes(bloom as BloomCategory)) {
       return NextResponse.json(
         { error: 'Invalid bloom category' },
         { status: 400 }
-      )
+      );
     }
 
     // Validate options
