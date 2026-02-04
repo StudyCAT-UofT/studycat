@@ -14,17 +14,16 @@ export async function GET(request: NextRequest) {
     if (isMockMode) {
       // Mock mode: read from query parameters
       utorid = searchParams.get('utorid');
-      console.log('Mock Shibboleth authentication:', { utorid });
     } else {
       // Real Shibboleth mode: read attributes from headers set by SP
       // Note: Apache converts header names to lowercase and hyphens to underscores
       // Prefer 'uid' (just username) over 'remote_user' (which includes @domain)
-      utorid = request.headers.get('uid') || 
-               request.headers.get('remote_user')?.split('@')[0] ||
-               request.headers.get('eppn')?.split('@')[0];
-      
-      console.log('Real Shibboleth authentication:', { 
-        utorid, 
+      utorid = request.headers.get('uid') ||
+        request.headers.get('remote_user')?.split('@')[0] ||
+        request.headers.get('eppn')?.split('@')[0] || null;
+
+      console.log('Real Shibboleth authentication:', {
+        utorid,
       });
       console.log('All headers:', Object.fromEntries(request.headers.entries()));
     }
@@ -44,24 +43,29 @@ export async function GET(request: NextRequest) {
       }
     });
 
+    if (!user) {
+      console.error('User not found:', utorid);
+      return NextResponse.redirect(
+        new URL('/login?error=user_not_found', request.url)
+      );
+    }
+
     // Create session token using JWT function with full payload
     const tokenPayload = {
       userId: user.id,
       username: utorid
     };
-    console.log('Creating JWT token with payload:', tokenPayload);
-    
+
     const token = signToken(tokenPayload);
-    console.log('JWT token created, length:', token.length);
 
     // Create redirect response using the forwarded host (sp.studycat.local)
     // NOT the internal host (host.docker.internal)
     // Always use HTTPS since the browser is on HTTPS (Apache forwards as http in dev)
     const forwardedHost = request.headers.get('x-forwarded-host') || 'localhost:3000';
     const redirectUrl = `https://${forwardedHost}/`;
-    
+
     const response = NextResponse.redirect(redirectUrl);
-    
+
     // Set session cookie directly in the response (not using setSessionCookie)
     // because we need to ensure the cookie domain matches the browser domain
     response.cookies.set('session-token', token, {
@@ -71,8 +75,8 @@ export async function GET(request: NextRequest) {
       maxAge: 7 * 24 * 60 * 60, // 7 days
       path: '/',
     });
-    
-    console.log('Session cookie set, redirecting to:', redirectUrl);
+
+
     return response;
 
   } catch (error) {
