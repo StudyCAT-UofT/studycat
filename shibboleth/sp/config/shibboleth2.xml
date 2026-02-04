@@ -40,10 +40,8 @@
                 Binding="urn:oasis:names:tc:SAML:1.0:profiles:artifact-01"/>
 
             <!-- LogoutInitiators enable SP-initiated local or global/single logout -->
-            <LogoutInitiator type="Chaining" Location="/Logout">
-                <LogoutInitiator type="SAML2" template="bindingTemplate.html"/>
-                <LogoutInitiator type="Local"/>
-            </LogoutInitiator>
+            <!-- Using Local logout only since IdP doesn't have SLO enabled -->
+            <LogoutInitiator type="Local" Location="/Logout"/>
 
             <!-- md:SingleLogoutService locations handle single logout (SLO) protocol messages. -->
             <md:SingleLogoutService Location="/SLO/SOAP"

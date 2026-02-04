@@ -39,13 +39,6 @@ export const logout = async (): Promise<{ success: boolean } | { error: string }
       return { error: data.error || 'Logout failed' }
     }
 
-    if (data.redirectUrl) {
-      // For Shibboleth mode: redirect to SP logout endpoint
-      window.location.href = data.redirectUrl
-      // Return success but the page will redirect before this is used
-      return { success: true }
-    }
-
     return { success: true }
   } catch {
     return { error: 'Network error' }
