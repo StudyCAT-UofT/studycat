@@ -45,3 +45,6 @@ next-env.d.ts
 
 # test files
 /test-csv-samples
+
+# Claude
+CLAUDE.md
