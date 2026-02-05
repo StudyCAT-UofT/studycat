@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient, Module, Item, BloomCategory, OptionLabel } from '@prisma/client'
 
 const prisma = new PrismaClient()
 
@@ -13,23 +13,7 @@ function getRandomSubset<T>(array: T[], count: number): T[] {
   return shuffled.slice(0, count)
 }
 
-// --- Enums as Objects (since they are strings in Schema) ---
-const BloomCategory = {
-  REMEMBER: 'REMEMBER',
-  UNDERSTAND: 'UNDERSTAND',
-  APPLY: 'APPLY',
-  ANALYZE: 'ANALYZE',
-  EVALUATE: 'EVALUATE',
-  CREATE: 'CREATE'
-}
-
-const OptionLabel = {
-  A: 'A',
-  B: 'B',
-  C: 'C',
-  D: 'D'
-}
-
+// --- Enums as Objects (AttemptStatus is not an Enum in schema) ---
 const AttemptStatus = {
   IN_PROGRESS: 'IN_PROGRESS',
   COMPLETED: 'COMPLETED',
@@ -138,8 +122,8 @@ async function main() {
   ]
 
   // Track created items for quiz generation
-  const createdModules: any[] = []
-  const createdItems: any[] = []
+  const createdModules: Module[] = []
+  const createdItems: Item[] = []
 
   for (const spec of contentSpecs) {
     for (const modSpec of spec.modules) {
@@ -192,7 +176,7 @@ async function main() {
   console.log('📝 Creating quizzes...')
 
   // CSC101 Quizzes
-  const off101Modules = createdModules.filter((m: any) => m.offeringId === off101.id)
+  const off101Modules = createdModules.filter((m) => m.offeringId === off101.id)
 
   // Quiz 1: Midterm (Active)
   const quiz1 = await prisma.quiz.create({
@@ -203,13 +187,13 @@ async function main() {
       fixedLength: 5,
       createdById: instructor.id,
       quizModules: {
-        create: off101Modules.map((m: any) => ({ moduleId: m.id }))
+        create: off101Modules.map((m) => ({ moduleId: m.id }))
       }
     }
   })
 
   // Quiz 2: Practice (Inactive)
-  const quiz2 = await prisma.quiz.create({
+  await prisma.quiz.create({
     data: {
       offeringId: off101.id,
       title: 'Practice Quiz (Old)',
@@ -224,7 +208,7 @@ async function main() {
 
   // Link Items to Quizzes
   // For simplicity, link all items from relevant modules to the quiz
-  const quiz1Items = await prisma.item.findMany({ where: { moduleId: { in: off101Modules.map((m: any) => m.id) } } })
+  const quiz1Items = await prisma.item.findMany({ where: { moduleId: { in: off101Modules.map((m) => m.id) } } })
   const quiz1Selection = getRandomSubset(quiz1Items, 10) // Select 10 random items from pool
   await prisma.quizItem.createMany({
     data: quiz1Selection.map(item => ({ quizId: quiz1.id, itemId: item.id }))
