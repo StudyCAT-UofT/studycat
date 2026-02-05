@@ -1,62 +1,99 @@
 'use client'
 
-import { Container, Stack, Text, Center, Loader } from '@mantine/core'
-import { ProtectedRoute, RoleBasedRoute } from '@/components'
+import { useRouter } from 'next/navigation'
+import { Container, Stack, Text, Title, SimpleGrid, Center, Loader, Card } from '@mantine/core'
+import { ProtectedRoute } from '@/components'
 import { useCourse } from '@/lib/course-context'
-import StudentDashboard from '@/components/Dashboards/StudentDashboard'
-import InstructorDashboard from '@/components/Dashboards/InstructorDashboard'
+import { CourseCard } from '@/components/CourseCard'
 
 /**
- * Main dashboard component that shows different content based on role
+ * Course selection grid component
  */
-const DashboardContent = () => {
-    const { selectedCourseOffering } = useCourse()
+const CourseSelectionContent = () => {
+    const router = useRouter()
+    const { courseOfferings, setSelectedCourseOffering, loading } = useCourse()
 
-    // Show loading while determining user role
-    if (!selectedCourseOffering) {
+    const handleCourseSelect = (courseOfferingId: string) => {
+        const selectedOffering = courseOfferings.find(co => co.id === courseOfferingId)
+        if (selectedOffering) {
+            setSelectedCourseOffering(selectedOffering)
+            router.push('/quiz')
+        }
+    }
+
+    // Loading state
+    if (loading) {
         return (
-            <Container size="md" py="xl">
-                <Center>
+            <Container size="lg" py="xl">
+                <Center h={400}>
                     <Stack align="center" gap="md">
                         <Loader size="lg" />
-                        <Text>Loading...</Text>
+                        <Text>Loading courses...</Text>
                     </Stack>
                 </Center>
             </Container>
         )
     }
 
-    // Show student dashboard for students
-    if (selectedCourseOffering.role === 'STUDENT') {
+    // No enrollments state
+    if (courseOfferings.length === 0) {
         return (
-            <RoleBasedRoute
-                permissions={{
-                    requireAnyRole: ['STUDENT']
-                }}
-                unauthorizedMessage="This page is only accessible to students."
-            >
-                <StudentDashboard />
-            </RoleBasedRoute>
+            <Container size="md" py="xl">
+                <Stack gap="lg">
+                    <Title order={2}>Courses</Title>
+                    <Card withBorder padding="xl" radius="md">
+                        <Center>
+                            <Stack align="center" gap="md">
+                                <Text size="lg" c="dimmed">
+                                    No courses available.
+                                </Text>
+                                <Text size="sm" c="dimmed">
+                                    You are not enrolled in any courses. Please contact your instructor or administrator.
+                                </Text>
+                            </Stack>
+                        </Center>
+                    </Card>
+                </Stack>
+            </Container>
         )
     }
 
-    // Show instructor dashboard for instructors and TAs
     return (
-        <RoleBasedRoute
-            permissions={{
-                requireAnyRole: ['INSTRUCTOR', 'TA']
-            }}
-            unauthorizedMessage="This page is only accessible to instructors and TAs."
-        >
-            <InstructorDashboard />
-        </RoleBasedRoute>
+        <Container size="lg" py="xl">
+            <Stack gap="xl">
+                {/* Header */}
+                <Stack gap="xs">
+                    <Title order={2}>Courses</Title>
+                    <Text c="dimmed">
+                        Select a course to view quizzes and activities
+                    </Text>
+                </Stack>
+
+                {/* Course cards grid */}
+                <SimpleGrid
+                    cols={{ base: 1, sm: 2, md: 3, lg: 4 }}
+                    spacing="lg"
+                >
+                    {courseOfferings.map((offering) => (
+                        <CourseCard
+                            key={offering.id}
+                            courseOffering={offering}
+                            onClick={() => handleCourseSelect(offering.id)}
+                        />
+                    ))}
+                </SimpleGrid>
+            </Stack>
+        </Container>
     )
 }
 
+/**
+ * Home page - Course selection dashboard
+ */
 export default function HomePage() {
     return (
         <ProtectedRoute>
-            <DashboardContent />
+            <CourseSelectionContent />
         </ProtectedRoute>
     )
 }
