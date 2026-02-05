@@ -131,7 +131,7 @@ export const QuizzesTable = ({
                 <Stack gap={2}>
                 {quiz.quizModules?.map((module, index) => (
                     <Badge key={index} size="sm" variant="light">
-                    {quiz.modules[index]} ({(module.masteryThreshold)})
+                    {quiz.modules ? quiz.modules[index] : "NULL"} ({(module.masteryThreshold)})
                     </Badge>
                 ))}
                 </Stack>

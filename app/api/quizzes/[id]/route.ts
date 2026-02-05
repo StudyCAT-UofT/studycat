@@ -31,7 +31,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 
     const { id } = await params
     const body = await request.json()
-    const { title, includedModuleIds, active, fixedLength } = body
+    const { title, includedModuleIds, masteryThresholds, active, fixedLength } = body
 
     // Check if quiz exists
     const existingQuiz = await prisma.quiz.findUnique({
@@ -86,7 +86,10 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
               .filter(
                 moduleId => !existingQuiz.quizModules.some(qm => qm.moduleId === moduleId)
               )
-              .map(moduleId => ({ moduleId }))
+              .map((moduleId, index) => ({
+                moduleId,
+                masteryThreshold: masteryThresholds[index]
+              }))
           }
         })
       }
