@@ -285,12 +285,12 @@ const EditQuizModal = ({
                         </Text>
 
                         {formData.includedModuleIds.map(moduleId => {
-                        const module = availableModules.find(m => m.id === moduleId)
+                        const currModule = availableModules.find(m => m.id === moduleId)
 
                         return (
                             <NumberInput
                             key={moduleId}
-                            label={module?.name || 'Module'}
+                            label={currModule?.name || 'Module'}
                             value={formData.masteryThresholds[moduleId]}
                             onChange={(value) =>
                                 setFormData(prev => ({

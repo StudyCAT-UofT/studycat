@@ -124,13 +124,6 @@ export async function GET(request: Request) {
       // Convert includedModuleIds to module names
       const includedModuleNames = quiz.quizModules.map(qm => qm.module.name)
 
-      // Map modules + thresholds for frontend
-      const modulesWithThresholds = quiz.quizModules.map(qm => ({
-        moduleId: qm.moduleId,
-        moduleName: qm.module.name,
-        masteryThreshold: qm.masteryThreshold
-      }))
-
       // Return standardized quiz object with calculated statistics
       return {
         id: quiz.id,
