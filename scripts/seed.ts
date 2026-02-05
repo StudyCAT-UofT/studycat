@@ -2,13 +2,51 @@ import { PrismaClient } from '@prisma/client'
 
 const prisma = new PrismaClient()
 
-const main = async () => {
-  console.log('🌱 Starting seed...')
+// --- Helpers ---
 
-  // Clean existing data (optional - comment out if you want to preserve data)
+function getRandomInt(min: number, max: number) {
+  return Math.floor(Math.random() * (max - min + 1)) + min
+}
+
+function getRandomSubset<T>(array: T[], count: number): T[] {
+  const shuffled = array.slice().sort(() => 0.5 - Math.random())
+  return shuffled.slice(0, count)
+}
+
+// --- Enums as Objects (since they are strings in Schema) ---
+const BloomCategory = {
+  REMEMBER: 'REMEMBER',
+  UNDERSTAND: 'UNDERSTAND',
+  APPLY: 'APPLY',
+  ANALYZE: 'ANALYZE',
+  EVALUATE: 'EVALUATE',
+  CREATE: 'CREATE'
+}
+
+const OptionLabel = {
+  A: 'A',
+  B: 'B',
+  C: 'C',
+  D: 'D'
+}
+
+const AttemptStatus = {
+  IN_PROGRESS: 'IN_PROGRESS',
+  COMPLETED: 'COMPLETED',
+  ABANDONED: 'ABANDONED'
+}
+
+// --- Main ---
+
+async function main() {
+  console.log('🌱 Starting comprehensive seed...')
+
+  // 1. Cleanup (Correct Order)
+  console.log('🧹 Cleaning up database...')
   await prisma.response.deleteMany()
   await prisma.attempt.deleteMany()
   await prisma.quizItem.deleteMany()
+  await prisma.quizModule.deleteMany()
   await prisma.quiz.deleteMany()
   await prisma.itemOption.deleteMany()
   await prisma.item.deleteMany()
@@ -20,1336 +58,239 @@ const main = async () => {
   await prisma.term.deleteMany()
   await prisma.user.deleteMany()
 
-  // Create users
-  const instructor = await prisma.user.create({
-    data: {
-      username: 'instructor1',
-    },
-  })
+  // 2. Create Users
+  console.log('👤 Creating users...')
+  const student = await prisma.user.create({ data: { username: 'student', givenName: 'Test', familyName: 'Student' } })
+  const instructor = await prisma.user.create({ data: { username: 'instructor', givenName: 'Prof', familyName: 'Instructor' } })
+  const admin = await prisma.user.create({ data: { username: 'admin', givenName: 'Sys', familyName: 'Admin' } })
 
-  const student1 = await prisma.user.create({
-    data: {
-      username: 'student1',
-    },
-  })
+  // Dummy users for "Multiple Users" requirement
+  const alice = await prisma.user.create({ data: { username: 'alice', givenName: 'Alice', familyName: 'Wonderland' } })
+  const bob = await prisma.user.create({ data: { username: 'bob', givenName: 'Bob', familyName: 'Builder' } })
+  const charlie = await prisma.user.create({ data: { username: 'charlie', givenName: 'Charlie', familyName: 'Chocolate' } })
 
-  const student2 = await prisma.user.create({
-    data: {
-      username: 'student2',
-    },
-  })
+  const allStudents = [student, alice, bob, charlie]
 
-  console.log('✅ Created users')
-
-  // Create term
+  // 3. Create Structure (Term, Course, Offering)
+  console.log('🏫 Creating courses...')
   const term = await prisma.term.create({
-    data: {
-      name: 'Fall 2024',
-      startDate: new Date('2024-09-01'),
-      endDate: new Date('2024-12-15'),
-    },
+    data: { name: 'Fall 2024', startDate: new Date('2024-09-01'), endDate: new Date('2024-12-31') }
   })
 
-  console.log('✅ Created term')
-
-  // Create course
-  const course = await prisma.course.create({
-    data: {
-      code: 'CS101',
-      title: 'Introduction to Computer Science',
-    },
+  // Course 1: CSC101 (The main active course)
+  const csc101 = await prisma.course.create({ data: { code: 'CSC101', title: 'Intro to Computer Science' } })
+  const off101 = await prisma.courseOffering.create({
+    data: { courseId: csc101.id, termId: term.id, display: 'CSC101 - Fall 2024' }
   })
 
-  console.log('✅ Created course')
-
-  // Create course offering
-  const offering = await prisma.courseOffering.create({
-    data: {
-      courseId: course.id,
-      termId: term.id,
-      display: 'CS101 - Fall 2024',
-    },
+  // Course 2: CSC207 (For Dual Role: Instructor is a student here)
+  const csc207 = await prisma.course.create({ data: { code: 'CSC207', title: 'Software Design' } })
+  const off207 = await prisma.courseOffering.create({
+    data: { courseId: csc207.id, termId: term.id, display: 'CSC207 - Fall 2024' }
   })
 
-  console.log('✅ Created course offering')
-
-  // Create modules
-  const module1 = await prisma.module.create({
-    data: {
-      offeringId: offering.id,
-      name: 'Programming Basics',
-    },
+  // Course 3: CSC343 (Another course)
+  const csc343 = await prisma.course.create({ data: { code: 'CSC343', title: 'Introduction to Databases' } })
+  const off343 = await prisma.courseOffering.create({
+    data: { courseId: csc343.id, termId: term.id, display: 'CSC343 - Fall 2024' }
   })
 
-  const module2 = await prisma.module.create({
-    data: {
-      offeringId: offering.id,
-      name: 'Data Structures',
-    },
-  })
+  // 4. Enrollments
+  console.log('📝 Enrolling users...')
 
-  console.log('✅ Created modules')
-
-  // Create enrollments
-  await prisma.enrollment.createMany({
-    data: [
-      {
-        userId: instructor.id,
-        offeringId: offering.id,
-        offeringRole: 'INSTRUCTOR',
-      },
-      {
-        userId: student1.id,
-        offeringId: offering.id,
-        offeringRole: 'STUDENT',
-      },
-      {
-        userId: student2.id,
-        offeringId: offering.id,
-        offeringRole: 'STUDENT',
-      },
-    ],
-  })
-
-  console.log('✅ Created enrollments')
-
-  // Create items (questions) with options
-  const item1 = await prisma.item.create({
-    data: {
-      courseId: course.id,
-      moduleId: module1.id,
-      externalQuestionId: 'Q001',
-      bloom: 'REMEMBER',
-      stem: 'What is a variable in programming?',
-      reference: 'Chapter 2, Section 1',
-      irtA: 1.2,
-      irtB: -0.5,
-      irtC: 0.2,
-      ptBi: 0.75,
-      average: 0.68,
-      attemptsCount: 150,
-    },
-  })
-
-  const item2 = await prisma.item.create({
-    data: {
-      courseId: course.id,
-      moduleId: module1.id,
-      externalQuestionId: 'Q002',
-      bloom: 'UNDERSTAND',
-      stem: 'Which of the following best describes the purpose of a loop?',
-      reference: 'Chapter 3, Section 2',
-      irtA: 0.8,
-      irtB: 0.3,
-      irtC: 0.15,
-      ptBi: 0.65,
-      average: 0.72,
-      attemptsCount: 120,
-    },
-  })
-
-  const item3 = await prisma.item.create({
-    data: {
-      courseId: course.id,
-      moduleId: module2.id,
-      externalQuestionId: 'Q003',
-      bloom: 'APPLY',
-      stem: 'Given the array [1, 2, 3, 4, 5], what is the result of accessing index 2?',
-      reference: 'Chapter 4, Section 1',
-      irtA: 1.5,
-      irtB: -0.2,
-      irtC: 0.1,
-      ptBi: 0.85,
-      average: 0.78,
-      attemptsCount: 100,
-    },
-  })
-
-  // Additional Programming Basics questions
-  const item4 = await prisma.item.create({
-    data: {
-      courseId: course.id,
-      moduleId: module1.id,
-      externalQuestionId: 'Q004',
-      bloom: 'REMEMBER',
-      stem: 'What is the purpose of comments in code?',
-      reference: 'Chapter 2, Section 3',
-      irtA: 0.9,
-      irtB: -0.8,
-      irtC: 0.25,
-      ptBi: 0.70,
-      average: 0.65,
-      attemptsCount: 140,
-    },
-  })
-
-  const item5 = await prisma.item.create({
-    data: {
-      courseId: course.id,
-      moduleId: module1.id,
-      externalQuestionId: 'Q005',
-      bloom: 'UNDERSTAND',
-      stem: 'What happens when you divide by zero in most programming languages?',
-      reference: 'Chapter 3, Section 1',
-      irtA: 1.1,
-      irtB: 0.5,
-      irtC: 0.2,
-      ptBi: 0.60,
-      average: 0.55,
-      attemptsCount: 110,
-    },
-  })
-
-  const item6 = await prisma.item.create({
-    data: {
-      courseId: course.id,
-      moduleId: module1.id,
-      externalQuestionId: 'Q006',
-      bloom: 'APPLY',
-      stem: 'Which operator would you use to check if two values are equal?',
-      reference: 'Chapter 3, Section 3',
-      irtA: 1.3,
-      irtB: -0.3,
-      irtC: 0.15,
-      ptBi: 0.80,
-      average: 0.75,
-      attemptsCount: 130,
-    },
-  })
-
-  // Additional Data Structures questions
-  const item7 = await prisma.item.create({
-    data: {
-      courseId: course.id,
-      moduleId: module2.id,
-      externalQuestionId: 'Q007',
-      bloom: 'REMEMBER',
-      stem: 'What is the main advantage of using an array?',
-      reference: 'Chapter 4, Section 2',
-      irtA: 1.0,
-      irtB: -0.6,
-      irtC: 0.2,
-      ptBi: 0.75,
-      average: 0.70,
-      attemptsCount: 125,
-    },
-  })
-
-  const item8 = await prisma.item.create({
-    data: {
-      courseId: course.id,
-      moduleId: module2.id,
-      externalQuestionId: 'Q008',
-      bloom: 'UNDERSTAND',
-      stem: 'What is the time complexity of accessing an element by index in an array?',
-      reference: 'Chapter 4, Section 3',
-      irtA: 1.4,
-      irtB: 0.2,
-      irtC: 0.1,
-      ptBi: 0.85,
-      average: 0.80,
-      attemptsCount: 95,
-    },
-  })
-
-  const item9 = await prisma.item.create({
-    data: {
-      courseId: course.id,
-      moduleId: module2.id,
-      externalQuestionId: 'Q009',
-      bloom: 'APPLY',
-      stem: 'If you have an array of size 10, what is the valid range of indices?',
-      reference: 'Chapter 4, Section 1',
-      irtA: 1.2,
-      irtB: -0.4,
-      irtC: 0.15,
-      ptBi: 0.78,
-      average: 0.73,
-      attemptsCount: 115,
-    },
-  })
-
-  const item10 = await prisma.item.create({
-    data: {
-      courseId: course.id,
-      moduleId: module1.id,
-      externalQuestionId: 'Q010',
-      bloom: 'ANALYZE',
-      stem: 'Given the code: int x = 5; int y = x++; What is the value of y?',
-      reference: 'Chapter 3, Section 4',
-      irtA: 1.6,
-      irtB: 0.8,
-      irtC: 0.05,
-      ptBi: 0.90,
-      average: 0.85,
-      attemptsCount: 80,
-    },
-  })
-
-  const item11 = await prisma.item.create({
-    data: {
-      courseId: course.id,
-      moduleId: module2.id,
-      externalQuestionId: 'Q011',
-      bloom: 'EVALUATE',
-      stem: 'Which data structure would be most efficient for implementing a stack?',
-      reference: 'Chapter 5, Section 1',
-      irtA: 1.8,
-      irtB: 1.2,
-      irtC: 0.1,
-      ptBi: 0.95,
-      average: 0.88,
-      attemptsCount: 70,
-    },
-  })
-
-  const item12 = await prisma.item.create({
-    data: {
-      courseId: course.id,
-      moduleId: module1.id,
-      externalQuestionId: 'Q012',
-      bloom: 'CREATE',
-      stem: 'What would be the result of this expression: (5 + 3) * 2 - 4?',
-      reference: 'Chapter 2, Section 2',
-      irtA: 1.5,
-      irtB: 0.0,
-      irtC: 0.1,
-      ptBi: 0.82,
-      average: 0.77,
-      attemptsCount: 105,
-    },
-  })
-
-  console.log('✅ Created items')
-
-  // Create item options
-  await prisma.itemOption.createMany({
-    data: [
-      // Item 1 options
-      {
-        itemId: item1.id,
-        label: 'A',
-        text: 'A storage location with a name',
-        justification: 'Variables are named storage locations that hold values.',
-        isCorrect: true,
-      },
-      {
-        itemId: item1.id,
-        label: 'B',
-        text: 'A type of function',
-        justification: 'Functions are different from variables.',
-        isCorrect: false,
-      },
-      {
-        itemId: item1.id,
-        label: 'C',
-        text: 'A programming language',
-        justification: 'Programming languages are different from variables.',
-        isCorrect: false,
-      },
-      {
-        itemId: item1.id,
-        label: 'D',
-        text: 'A computer program',
-        justification: 'Programs are different from variables.',
-        isCorrect: false,
-      },
-      // Item 2 options
-      {
-        itemId: item2.id,
-        label: 'A',
-        text: 'To store data permanently',
-        justification: 'Loops are for repetition, not storage.',
-        isCorrect: false,
-      },
-      {
-        itemId: item2.id,
-        label: 'B',
-        text: 'To repeat a block of code multiple times',
-        justification: 'Loops allow code to be executed repeatedly.',
-        isCorrect: true,
-      },
-      {
-        itemId: item2.id,
-        label: 'C',
-        text: 'To define a new function',
-        justification: 'Functions are defined differently.',
-        isCorrect: false,
-      },
-      {
-        itemId: item2.id,
-        label: 'D',
-        text: 'To handle errors',
-        justification: 'Error handling is different from loops.',
-        isCorrect: false,
-      },
-      // Item 3 options
-      {
-        itemId: item3.id,
-        label: 'A',
-        text: '1',
-        justification: 'Index 0 would be 1, but we want index 2.',
-        isCorrect: false,
-      },
-      {
-        itemId: item3.id,
-        label: 'B',
-        text: '2',
-        justification: 'Index 1 would be 2, but we want index 2.',
-        isCorrect: false,
-      },
-      {
-        itemId: item3.id,
-        label: 'C',
-        text: '3',
-        justification: 'Index 2 corresponds to the third element, which is 3.',
-        isCorrect: true,
-      },
-      {
-        itemId: item3.id,
-        label: 'D',
-        text: '4',
-        justification: 'Index 3 would be 4, but we want index 2.',
-        isCorrect: false,
-      },
-      // Item 4 options
-      {
-        itemId: item4.id,
-        label: 'A',
-        text: 'To make the code run faster',
-        justification: 'Comments do not affect code execution speed.',
-        isCorrect: false,
-      },
-      {
-        itemId: item4.id,
-        label: 'B',
-        text: 'To explain what the code does',
-        justification: 'Comments provide documentation and explanation for code.',
-        isCorrect: true,
-      },
-      {
-        itemId: item4.id,
-        label: 'C',
-        text: 'To store data',
-        justification: 'Comments are not used for data storage.',
-        isCorrect: false,
-      },
-      {
-        itemId: item4.id,
-        label: 'D',
-        text: 'To create variables',
-        justification: 'Comments are not used to create variables.',
-        isCorrect: false,
-      },
-      // Item 5 options
-      {
-        itemId: item5.id,
-        label: 'A',
-        text: 'The result is infinity',
-        justification: 'Division by zero typically causes an error, not infinity.',
-        isCorrect: false,
-      },
-      {
-        itemId: item5.id,
-        label: 'B',
-        text: 'The program crashes or throws an error',
-        justification: 'Division by zero typically causes a runtime error.',
-        isCorrect: true,
-      },
-      {
-        itemId: item5.id,
-        label: 'C',
-        text: 'The result is 0',
-        justification: 'Division by zero does not result in 0.',
-        isCorrect: false,
-      },
-      {
-        itemId: item5.id,
-        label: 'D',
-        text: 'The result is undefined',
-        justification: 'While mathematically undefined, programs typically error instead.',
-        isCorrect: false,
-      },
-      // Item 6 options
-      {
-        itemId: item6.id,
-        label: 'A',
-        text: '=',
-        justification: 'The assignment operator assigns values, not compares them.',
-        isCorrect: false,
-      },
-      {
-        itemId: item6.id,
-        label: 'B',
-        text: '==',
-        justification: 'The equality operator (==) checks if two values are equal.',
-        isCorrect: true,
-      },
-      {
-        itemId: item6.id,
-        label: 'C',
-        text: '!=',
-        justification: 'The inequality operator (!=) checks if values are NOT equal.',
-        isCorrect: false,
-      },
-      {
-        itemId: item6.id,
-        label: 'D',
-        text: '++',
-        justification: 'The increment operator (++) increases a value by 1.',
-        isCorrect: false,
-      },
-      // Item 7 options
-      {
-        itemId: item7.id,
-        label: 'A',
-        text: 'Fast access to elements by index',
-        justification: 'Arrays provide O(1) random access by index.',
-        isCorrect: true,
-      },
-      {
-        itemId: item7.id,
-        label: 'B',
-        text: 'Dynamic size adjustment',
-        justification: 'Arrays typically have fixed size, unlike dynamic structures.',
-        isCorrect: false,
-      },
-      {
-        itemId: item7.id,
-        label: 'C',
-        text: 'Automatic sorting',
-        justification: 'Arrays do not automatically sort their elements.',
-        isCorrect: false,
-      },
-      {
-        itemId: item7.id,
-        label: 'D',
-        text: 'Built-in search functionality',
-        justification: 'Arrays do not have built-in search; you must implement it.',
-        isCorrect: false,
-      },
-      // Item 8 options
-      {
-        itemId: item8.id,
-        label: 'A',
-        text: 'O(log n)',
-        justification: 'Binary search is O(log n), but direct index access is faster.',
-        isCorrect: false,
-      },
-      {
-        itemId: item8.id,
-        label: 'B',
-        text: 'O(1)',
-        justification: 'Array access by index is constant time O(1).',
-        isCorrect: true,
-      },
-      {
-        itemId: item8.id,
-        label: 'C',
-        text: 'O(n)',
-        justification: 'Linear search is O(n), but index access is faster.',
-        isCorrect: false,
-      },
-      {
-        itemId: item8.id,
-        label: 'D',
-        text: 'O(n²)',
-        justification: 'Quadratic time is much slower than array access.',
-        isCorrect: false,
-      },
-      // Item 9 options
-      {
-        itemId: item9.id,
-        label: 'A',
-        text: '0 to 9',
-        justification: 'Array indices start at 0, so size 10 means indices 0-9.',
-        isCorrect: true,
-      },
-      {
-        itemId: item9.id,
-        label: 'B',
-        text: '1 to 10',
-        justification: 'Array indices start at 0, not 1.',
-        isCorrect: false,
-      },
-      {
-        itemId: item9.id,
-        label: 'C',
-        text: '0 to 10',
-        justification: 'Index 10 would be out of bounds for a size 10 array.',
-        isCorrect: false,
-      },
-      {
-        itemId: item9.id,
-        label: 'D',
-        text: '1 to 9',
-        justification: 'Array indices start at 0, not 1.',
-        isCorrect: false,
-      },
-      // Item 10 options
-      {
-        itemId: item10.id,
-        label: 'A',
-        text: '5',
-        justification: 'x++ returns the original value (5) before incrementing.',
-        isCorrect: true,
-      },
-      {
-        itemId: item10.id,
-        label: 'B',
-        text: '6',
-        justification: 'y gets the original value of x, not the incremented value.',
-        isCorrect: false,
-      },
-      {
-        itemId: item10.id,
-        label: 'C',
-        text: 'undefined',
-        justification: 'The value is well-defined and will be 5.',
-        isCorrect: false,
-      },
-      {
-        itemId: item10.id,
-        label: 'D',
-        text: '0',
-        justification: 'The post-increment operator returns the original value.',
-        isCorrect: false,
-      },
-      // Item 11 options
-      {
-        itemId: item11.id,
-        label: 'A',
-        text: 'Linked list',
-        justification: 'Arrays are more efficient for stack operations than linked lists.',
-        isCorrect: false,
-      },
-      {
-        itemId: item11.id,
-        label: 'B',
-        text: 'Array',
-        justification: 'Arrays provide O(1) push/pop operations for stack implementation.',
-        isCorrect: true,
-      },
-      {
-        itemId: item11.id,
-        label: 'C',
-        text: 'Hash table',
-        justification: 'Hash tables are not suitable for stack implementation.',
-        isCorrect: false,
-      },
-      {
-        itemId: item11.id,
-        label: 'D',
-        text: 'Binary tree',
-        justification: 'Binary trees are not efficient for stack operations.',
-        isCorrect: false,
-      },
-      // Item 12 options
-      {
-        itemId: item12.id,
-        label: 'A',
-        text: '10',
-        justification: 'Incorrect calculation: (5+3)*2-4 = 8*2-4 = 16-4 = 12.',
-        isCorrect: false,
-      },
-      {
-        itemId: item12.id,
-        label: 'B',
-        text: '12',
-        justification: 'Correct: (5+3)*2-4 = 8*2-4 = 16-4 = 12.',
-        isCorrect: true,
-      },
-      {
-        itemId: item12.id,
-        label: 'C',
-        text: '14',
-        justification: 'Incorrect calculation: (5+3)*2-4 = 8*2-4 = 16-4 = 12.',
-        isCorrect: false,
-      },
-      {
-        itemId: item12.id,
-        label: 'D',
-        text: '16',
-        justification: 'Incorrect calculation: (5+3)*2-4 = 8*2-4 = 16-4 = 12.',
-        isCorrect: false,
-      },
-    ],
-  })
-
-  console.log('✅ Created item options')
-
-  // Create quiz
-  const quiz = await prisma.quiz.create({
-    data: {
-      offeringId: offering.id,
-      title: 'Programming Basics Quiz',
-      fixedLength: 5,
-      includedBlooms: "'REMEMBER', 'UNDERSTAND', 'APPLY', 'ANALYZE', 'EVALUATE', 'CREATE'",
-      createdById: instructor.id,
-      quizModules: {
-      createMany: {
-        data: [
-          { moduleId: module1.id },
-          { moduleId: module2.id },
-        ],
-      },
-    },
-    },
-  })
-
-  console.log('✅ Created quiz')
-
-  // Link items to quiz
-  await prisma.quizItem.createMany({
-    data: [
-      {
-        quizId: quiz.id,
-        itemId: item1.id,
-      },
-      {
-        quizId: quiz.id,
-        itemId: item2.id,
-      },
-      {
-        quizId: quiz.id,
-        itemId: item3.id,
-      },
-      {
-        quizId: quiz.id,
-        itemId: item4.id,
-      },
-      {
-        quizId: quiz.id,
-        itemId: item5.id,
-      },
-      {
-        quizId: quiz.id,
-        itemId: item6.id,
-      },
-      {
-        quizId: quiz.id,
-        itemId: item7.id,
-      },
-      {
-        quizId: quiz.id,
-        itemId: item8.id,
-      },
-      {
-        quizId: quiz.id,
-        itemId: item9.id,
-      },
-      {
-        quizId: quiz.id,
-        itemId: item10.id,
-      },
-      {
-        quizId: quiz.id,
-        itemId: item11.id,
-      },
-      {
-        quizId: quiz.id,
-        itemId: item12.id,
-      },
-    ],
-  })
-
-  console.log('✅ Linked items to quiz')
-
-  // Get the enrollment for student1
-  const student1Enrollment = await prisma.enrollment.findFirst({
-    where: {
-      userId: student1.id,
-      offeringId: offering.id,
-    },
-  });
-
-  if (!student1Enrollment) {
-    throw new Error('Student1 enrollment not found');
+  // CSC101: Instructor teaches, everyone else is a student
+  await prisma.enrollment.create({ data: { userId: instructor.id, offeringId: off101.id, offeringRole: 'INSTRUCTOR' } })
+  for (const s of allStudents) {
+    await prisma.enrollment.create({ data: { userId: s.id, offeringId: off101.id, offeringRole: 'STUDENT' } })
   }
 
-  // Create a completed attempt for student1
-  const attempt = await prisma.attempt.create({
-    data: {
-      quizId: quiz.id,
-      enrollmentId: student1Enrollment.id,
-      startedAt: new Date('2024-10-01T10:00:00Z'),
-      finishedAt: new Date('2024-10-01T10:20:00Z'),
-      status: 'COMPLETED',
-      fixedLengthN: 5,
-      engineVersion: '1.0.0',
-      scopeSnapshot: JSON.stringify({
-        includedModuleIds: [module1.id, module2.id],
-        includedBlooms: ['REMEMBER', 'UNDERSTAND', 'APPLY', 'ANALYZE', 'EVALUATE', 'CREATE'],
-        eligibleItemIds: [item1.id, item2.id, item3.id, item4.id, item5.id, item6.id, item7.id, item8.id, item9.id, item10.id, item11.id, item12.id],
-      }),
-      engineMasteryAtFinish: JSON.stringify({
-        [module1.id]: 0.85,
-        [module2.id]: 0.75,
-      }),
+  // CSC207: Dual Role! Instructor is a STUDENT here. Admin teaches (just to fill the slot).
+  await prisma.enrollment.create({ data: { userId: admin.id, offeringId: off207.id, offeringRole: 'INSTRUCTOR' } })
+  await prisma.enrollment.create({ data: { userId: instructor.id, offeringId: off207.id, offeringRole: 'STUDENT' } }) // <--- Dual Role
+  await prisma.enrollment.create({ data: { userId: student.id, offeringId: off207.id, offeringRole: 'STUDENT' } })
+
+  // CSC343: Just admin as student, random setup
+  await prisma.enrollment.create({ data: { userId: admin.id, offeringId: off343.id, offeringRole: 'STUDENT' } })
+
+
+  // 5. Content Generation (Modules, Items)
+  console.log('📚 Generating component content...')
+
+  // Defines a reusable Content Schema
+  const contentSpecs = [
+    {
+      offering: off101,
+      course: csc101,
+      modules: [
+        { name: 'Variables & Types', topic: 'Programming' },
+        { name: 'Control Flow', topic: 'Logic' },
+        { name: 'Functions', topic: 'Abstraction' }
+      ]
     },
-  })
+    {
+      offering: off207,
+      course: csc207,
+      modules: [
+        { name: 'Design Patterns', topic: 'Architecture' },
+        { name: 'Clean Code', topic: 'Style' }
+      ]
+    }
+  ]
 
-  console.log('✅ Created attempt')
+  // Track created items for quiz generation
+  const createdModules: any[] = []
+  const createdItems: any[] = []
 
-  // Get the correct options for responses
-  const correctOption1 = await prisma.itemOption.findFirst({
-    where: { itemId: item1.id, isCorrect: true },
-  })
-  const correctOption2 = await prisma.itemOption.findFirst({
-    where: { itemId: item2.id, isCorrect: true },
-  })
-  const correctOption3 = await prisma.itemOption.findFirst({
-    where: { itemId: item3.id, isCorrect: true },
-  })
-  const correctOption4 = await prisma.itemOption.findFirst({
-    where: { itemId: item4.id, isCorrect: true },
-  })
-  const correctOption5 = await prisma.itemOption.findFirst({
-    where: { itemId: item5.id, isCorrect: true },
-  })
+  for (const spec of contentSpecs) {
+    for (const modSpec of spec.modules) {
+      const mod = await prisma.module.create({
+        data: { offeringId: spec.offering.id, name: modSpec.name }
+      })
+      createdModules.push(mod)
 
-  // Create responses for the attempt (5 questions as per fixedLengthN)
-  await prisma.response.createMany({
-    data: [
-      {
-        attemptId: attempt.id,
-        itemId: item1.id,
-        selectedLabel: 'A',
-        itemOptionId: correctOption1?.id,
-        isCorrect: true,
-        askedAt: new Date('2024-10-01T10:00:00Z'),
-        answeredAt: new Date('2024-10-01T10:02:30Z'),
-        responseTimeMs: 150000, // 2.5 minutes
-        engineMasterySnapshot: JSON.stringify({
-          [module1.id]: 0.7,
-        }),
-      },
-      {
-        attemptId: attempt.id,
-        itemId: item2.id,
-        selectedLabel: 'B',
-        itemOptionId: correctOption2?.id,
-        isCorrect: true,
-        askedAt: new Date('2024-10-01T10:03:00Z'),
-        answeredAt: new Date('2024-10-01T10:06:45Z'),
-        responseTimeMs: 225000, // 3.75 minutes
-        engineMasterySnapshot: JSON.stringify({
-          [module1.id]: 0.8,
-        }),
-      },
-      {
-        attemptId: attempt.id,
-        itemId: item3.id,
-        selectedLabel: 'C',
-        itemOptionId: correctOption3?.id,
-        isCorrect: true,
-        askedAt: new Date('2024-10-01T10:07:00Z'),
-        answeredAt: new Date('2024-10-01T10:10:15Z'),
-        responseTimeMs: 195000, // 3.25 minutes
-        engineMasterySnapshot: JSON.stringify({
-          [module1.id]: 0.8,
-          [module2.id]: 0.6,
-        }),
-      },
-      {
-        attemptId: attempt.id,
-        itemId: item4.id,
-        selectedLabel: 'B',
-        itemOptionId: correctOption4?.id,
-        isCorrect: true,
-        askedAt: new Date('2024-10-01T10:11:00Z'),
-        answeredAt: new Date('2024-10-01T10:13:20Z'),
-        responseTimeMs: 140000, // 2.33 minutes
-        engineMasterySnapshot: JSON.stringify({
-          [module1.id]: 0.85,
-          [module2.id]: 0.6,
-        }),
-      },
-      {
-        attemptId: attempt.id,
-        itemId: item5.id,
-        selectedLabel: 'B',
-        itemOptionId: correctOption5?.id,
-        isCorrect: true,
-        askedAt: new Date('2024-10-01T10:14:00Z'),
-        answeredAt: new Date('2024-10-01T10:17:30Z'),
-        responseTimeMs: 210000, // 3.5 minutes
-        engineMasterySnapshot: JSON.stringify({
-          [module1.id]: 0.85,
-          [module2.id]: 0.6,
-        }),
-      },
-    ],
-  })
+      // Create 5-8 items per module
+      const itemCount = getRandomInt(5, 8)
+      for (let i = 0; i < itemCount; i++) {
+        const item = await prisma.item.create({
+          data: {
+            courseId: spec.course.id,
+            moduleId: mod.id,
+            externalQuestionId: `${spec.course.code}-${modSpec.topic}-${i}`,
+            bloom: Object.values(BloomCategory)[getRandomInt(0, 5)], // Random Bloom
+            stem: `Question about ${modSpec.topic} #${i + 1} in ${modSpec.name}`,
+            reference: `Lecture ${getRandomInt(1, 10)}`,
+            irtA: Math.random() * 2,
+            irtB: Math.random() * 2 - 1,
+            irtC: Math.random() * 0.25,
+            ptBi: Math.random(),
+            average: Math.random(),
+            attemptsCount: getRandomInt(0, 100)
+          }
+        })
+        createdItems.push(item)
 
-  console.log('✅ Created responses')
+        // Create 4 Options
+        const labels = [OptionLabel.A, OptionLabel.B, OptionLabel.C, OptionLabel.D]
+        const correctIdx = getRandomInt(0, 3)
 
-  // Create more students for testing
-  const student3 = await prisma.user.create({
+        for (let j = 0; j < 4; j++) {
+          await prisma.itemOption.create({
+            data: {
+              itemId: item.id,
+              label: labels[j],
+              text: `Option ${labels[j]} for ${item.externalQuestionId}`,
+              isCorrect: j === correctIdx,
+              justification: j === correctIdx ? 'This is correct because...' : 'Incorrect.'
+            }
+          })
+        }
+      }
+    }
+  }
+
+  // 6. Quizzes
+  console.log('📝 Creating quizzes...')
+
+  // CSC101 Quizzes
+  const off101Modules = createdModules.filter((m: any) => m.offeringId === off101.id)
+
+  // Quiz 1: Midterm (Active)
+  const quiz1 = await prisma.quiz.create({
     data: {
-      username: 'student3',
-    },
+      offeringId: off101.id,
+      title: 'Midterm Exam',
+      active: true,
+      fixedLength: 5,
+      createdById: instructor.id,
+      quizModules: {
+        create: off101Modules.map((m: any) => ({ moduleId: m.id }))
+      }
+    }
   })
 
-  const student4 = await prisma.user.create({
-    data: {
-      username: 'student4',
-    },
-  })
-
-  const ta1 = await prisma.user.create({
-    data: {
-      username: 'ta1',
-    },
-  })
-
-  console.log('✅ Created additional users')
-
-  // Create additional enrollments
-  const student3Enrollment = await prisma.enrollment.create({
-    data: {
-      userId: student3.id,
-      offeringId: offering.id,
-      offeringRole: 'STUDENT',
-    },
-  })
-
-  const student4Enrollment = await prisma.enrollment.create({
-    data: {
-      userId: student4.id,
-      offeringId: offering.id,
-      offeringRole: 'STUDENT',
-    },
-  })
-
-  await prisma.enrollment.create({
-    data: {
-      userId: ta1.id,
-      offeringId: offering.id,
-      offeringRole: 'TA',
-    },
-  })
-
-  console.log('✅ Created additional enrollments')
-
-  // Create initial theta values for students
-  await prisma.theta.createMany({
-    data: [
-      {
-        enrollmentId: student1Enrollment.id,
-        moduleId: module1.id,
-        value: 0.0,
-      },
-      {
-        enrollmentId: student1Enrollment.id,
-        moduleId: module2.id,
-        value: 0.0,
-      },
-      {
-        enrollmentId: (await prisma.enrollment.findFirst({
-          where: { userId: student2.id, offeringId: offering.id },
-        }))!.id,
-        moduleId: module1.id,
-        value: 0.0,
-      },
-      {
-        enrollmentId: (await prisma.enrollment.findFirst({
-          where: { userId: student2.id, offeringId: offering.id },
-        }))!.id,
-        moduleId: module2.id,
-        value: 0.0,
-      },
-      {
-        enrollmentId: student3Enrollment.id,
-        moduleId: module1.id,
-        value: 0.0,
-      },
-      {
-        enrollmentId: student3Enrollment.id,
-        moduleId: module2.id,
-        value: 0.0,
-      },
-      {
-        enrollmentId: student4Enrollment.id,
-        moduleId: module1.id,
-        value: 0.0,
-      },
-      {
-        enrollmentId: student4Enrollment.id,
-        moduleId: module2.id,
-        value: 0.0,
-      },
-    ],
-  })
-
-  console.log('✅ Created initial theta values')
-
-  // Create a second quiz for testing
+  // Quiz 2: Practice (Inactive)
   const quiz2 = await prisma.quiz.create({
     data: {
-      offeringId: offering.id,
-      title: 'Data Structures Quiz',
-      fixedLength: 5,
-      includedBlooms: "'REMEMBER', 'UNDERSTAND', 'APPLY'",
-      createdById: instructor.id,
-      quizModules: {
-        createMany: {
-          data: [
-            { moduleId: module2.id },
-          ],
-        },
-      }
-    },
-  })
-
-  // Link items to second quiz (Data Structures questions)
-  await prisma.quizItem.createMany({
-    data: [
-      { quizId: quiz2.id, itemId: item3.id },
-      { quizId: quiz2.id, itemId: item7.id },
-      { quizId: quiz2.id, itemId: item8.id },
-      { quizId: quiz2.id, itemId: item9.id },
-      { quizId: quiz2.id, itemId: item11.id },
-    ],
-  })
-
-  console.log('✅ Created second quiz')
-
-  // Create an inactive quiz
-  await prisma.quiz.create({
-    data: {
-      offeringId: offering.id,
-      title: 'Old Midterm Exam (Archived)',
-      fixedLength: 10,
-      includedBlooms: "'REMEMBER', 'UNDERSTAND', 'APPLY', 'ANALYZE', 'EVALUATE', 'CREATE'",
-      createdById: instructor.id,
+      offeringId: off101.id,
+      title: 'Practice Quiz (Old)',
       active: false,
+      fixedLength: 3,
+      createdById: instructor.id,
       quizModules: {
-        createMany: {
-          data: [
-            { moduleId: module1.id },
-            { moduleId: module2.id },
-          ],
-        },
+        create: [{ moduleId: off101Modules[0].id }] // Just first module
       }
-    },
+    }
   })
 
-  console.log('✅ Created inactive quiz')
-
-  // Get student2 enrollment
-  const student2Enrollment = await prisma.enrollment.findFirst({
-    where: {
-      userId: student2.id,
-      offeringId: offering.id,
-    },
+  // Link Items to Quizzes
+  // For simplicity, link all items from relevant modules to the quiz
+  const quiz1Items = await prisma.item.findMany({ where: { moduleId: { in: off101Modules.map((m: any) => m.id) } } })
+  const quiz1Selection = getRandomSubset(quiz1Items, 10) // Select 10 random items from pool
+  await prisma.quizItem.createMany({
+    data: quiz1Selection.map(item => ({ quizId: quiz1.id, itemId: item.id }))
   })
 
-  if (!student2Enrollment) {
-    throw new Error('Student2 enrollment not found')
+
+  // 7. Attempts & Responses
+  console.log('✍️ Simulating student attempts...')
+
+  // Find users enrolled in 101 (students)
+  const students101 = await prisma.enrollment.findMany({
+    where: { offeringId: off101.id, offeringRole: 'STUDENT' },
+    include: { user: true }
+  })
+
+  for (const enroll of students101) {
+    // 70% chance to have taken the quiz
+    if (Math.random() > 0.3) {
+      const attempt = await prisma.attempt.create({
+        data: {
+          quizId: quiz1.id,
+          enrollmentId: enroll.id,
+          status: AttemptStatus.COMPLETED,
+          fixedLengthN: 5,
+          startedAt: new Date(Date.now() - getRandomInt(0, 10000000)),
+          finishedAt: new Date(),
+        }
+      })
+
+      // Generate responses for the 5 items (subset of the quiz items)
+      const attemptItems = getRandomSubset(quiz1Selection, 5)
+      for (const item of attemptItems) {
+        const options = await prisma.itemOption.findMany({ where: { itemId: item.id } })
+        const selected = options[getRandomInt(0, 3)]
+
+        await prisma.response.create({
+          data: {
+            attemptId: attempt.id,
+            itemId: item.id,
+            selectedLabel: selected.label,
+            itemOptionId: selected.id,
+            isCorrect: selected.isCorrect,
+            askedAt: new Date(),
+            answeredAt: new Date(),
+            responseTimeMs: getRandomInt(1000, 30000)
+          }
+        })
+      }
+      console.log(`   -> Attempt recorded for ${enroll.user.username}`)
+    }
   }
 
-  // Create an in-progress attempt for student2
-  const inProgressAttempt = await prisma.attempt.create({
-    data: {
-      quizId: quiz.id,
-      enrollmentId: student2Enrollment.id,
-      startedAt: new Date('2024-10-02T14:00:00Z'),
-      status: 'IN_PROGRESS',
-      fixedLengthN: 5,
-      engineVersion: '1.0.0',
-      scopeSnapshot: JSON.stringify({
-        includedModuleIds: [module1.id, module2.id],
-        includedBlooms: ['REMEMBER', 'UNDERSTAND', 'APPLY', 'ANALYZE', 'EVALUATE', 'CREATE'],
-        eligibleItemIds: [item1.id, item2.id, item3.id, item4.id, item5.id, item6.id, item7.id, item8.id, item9.id, item10.id, item11.id, item12.id],
-      }),
-    },
-  })
-
-  // Get correct options for in-progress attempt
-  const correctOption6 = await prisma.itemOption.findFirst({
-    where: { itemId: item6.id, isCorrect: true },
-  })
-  const correctOption7 = await prisma.itemOption.findFirst({
-    where: { itemId: item7.id, isCorrect: true },
-  })
-
-  // Add 2 responses to the in-progress attempt
-  await prisma.response.createMany({
-    data: [
-      {
-        attemptId: inProgressAttempt.id,
-        itemId: item6.id,
-        selectedLabel: 'B',
-        itemOptionId: correctOption6?.id,
-        isCorrect: true,
-        askedAt: new Date('2024-10-02T14:00:00Z'),
-        answeredAt: new Date('2024-10-02T14:03:00Z'),
-        responseTimeMs: 180000,
-        engineMasterySnapshot: JSON.stringify({
-          [module1.id]: 0.5,
-        }),
-      },
-      {
-        attemptId: inProgressAttempt.id,
-        itemId: item7.id,
-        selectedLabel: 'A',
-        itemOptionId: correctOption7?.id,
-        isCorrect: true,
-        askedAt: new Date('2024-10-02T14:04:00Z'),
-        answeredAt: new Date('2024-10-02T14:07:00Z'),
-        responseTimeMs: 180000,
-        engineMasterySnapshot: JSON.stringify({
-          [module1.id]: 0.5,
-          [module2.id]: 0.4,
-        }),
-      },
-    ],
-  })
-
-  console.log('✅ Created in-progress attempt')
-
-  // Create a second completed attempt for student3 on quiz2
-  const wrongOption1 = await prisma.itemOption.findFirst({
-    where: { itemId: item3.id, isCorrect: false },
-  })
-  const correctOption8 = await prisma.itemOption.findFirst({
-    where: { itemId: item8.id, isCorrect: true },
-  })
-  const wrongOption2 = await prisma.itemOption.findFirst({
-    where: { itemId: item9.id, isCorrect: false },
-  })
-
-  const attempt3 = await prisma.attempt.create({
-    data: {
-      quizId: quiz2.id,
-      enrollmentId: student3Enrollment.id,
-      startedAt: new Date('2024-10-03T09:00:00Z'),
-      finishedAt: new Date('2024-10-03T09:25:00Z'),
-      status: 'COMPLETED',
-      fixedLengthN: 5,
-      engineVersion: '1.0.0',
-      scopeSnapshot: JSON.stringify({
-        includedModuleIds: [module2.id],
-        includedBlooms: ['REMEMBER', 'UNDERSTAND', 'APPLY'],
-        eligibleItemIds: [item3.id, item7.id, item8.id, item9.id, item11.id],
-      }),
-      engineMasteryAtFinish: JSON.stringify({
-        [module2.id]: 0.65,
-      }),
-    },
-  })
-
-  await prisma.response.createMany({
-    data: [
-      {
-        attemptId: attempt3.id,
-        itemId: item3.id,
-        selectedLabel: 'A',
-        itemOptionId: wrongOption1?.id,
-        isCorrect: false,
-        askedAt: new Date('2024-10-03T09:00:00Z'),
-        answeredAt: new Date('2024-10-03T09:04:00Z'),
-        responseTimeMs: 240000,
-        engineMasterySnapshot: JSON.stringify({
-          [module2.id]: 0.3,
-        }),
-      },
-      {
-        attemptId: attempt3.id,
-        itemId: item8.id,
-        selectedLabel: 'B',
-        itemOptionId: correctOption8?.id,
-        isCorrect: true,
-        askedAt: new Date('2024-10-03T09:05:00Z'),
-        answeredAt: new Date('2024-10-03T09:08:00Z'),
-        responseTimeMs: 180000,
-        engineMasterySnapshot: JSON.stringify({
-          [module2.id]: 0.5,
-        }),
-      },
-      {
-        attemptId: attempt3.id,
-        itemId: item9.id,
-        selectedLabel: 'C',
-        itemOptionId: wrongOption2?.id,
-        isCorrect: false,
-        askedAt: new Date('2024-10-03T09:09:00Z'),
-        answeredAt: new Date('2024-10-03T09:12:00Z'),
-        responseTimeMs: 180000,
-        engineMasterySnapshot: JSON.stringify({
-          [module2.id]: 0.4,
-        }),
-      },
-    ],
-  })
-
-  console.log('✅ Created additional attempts')
-
-  // Create an abandoned attempt for student4
-  const attempt4 = await prisma.attempt.create({
-    data: {
-      quizId: quiz.id,
-      enrollmentId: student4Enrollment.id,
-      startedAt: new Date('2024-10-04T10:00:00Z'),
-      finishedAt: new Date('2024-10-04T10:05:00Z'),
-      status: 'ABANDONED',
-      fixedLengthN: 5,
-      engineVersion: '1.0.0',
-      scopeSnapshot: JSON.stringify({
-        includedModuleIds: [module1.id, module2.id],
-        includedBlooms: ['REMEMBER', 'UNDERSTAND', 'APPLY', 'ANALYZE', 'EVALUATE', 'CREATE'],
-        eligibleItemIds: [item1.id, item2.id, item3.id, item4.id, item5.id, item6.id, item7.id, item8.id, item9.id, item10.id, item11.id, item12.id],
-      }),
-    },
-  })
-
-  // Add one response before abandoning
-  await prisma.response.create({
-    data: {
-      attemptId: attempt4.id,
-      itemId: item1.id,
-      selectedLabel: 'A',
-      itemOptionId: correctOption1?.id,
-      isCorrect: true,
-      askedAt: new Date('2024-10-04T10:00:00Z'),
-      answeredAt: new Date('2024-10-04T10:03:00Z'),
-      responseTimeMs: 180000,
-      engineMasterySnapshot: JSON.stringify({
-        [module1.id]: 0.4,
-      }),
-    },
-  })
-
-  console.log('✅ Created abandoned attempt')
-
-  // Create additional courses for testing course switching and upload flows
-  const course2 = await prisma.course.create({
-    data: {
-      code: 'CSC207',
-      title: 'Software Design',
-    }
-  })
-
-  const course3 = await prisma.course.create({
-    data: {
-      code: 'CSC343',
-      title: 'Introduction to Databases',
-    }
-  })
-
-  const course4 = await prisma.course.create({
-    data: {
-      code: 'CSC369',
-      title: 'Operating Systems',
-    }
-  })
-
-  console.log('✅ Created additional courses')
-
-  // Create course offerings for additional courses
-  const offering2 = await prisma.courseOffering.create({
-    data: {
-      courseId: course2.id,
-      termId: term.id,
-      display: 'CSC207 - Fall 2024',
-    }
-  })
-
-  const offering3 = await prisma.courseOffering.create({
-    data: {
-      courseId: course3.id,
-      termId: term.id,
-      display: 'CSC343 - Fall 2024',
-    }
-  })
-
-  const offering4 = await prisma.courseOffering.create({
-    data: {
-      courseId: course4.id,
-      termId: term.id,
-      display: 'CSC369 - Fall 2024',
-    }
-  })
-
-  console.log('✅ Created additional course offerings')
-
-  // Enroll instructor in all courses
-  await prisma.enrollment.createMany({
-    data: [
-      {
-        userId: instructor.id,
-        offeringId: offering2.id,
-        offeringRole: 'INSTRUCTOR',
-      },
-      {
-        userId: instructor.id,
-        offeringId: offering3.id,
-        offeringRole: 'INSTRUCTOR',
-      },
-      {
-        userId: instructor.id,
-        offeringId: offering4.id,
-        offeringRole: 'INSTRUCTOR',
-      },
-    ]
-  })
-
-  console.log('✅ Enrolled instructor in additional courses')
-
-  // Create modules for additional courses
-  await Promise.all([
-    prisma.module.create({
-      data: { offeringId: offering2.id, name: 'Design Patterns' }
-    }),
-    prisma.module.create({
-      data: { offeringId: offering2.id, name: 'Object-Oriented Design' }
-    }),
-    prisma.module.create({
-      data: { offeringId: offering3.id, name: 'SQL Fundamentals' }
-    }),
-    prisma.module.create({
-      data: { offeringId: offering3.id, name: 'Database Normalization' }
-    }),
-    prisma.module.create({
-      data: { offeringId: offering4.id, name: 'Process Management' }
-    }),
-    prisma.module.create({
-      data: { offeringId: offering4.id, name: 'Memory Management' }
-    })
-  ])
-
-  console.log('✅ Created modules for additional courses')
-
-  console.log('🎉 Seed completed successfully!')
-  console.log('\n📊 Summary:')
-  console.log(`- Users: 6 (1 instructor, 1 TA, 4 students)`)
-  console.log(`- Courses: 4 (CS101, CSC207, CSC343, CSC369)`)
-  console.log(`- Term: Fall 2024`)
-  console.log(`- Course Offerings: 4`)
-  console.log(`- Modules: 8 total`)
-  console.log(`- Items: 12 questions with 4 options each (48 options) in CS101`)
-  console.log(`- Quizzes: 3 (2 active, 1 inactive) in CS101`)
-  console.log(`- Attempts: 4 (2 completed, 1 in-progress, 1 abandoned)`)
-  console.log(`- Responses: 11 total`)
-  console.log(`- Theta values: 8 (initial values for all students)`)
-  console.log('\n🔑 Test credentials:')
-  console.log('- Instructor: instructor1 (enrolled in all 4 courses)')
-  console.log('- TA: ta1 (enrolled in CS101)')
-  console.log('- Students: student1, student2, student3, student4 (enrolled in CS101)')
-  console.log('\n📝 Test Scenarios:')
-  console.log('- student1: Has completed attempt on Programming Basics Quiz (5/5 correct)')
-  console.log('- student2: Has in-progress attempt on Programming Basics Quiz (2/5 answered)')
-  console.log('- student3: Has completed attempt on Data Structures Quiz (1/3 correct)')
-  console.log('- student4: Has abandoned attempt on Programming Basics Quiz (1 response)')
-  console.log('\n📚 Courses Available:')
-  console.log('- CS101: Has questions and quizzes populated')
-  console.log('- CSC207, CSC343, CSC369: Empty, ready for spreadsheet upload testing')
+  // Dual Role Check: Make sure Instructor (as Student in 207) has no attempts yet (or maybe 1)
+  // Let's verify data in logs
+  console.log('✅ Seed complete!')
+  console.log('-----------------------------------')
+  console.log('Credentials to test:')
+  console.log('1. student (enrolled in 101, 207)')
+  console.log('2. instructor (INSTRUCTOR in 101, STUDENT in 207)')
+  console.log('3. admin (STUDENT in 343)')
+  console.log('-----------------------------------')
 }
 
 main()
   .catch((e) => {
-    console.error('❌ Seed failed:', e)
+    console.error(e)
     process.exit(1)
   })
   .finally(async () => {
