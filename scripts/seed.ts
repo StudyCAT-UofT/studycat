@@ -1,4 +1,4 @@
-import { PrismaClient, Module, Item, BloomCategory, OptionLabel } from '@prisma/client'
+import { PrismaClient, Module, Item } from '@prisma/client'
 
 const prisma = new PrismaClient()
 
@@ -11,6 +11,23 @@ function getRandomInt(min: number, max: number) {
 function getRandomSubset<T>(array: T[], count: number): T[] {
   const shuffled = array.slice().sort(() => 0.5 - Math.random())
   return shuffled.slice(0, count)
+}
+
+// --- Enums as Objects (since they are strings in Schema) ---
+const BloomCategory = {
+  REMEMBER: 'REMEMBER',
+  UNDERSTAND: 'UNDERSTAND',
+  APPLY: 'APPLY',
+  ANALYZE: 'ANALYZE',
+  EVALUATE: 'EVALUATE',
+  CREATE: 'CREATE'
+}
+
+const OptionLabel = {
+  A: 'A',
+  B: 'B',
+  C: 'C',
+  D: 'D'
 }
 
 // --- Enums as Objects (AttemptStatus is not an Enum in schema) ---
@@ -140,7 +157,7 @@ async function main() {
             courseId: spec.course.id,
             moduleId: mod.id,
             externalQuestionId: `${spec.course.code}-${modSpec.topic}-${i}`,
-            bloom: Object.values(BloomCategory)[getRandomInt(0, 5)], // Random Bloom
+            bloom: Object.values(BloomCategory)[getRandomInt(0, 5)] as string, // Random Bloom
             stem: `Question about ${modSpec.topic} #${i + 1} in ${modSpec.name}`,
             reference: `Lecture ${getRandomInt(1, 10)}`,
             irtA: Math.random() * 2,
