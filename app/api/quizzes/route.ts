@@ -166,6 +166,7 @@ export async function GET(request: Request) {
  * - courseOfferingId (required): The ID of the course offering
  * - title (required): The quiz title
  * - includedModuleIds (required): Array of module IDs to include
+ * - masteryThresholds (required): Array of mastery thresholds (same order as modules)
  * - active (optional): Whether the quiz is active (default: true)
  * - fixedLength (required): Number of questions in the quiz
  * 
@@ -183,7 +184,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { courseOfferingId, title, includedModuleIds, active = true, fixedLength } = body
+    const { courseOfferingId, title, includedModuleIds, masteryThresholds, active = true, fixedLength } = body
 
     // Validate required fields
     if (!courseOfferingId || !title || !includedModuleIds || !Array.isArray(includedModuleIds) || includedModuleIds.length === 0) {
@@ -192,6 +193,17 @@ export async function POST(request: Request) {
 
     if (!fixedLength || fixedLength < 1) {
       return NextResponse.json({ error: 'Fixed length must be at least 1' }, { status: 400 })
+    }
+
+    if (
+      !masteryThresholds ||
+      !Array.isArray(masteryThresholds) ||
+      masteryThresholds.length !== includedModuleIds.length
+    ) {
+      return NextResponse.json(
+        { error: 'masteryThresholds must be an array matching includedModuleIds length' },
+        { status: 400 }
+      )
     }
 
     // Verify the course offering exists
@@ -227,10 +239,13 @@ export async function POST(request: Request) {
     })
 
     // Create QuizModule entries linking the quiz to modules
-    const quizModulesData = includedModuleIds.map((moduleId: string) => ({
-      quizId: quiz.id,
-      moduleId
-    }))
+    const quizModulesData = includedModuleIds.map(
+      (moduleId: string, index: number) => ({
+        quizId: quiz.id,
+        moduleId,
+        masteryThreshold: masteryThresholds[index]
+      })
+    )
 
     await prisma.quizModule.createMany({
       data: quizModulesData
