@@ -124,16 +124,16 @@ export const QuizzesTable = ({
         },
         {
             accessor: 'module',
-            title: 'Module',
-            sortable: true,
-            width: 150,
+            title: 'Modules (Mastery)',
+            sortable: false,
+            width: 250,
             render: (quiz: Quiz) => (
                 <Stack gap={2}>
-                    {quiz.modules?.map((module, index) => (
-                        <Badge key={index} size="sm" variant="light">
-                            {module}
-                        </Badge>
-                    ))}
+                {quiz.quizModules?.map((module, index) => (
+                    <Badge key={index} size="sm" variant="light">
+                    {quiz.modules[index]} ({(module.masteryThreshold)})
+                    </Badge>
+                ))}
                 </Stack>
             )
         },

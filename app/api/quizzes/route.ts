@@ -83,7 +83,10 @@ export async function GET(request: Request) {
           }
         },
         quizModules: {
-          include: {
+          select: {
+            quizId: true,
+            moduleId: true,
+            masteryThreshold: true, // <-- add this
             module: {
               select: {
                 id: true,
@@ -121,16 +124,20 @@ export async function GET(request: Request) {
       // Convert includedModuleIds to module names
       const includedModuleNames = quiz.quizModules.map(qm => qm.module.name)
 
-      // Use the included module names as the modules for display
-      const modules = includedModuleNames
+      // Map modules + thresholds for frontend
+      const modulesWithThresholds = quiz.quizModules.map(qm => ({
+        moduleId: qm.moduleId,
+        moduleName: qm.module.name,
+        masteryThreshold: qm.masteryThreshold
+      }))
 
       // Return standardized quiz object with calculated statistics
       return {
         id: quiz.id,
         title: quiz.title,
         description: null, // Not in current schema, but kept for API compatibility
-        modules: modules,
-        module: modules.length > 0 ? modules[0] : 'Unknown', // Primary module for table display
+        modules: includedModuleNames,
+        module: includedModuleNames.length > 0 ? includedModuleNames[0] : 'Unknown', // Primary module for table display
         fixedLength: quiz.fixedLength,
         timeLimit: null, // Not in current schema, but kept for API compatibility
         maxAttempts: null, // Not in current schema, but kept for API compatibility
@@ -145,7 +152,8 @@ export async function GET(request: Request) {
           completionRate
         },
         includedModules: includedModuleNames,
-        includedBlooms: quiz.includedBlooms
+        includedBlooms: quiz.includedBlooms,
+        quizModules: quiz.quizModules
       }
     })
 
