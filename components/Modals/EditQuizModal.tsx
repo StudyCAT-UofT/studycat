@@ -21,6 +21,7 @@ const EditQuizModal = ({
     const [formData, setFormData] = useState({
         title: '',
         includedModuleIds: [] as string[],
+        masteryThresholds: {} as Record<string, number>,
         isActive: true,
         fixedLength: 10
     })
@@ -70,6 +71,7 @@ const EditQuizModal = ({
                 setFormData({
                     title: '',
                     includedModuleIds: [],
+                    masteryThresholds: {},
                     isActive: true,
                     fixedLength: 10
                 })
@@ -77,6 +79,7 @@ const EditQuizModal = ({
                 setFormData({
                     title: quiz.title,
                     includedModuleIds: [], // Will be set when modules are loaded
+                    masteryThresholds: {},
                     isActive: quiz.isActive,
                     fixedLength: quiz.fixedLength
                 })
@@ -86,17 +89,50 @@ const EditQuizModal = ({
 
     // Map module names to IDs when modules are loaded and we're editing
     useEffect(() => {
-        if (opened && !isCreating && quiz && availableModules.length > 0) {
-            const moduleIds = quiz.quizModules
-            ?.map(qm => qm.moduleId)
-            .filter(Boolean) || []
+    if (opened && !isCreating && quiz && availableModules.length > 0) {
+            const moduleIds =
+            quiz.quizModules?.map(qm => qm.moduleId).filter(Boolean) || []
+
+            const thresholds: Record<string, number> = {}
+            quiz.quizModules?.forEach(qm => {
+            if (qm.moduleId && qm.masteryThreshold !== undefined) {
+                thresholds[qm.moduleId] = qm.masteryThreshold
+            }
+            })
 
             setFormData(prev => ({
-                ...prev,
-                includedModuleIds: moduleIds
+            ...prev,
+            includedModuleIds: moduleIds,
+            masteryThresholds: thresholds
             }))
         }
     }, [opened, isCreating, quiz, availableModules])
+
+    const handleModulesChange = (value: string[]) => {
+        setFormData(prev => {
+            const updatedThresholds = { ...prev.masteryThresholds }
+
+            value.forEach(moduleId => {
+            if (updatedThresholds[moduleId] === undefined) {
+                updatedThresholds[moduleId] = 0.8 // default threshold
+            }
+            })
+
+            // Remove thresholds for deselected modules
+            Object.keys(updatedThresholds).forEach(moduleId => {
+            if (!value.includes(moduleId)) {
+                delete updatedThresholds[moduleId]
+            }
+            })
+
+            return {
+            ...prev,
+            includedModuleIds: value,
+            masteryThresholds: updatedThresholds
+            }
+        })
+    }
+
 
     const handleSave = async () => {
         if (!isCreating && !quiz) return
@@ -114,6 +150,10 @@ const EditQuizModal = ({
             setError('Number of questions must be at least 1')
             return
         }
+
+        const masteryThresholdsArray = formData.includedModuleIds.map(
+            id => formData.masteryThresholds[id]
+        )
 
         setLoading(true)
         setError(null)
@@ -138,6 +178,7 @@ const EditQuizModal = ({
                         courseOfferingId: selectedCourseOffering.id,
                         title: formData.title,
                         includedModuleIds: formData.includedModuleIds,
+                        masteryThresholds: masteryThresholdsArray,
                         active: formData.isActive,
                         fixedLength: formData.fixedLength
                     }),
@@ -153,6 +194,7 @@ const EditQuizModal = ({
                     body: JSON.stringify({
                         title: formData.title,
                         includedModuleIds: formData.includedModuleIds,
+                        masteryThresholds: masteryThresholdsArray,
                         active: formData.isActive,
                         fixedLength: formData.fixedLength
                     }),
@@ -230,11 +272,44 @@ const EditQuizModal = ({
                         label: module.name
                     }))}
                     value={formData.includedModuleIds}
-                    onChange={(value) => setFormData({ ...formData, includedModuleIds: value })}
+                    onChange={handleModulesChange}
                     required
                     searchable
                     clearable
                 />
+
+                {formData.includedModuleIds.length > 0 && (
+                    <Stack gap="xs">
+                        <Text fw={500} size="sm">
+                        Mastery Thresholds
+                        </Text>
+
+                        {formData.includedModuleIds.map(moduleId => {
+                        const module = availableModules.find(m => m.id === moduleId)
+
+                        return (
+                            <NumberInput
+                            key={moduleId}
+                            label={module?.name || 'Module'}
+                            value={formData.masteryThresholds[moduleId]}
+                            onChange={(value) =>
+                                setFormData(prev => ({
+                                ...prev,
+                                masteryThresholds: {
+                                    ...prev.masteryThresholds,
+                                    [moduleId]: typeof value === 'number' ? value : 0.8
+                                }
+                                }))
+                            }
+                            min={-5}
+                            max={5}
+                            step={0.01}
+                            />
+                        )
+                        })}
+                    </Stack>
+                )}
+
 
                 <Group grow>
                     <NumberInput
