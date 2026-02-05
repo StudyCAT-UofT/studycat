@@ -27,7 +27,7 @@ const TAB_CONFIGS: TabConfig[] = [
     {
         value: 'dashboard',
         label: 'Dashboard',
-        route: '/'
+        route: '/quiz'
     },
     {
         value: 'question-bank',
@@ -67,9 +67,12 @@ export const InstructorTabs = ({ children }: InstructorTabsProps) => {
     // Check if current user has instructor or TA role for the selected course offering
     const isInstructorOrTA = selectedCourseOffering?.role === 'INSTRUCTOR' || selectedCourseOffering?.role === 'TA'
 
-    // Don't render tabs if user is not instructor/TA or no course is selected
+    // Don't render tabs on the course selection page (/)
+    const isCourseDashboard = pathname === '/'
+
+    // Don't render tabs if user is not instructor/TA, no course is selected, or on course selection page
     // Hide tabs by default to prevent UI flashing, only show when confirmed instructor/TA
-    if (loading || !isInstructorOrTA || !selectedCourseOffering) {
+    if (loading || !isInstructorOrTA || !selectedCourseOffering || isCourseDashboard) {
         return <>{children}</>
     }
 
@@ -79,8 +82,8 @@ export const InstructorTabs = ({ children }: InstructorTabsProps) => {
      * @returns The tab value that should be active
      */
     const getCurrentTab = (): string => {
-        // Special case: if pathname is exactly '/', return dashboard
-        if (pathname === '/') {
+        // Special case: if pathname is exactly '/quiz', return dashboard
+        if (pathname === '/quiz') {
             return TAB_CONFIGS[0]?.value || 'dashboard'
         }
 
@@ -113,7 +116,7 @@ export const InstructorTabs = ({ children }: InstructorTabsProps) => {
             router.push(selectedTab.route)
         } else {
             // Fallback to dashboard if tab not found
-            router.push('/')
+            router.push('/quiz')
         }
     }
 
