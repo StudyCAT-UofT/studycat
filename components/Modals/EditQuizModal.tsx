@@ -21,7 +21,7 @@ const EditQuizModal = ({
     const [formData, setFormData] = useState({
         title: '',
         includedModuleIds: [] as string[],
-        masteryThresholds: {} as Record<string, number>,
+        masteryThresholds: {} as Record<string, number | undefined>,
         isActive: true,
         fixedLength: 10
     })
@@ -114,7 +114,7 @@ const EditQuizModal = ({
 
             value.forEach(moduleId => {
             if (updatedThresholds[moduleId] === undefined) {
-                updatedThresholds[moduleId] = 0.8 // default threshold
+                updatedThresholds[moduleId] = 1.0 // default threshold
             }
             })
 
@@ -151,8 +151,8 @@ const EditQuizModal = ({
             return
         }
 
-        const masteryThresholdsArray = formData.includedModuleIds.map(
-            id => formData.masteryThresholds[id]
+        const masteryThresholdsArray = formData.includedModuleIds.map(id =>
+            formData.masteryThresholds[id] ?? 1.0
         )
 
         setLoading(true)
@@ -283,6 +283,12 @@ const EditQuizModal = ({
                         <Text fw={500} size="sm">
                         Mastery Thresholds
                         </Text>
+                        <Text fw={400} size="xs">
+                            Mastery thresholds represent the theta value where it can be reasonably assumed a student has mastered a certain module.
+                        </Text>
+                        <Text fw={400} size="xs">
+                            1.0 is a standard threshold. For a higher level of mastery, use a threshold around 1.3. For a lower level of mastery, use a threshold around 0.7.
+                        </Text>
 
                         {formData.includedModuleIds.map(moduleId => {
                         const currModule = availableModules.find(m => m.id === moduleId)
@@ -297,12 +303,12 @@ const EditQuizModal = ({
                                 ...prev,
                                 masteryThresholds: {
                                     ...prev.masteryThresholds,
-                                    [moduleId]: typeof value === 'number' ? value : 0.8
+                                    [moduleId]: typeof value === 'number' ? value : undefined
                                 }
                                 }))
                             }
-                            min={-5}
-                            max={5}
+                            min={-3}
+                            max={3}
                             step={0.01}
                             />
                         )
@@ -310,25 +316,23 @@ const EditQuizModal = ({
                     </Stack>
                 )}
 
+                <NumberInput
+                    label="Number of Questions"
+                    value={formData.fixedLength}
+                    onChange={(value) => setFormData({ ...formData, fixedLength: typeof value === 'number' ? value : 10 })}
+                    min={1}
+                    max={100}
+                    required
+                />
 
-                <Group grow>
-                    <NumberInput
-                        label="Number of Questions"
-                        value={formData.fixedLength}
-                        onChange={(value) => setFormData({ ...formData, fixedLength: typeof value === 'number' ? value : 10 })}
-                        min={1}
-                        max={100}
-                        required
+                <Box>
+                    <Text size="sm" fw={500} mb="xs">Status</Text>
+                    <Switch
+                        label={formData.isActive ? 'Active' : 'Inactive'}
+                        checked={formData.isActive}
+                        onChange={(e) => setFormData({ ...formData, isActive: e.currentTarget.checked })}
                     />
-                    <Box>
-                        <Text size="sm" fw={500} mb="xs">Status</Text>
-                        <Switch
-                            label={formData.isActive ? 'Active' : 'Inactive'}
-                            checked={formData.isActive}
-                            onChange={(e) => setFormData({ ...formData, isActive: e.currentTarget.checked })}
-                        />
-                    </Box>
-                </Group>
+                </Box>
 
                 <Group justify="flex-end" mt="md">
                     <Button variant="outline" onClick={onClose} disabled={loading}>
