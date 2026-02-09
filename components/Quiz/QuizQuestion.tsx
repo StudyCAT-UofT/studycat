@@ -2,16 +2,17 @@
 
 import { QuizItem, Feedback } from '@/types'
 import { Card, Stack, Title, Button, Radio, Text, Paper, Image, Flex } from '@mantine/core'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 interface QuizQuestionProps {
     item: QuizItem
     onAnswer: (answerIndex: number) => void
     onNext?: () => void
-    feedback?: Feedback | null
+    feedback?: Feedback | null,
+    shuffled: boolean
 }
 
-const QuizQuestion = ({ item, onAnswer, onNext, feedback }: QuizQuestionProps) => {
+const QuizQuestion = ({ item, onAnswer, onNext, feedback, shuffled }: QuizQuestionProps) => {
     const [userSelectedIndex, setUserSelectedIndex] = useState<number | null>(null)
     const [submittedDisplayIndex, setSubmittedDisplayIndex] = useState<number | null>(null)
     const isFeedbackMode = feedback !== null && feedback !== undefined
@@ -22,9 +23,19 @@ const QuizQuestion = ({ item, onAnswer, onNext, feedback }: QuizQuestionProps) =
         ? item.reference.trim()
         : null
 
+    useEffect(() => {
+        setUserSelectedIndex(null)
+        setSubmittedDisplayIndex(null)
+    }, [item.item_id])
+
     // Shuffle options 
     const [shuffledIndices] = useState(() => {
-    const indices = item.options.map((_, i) => i)
+        const indices = item.options.map((_, i) => i)
+
+        if (!shuffled) {
+            return indices // keep original order
+        }
+
         for (let i = indices.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1))
             ;[indices[i], indices[j]] = [indices[j], indices[i]]

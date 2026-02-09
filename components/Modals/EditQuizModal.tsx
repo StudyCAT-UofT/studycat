@@ -22,6 +22,7 @@ const EditQuizModal = ({
         title: '',
         includedModuleIds: [] as string[],
         isActive: true,
+        shuffled: false,
         fixedLength: 10
     })
     const [loading, setLoading] = useState(false)
@@ -71,6 +72,7 @@ const EditQuizModal = ({
                     title: '',
                     includedModuleIds: [],
                     isActive: true,
+                    shuffled: false,
                     fixedLength: 10
                 })
             } else if (quiz) {
@@ -78,6 +80,7 @@ const EditQuizModal = ({
                     title: quiz.title,
                     includedModuleIds: [], // Will be set when modules are loaded
                     isActive: quiz.isActive,
+                    shuffled: quiz.shuffled,
                     fixedLength: quiz.fixedLength
                 })
             }
@@ -139,6 +142,7 @@ const EditQuizModal = ({
                         title: formData.title,
                         includedModuleIds: formData.includedModuleIds,
                         active: formData.isActive,
+                        shuffled: formData.shuffled,
                         fixedLength: formData.fixedLength
                     }),
                 })
@@ -154,6 +158,7 @@ const EditQuizModal = ({
                         title: formData.title,
                         includedModuleIds: formData.includedModuleIds,
                         active: formData.isActive,
+                        shuffled: formData.shuffled,
                         fixedLength: formData.fixedLength
                     }),
                 })
@@ -236,24 +241,32 @@ const EditQuizModal = ({
                     clearable
                 />
 
-                <Group grow>
-                    <NumberInput
-                        label="Number of Questions"
-                        value={formData.fixedLength}
-                        onChange={(value) => setFormData({ ...formData, fixedLength: typeof value === 'number' ? value : 10 })}
-                        min={1}
-                        max={100}
-                        required
+                <NumberInput
+                    label="Number of Questions"
+                    value={formData.fixedLength}
+                    onChange={(value) => setFormData({ ...formData, fixedLength: typeof value === 'number' ? value : 10 })}
+                    min={1}
+                    max={100}
+                    required
+                />
+
+                <Box>
+                    <Text size="sm" fw={500} mb="xs">Status</Text>
+                    <Switch
+                        label={formData.isActive ? 'Active' : 'Inactive'}
+                        checked={formData.isActive}
+                        onChange={(e) => setFormData({ ...formData, isActive: e.currentTarget.checked })}
                     />
-                    <Box>
-                        <Text size="sm" fw={500} mb="xs">Status</Text>
-                        <Switch
-                            label={formData.isActive ? 'Active' : 'Inactive'}
-                            checked={formData.isActive}
-                            onChange={(e) => setFormData({ ...formData, isActive: e.currentTarget.checked })}
-                        />
-                    </Box>
-                </Group>
+                </Box>
+
+                <Box>
+                    <Text size="sm" fw={500} mb="xs">Shuffle Options?</Text>
+                    <Switch
+                        label={formData.shuffled ? 'Shuffled' : 'Not Shuffled'}
+                        checked={formData.shuffled}
+                        onChange={(e) => setFormData({ ...formData, shuffled: e.currentTarget.checked })}
+                    />
+                </Box>
 
                 <Group justify="flex-end" mt="md">
                     <Button variant="outline" onClick={onClose} disabled={loading}>
