@@ -134,6 +134,7 @@ export const POST = async (request: NextRequest) => {
       nextItem: fastApiData.next_item,
       nextAction: fastApiData.next_action,
       startedAt: attempt.startedAt,
+      shuffled: quiz.shuffled
     });
 
   } catch (error) {
