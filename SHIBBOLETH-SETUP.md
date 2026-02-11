@@ -188,11 +188,30 @@ pnpm dev
 
 ## Detailed Setup
 
-### Step 1: IdP Configuration
+### Step 1: Generate IdP Base Configuration
 
-The IdP configuration files are already included in the repository at `shibboleth/idp/customized-shibboleth-idp/conf/`. These files have been customized for StudyCAT and should not be regenerated.
+The IdP configuration is NOT stored in the repository—it must be generated locally using the Shibboleth IdP Docker image's built-in initialization script.
 
-> **⚠️ Warning:** Do NOT run `init-idp.sh` - it would overwrite the custom configuration files in the repository. The configuration is already set up; you only need to generate credentials.
+```bash
+cd shibboleth/idp
+docker run -it -v $(pwd):/ext-mount --rm unicon/shibboleth-idp:3.4.3 init-idp.sh
+```
+
+The script will prompt you for configuration values. Use these settings:
+
+| Prompt | Value |
+|--------|-------|
+| Hostname | `idp.studycat.local` |
+| SAML Entity ID | `https://idp.studycat.local/idp/shibboleth` |
+| Attribute Scope | `studycat.local` |
+| Backchannel PKCS12 Password | `abc123` |
+| Re-enter password | `abc123` |
+| Cookie Encryption Key Password | `abc123` |
+| Re-enter password | `abc123` |
+
+This creates the `customized-shibboleth-idp/` directory with default Shibboleth IdP configuration. You must then apply the customizations documented in the steps below.
+
+> **Note:** The `customized-shibboleth-idp/` directory is gitignored. Each developer must generate and configure it locally.
 
 ### Step 2: Generate TLS Certificates
 
@@ -225,24 +244,135 @@ openssl pkcs12 -export -legacy -inkey idp-backchannel.key -in idp-backchannel.cr
 
 ### Step 3: Configure IdP Properties
 
-The IdP properties are already configured in `shibboleth/idp/customized-shibboleth-idp/conf/idp.properties`:
+Edit `customized-shibboleth-idp/conf/idp.properties` and set these values:
 
 ```properties
-# Core settings
+# Line ~11: Set entity ID
 idp.entityID=https://idp.studycat.local/idp/shibboleth
+
+# Line ~18: Set scope (used for scoped attributes like eppn)
 idp.scope=studycat.local
+
+# Lines ~47-48: Set sealer passwords (for cookie encryption)
 idp.sealer.storePassword=abc123
 idp.sealer.keyPassword=abc123
 
-# Authentication
+# Line ~122: Enable only password authentication
 idp.authn.flows=Password
+```
 
-# LDAP connection
+### Step 3b: Configure LDAP Properties
+
+Edit `customized-shibboleth-idp/conf/ldap.properties`:
+
+```properties
+# Line ~5: Set authenticator type
+idp.authn.LDAP.authenticator=bindSearchAuthenticator
+
+# Line ~8: LDAP URL (Docker internal DNS)
 idp.authn.LDAP.ldapURL=ldap://ldap:389
+
+# Lines ~9-10: Disable TLS (internal Docker network)
+idp.authn.LDAP.useStartTLS=false
+idp.authn.LDAP.useSSL=false
+
+# Line ~30: Base DN for user search
 idp.authn.LDAP.baseDN=ou=people,dc=studycat,dc=local
+
+# Line ~32: User filter
 idp.authn.LDAP.userFilter=(uid={user})
+
+# Lines ~35-36: Bind credentials for searching
 idp.authn.LDAP.bindDN=cn=admin,dc=studycat,dc=local
 idp.authn.LDAP.bindDNCredential=admin123
+
+# Line ~40: DN format for direct authentication
+idp.authn.LDAP.dnFormat=uid=%s,ou=people,dc=studycat,dc=local
+```
+
+### Step 3c: Configure Attribute Resolver
+
+The application only uses `uid` (username) for authentication, with `eppn` as a fallback. Replace `customized-shibboleth-idp/conf/attribute-resolver.xml` with this minimal configuration:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<AttributeResolver xmlns="urn:mace:shibboleth:2.0:resolver"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="urn:mace:shibboleth:2.0:resolver http://shibboleth.net/schema/idp/shibboleth-attribute-resolver.xsd">
+
+    <!-- uid - username from authentication principal -->
+    <AttributeDefinition id="uid" xsi:type="PrincipalName">
+        <AttributeEncoder xsi:type="SAML2String" name="urn:oid:0.9.2342.19200300.100.1.1" friendlyName="uid" encodeType="false" />
+    </AttributeDefinition>
+
+    <!-- eduPersonPrincipalName (eppn) - scoped uid for fallback -->
+    <AttributeDefinition id="eduPersonPrincipalName" xsi:type="Scoped" scope="%{idp.scope}">
+        <InputAttributeDefinition ref="uid" />
+        <AttributeEncoder xsi:type="SAML2ScopedString" name="urn:oid:1.3.6.1.4.1.5923.1.1.1.6" friendlyName="eduPersonPrincipalName" encodeType="false" />
+    </AttributeDefinition>
+</AttributeResolver>
+```
+
+### Step 3d: Configure Attribute Filter
+
+Replace `customized-shibboleth-idp/conf/attribute-filter.xml` to release only the required attributes:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<AttributeFilterPolicyGroup id="ShibbolethFilterPolicy"
+    xmlns="urn:mace:shibboleth:2.0:afp"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="urn:mace:shibboleth:2.0:afp http://shibboleth.net/schema/idp/shibboleth-afp.xsd">
+
+    <AttributeFilterPolicy id="releaseToStudyCAT">
+        <PolicyRequirementRule xsi:type="ANY" />
+        <AttributeRule attributeID="uid" permitAny="true" />
+        <AttributeRule attributeID="eduPersonPrincipalName" permitAny="true" />
+    </AttributeFilterPolicy>
+</AttributeFilterPolicyGroup>
+```
+
+### Step 3e: Configure Relying Party (Disable Encryption)
+
+Edit `customized-shibboleth-idp/conf/relying-party.xml`. Find the `<util:list id="shibboleth.RelyingPartyOverrides">` section and add:
+
+```xml
+<!-- StudyCAT SP - disable assertion encryption for development -->
+<bean parent="RelyingPartyByName" c:relyingPartyIds="https://sp.studycat.local/shibboleth">
+    <property name="profileConfigurations">
+        <list>
+            <bean parent="SAML2.SSO" p:encryptAssertions="false" />
+        </list>
+    </property>
+</bean>
+```
+
+**Why:** The IdP encrypts SAML assertions by default, which can cause "A valid authentication statement was not found" errors if certificates don't match perfectly. For development, disabling encryption simplifies troubleshooting.
+
+### Step 3f: Configure Metadata Provider
+
+Edit `customized-shibboleth-idp/conf/metadata-providers.xml`. Find the `<MetadataProvider id="ShibbolethMetadata">` element and add inside it:
+
+```xml
+<MetadataProvider id="StudyCATSP"
+    xsi:type="FilesystemMetadataProvider"
+    metadataFile="%{idp.home}/metadata/sp-metadata.xml"/>
+```
+
+### Step 3g: Download SP Metadata
+
+After starting the SP, download its metadata for the IdP:
+
+```bash
+# Start SP first
+docker compose --profile shibboleth up -d sp
+
+# Wait for SP to be ready
+sleep 5
+
+# Download SP metadata into IdP
+curl -k https://sp.studycat.local/Shibboleth.sso/Metadata > \
+    shibboleth/idp/customized-shibboleth-idp/metadata/sp-metadata.xml
 ```
 
 ### Step 4: Set Up OpenLDAP Users
@@ -461,6 +591,10 @@ pnpm db:migrate
 
 # (Optional) Seed database with test data
 pnpm db:seed
+
+# NOTE: The seed script creates users that match the IdP test accounts:
+# - student (password123)
+# - instructor (password123)
 ```
 
 ---
@@ -525,15 +659,14 @@ After logging in, visit:
 https://sp.studycat.local/Shibboleth.sso/Session
 ```
 
-You should see:
+You should see (simplified to only essential attributes):
 ```
 Attributes:
-- eppn: student@studycat.local
-- mail: student@studycat.local
-- displayName: student
-- affiliation: member@studycat.local;student@studycat.local
 - uid: student
+- eppn: student@studycat.local
 ```
+
+The application only uses `uid` for authentication (with `eppn` as fallback). Other attributes like mail, displayName, and affiliation are not needed.
 
 ---
 
@@ -549,7 +682,19 @@ Attributes:
 1. Check `apache-studycat.conf` has `ProxyPass /Shibboleth.sso !`
 2. Restart SP: `docker compose restart sp`
 
-### Issue 2: "Access Denied" After Login
+### Issue 2: Port Conflict (3000 vs 3001)
+
+**Symptom:** `sp.studycat.local` fails to load, but `localhost:3001` works.
+
+**Cause:** Port 3000 is occupied by another process (often Docker Desktop itself or a zombie node process), so Next.js falls back to port 3001. The SP is hardcoded to forward to port 3000.
+
+**Fix:**
+1. Find the process using port 3000: `lsof -i :3000`
+2. Kill it: `kill -9 <PID>`
+3. Restart development server: `pnpm dev`
+4. Ensure it says "Ready on port 3000"
+
+### Issue 3: "Access Denied" After Login
 
 **Symptom:** Successfully log in at IdP but see "Access Denied" on homepage
 
@@ -816,16 +961,19 @@ StudyCAT implements **local logout only**—when a user logs out, only the appli
 
 ### Key Files
 
-**IdP:**
-- `shibboleth/idp/customized-shibboleth-idp/conf/idp.properties` - Core IdP settings
-- `shibboleth/idp/customized-shibboleth-idp/conf/ldap.properties` - LDAP connection
-- `shibboleth/idp/customized-shibboleth-idp/conf/attribute-resolver.xml` - Define user attributes
-- `shibboleth/idp/customized-shibboleth-idp/conf/attribute-filter.xml` - Control attribute release
-- `shibboleth/idp/customized-shibboleth-idp/conf/relying-party.xml` - SP trust configuration
+**IdP (generated locally, not in git):**
+- `shibboleth/idp/customized-shibboleth-idp/conf/idp.properties` - Core IdP settings (entity ID, scope, passwords)
+- `shibboleth/idp/customized-shibboleth-idp/conf/ldap.properties` - LDAP connection settings
+- `shibboleth/idp/customized-shibboleth-idp/conf/attribute-resolver.xml` - Defines uid and eppn attributes
+- `shibboleth/idp/customized-shibboleth-idp/conf/attribute-filter.xml` - Releases uid and eppn to SP
+- `shibboleth/idp/customized-shibboleth-idp/conf/relying-party.xml` - SP trust, encryption disabled
+- `shibboleth/idp/customized-shibboleth-idp/conf/metadata-providers.xml` - References SP metadata
 
-**SP:**
+> **Note:** The `customized-shibboleth-idp/` directory is gitignored. See Step 1 and Steps 3-3g above for configuration instructions.
+
+**SP (in git):**
 - `shibboleth/sp/config/shibboleth2.xml` - SP configuration
-- `shibboleth/sp/config/attribute-map.xml` - SAML attribute → HTTP header mapping
+- `shibboleth/sp/config/attribute-map.xml` - Maps uid and eppn to HTTP headers
 - `shibboleth/sp/config/apache-studycat.conf` - Apache reverse proxy config
 - `shibboleth/sp/config/idp-metadata.xml` - IdP metadata for trust
 
@@ -939,4 +1087,6 @@ For issues or questions:
 ---
 
 **Last Updated:** February 11, 2026
-**Version:** 1.2.0
+**Version:** 2.0.0
+
+> **Version 2.0 Changes:** IdP configuration is no longer stored in git. Developers must generate and configure it locally using the documented steps. Attribute configuration simplified to only `uid` and `eppn`.
