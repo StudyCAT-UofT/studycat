@@ -194,7 +194,7 @@ const QuizContent = ({ quizId }: { quizId: string }) => {
     }
 
     const handleReturnToDashboard = () => {
-        router.push('/')
+        router.push('/quiz')
     }
 
     if (quizState.loading) {

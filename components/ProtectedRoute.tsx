@@ -1,6 +1,8 @@
 'use client'
 
-import { Container, Stack, Text, Title, Card, Button, Loader, Center } from '@mantine/core'
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { Container, Stack, Loader, Center } from '@mantine/core'
 import { useAuth } from '@/lib/auth-context'
 import { AuthenticatedLayout } from './AuthenticatedLayout'
 
@@ -11,6 +13,14 @@ interface ProtectedRouteProps {
 
 export const ProtectedRoute = ({ children, fallback }: ProtectedRouteProps) => {
     const { user, loading, isAuthenticated } = useAuth()
+    const router = useRouter()
+
+    // Redirect to login if not authenticated
+    useEffect(() => {
+        if (!loading && !isAuthenticated) {
+            router.replace('/login')
+        }
+    }, [loading, isAuthenticated, router])
 
     if (loading) {
         return (
@@ -24,6 +34,7 @@ export const ProtectedRoute = ({ children, fallback }: ProtectedRouteProps) => {
         )
     }
 
+    // Show loader while redirecting (prevents flash of content)
     if (!isAuthenticated || !user) {
         if (fallback) {
             return <>{fallback}</>
@@ -31,21 +42,11 @@ export const ProtectedRoute = ({ children, fallback }: ProtectedRouteProps) => {
 
         return (
             <Container size="sm" py="xl">
-                <Stack align="center" gap="md">
-                    <Title order={2}>Access Denied</Title>
-                    <Card withBorder padding="lg" radius="md">
-                        <Stack align="center" gap="md">
-                            <Text>You need to be logged in to access this page.</Text>
-                            <Button
-                                component="a"
-                                href="/login"
-                                variant="filled"
-                            >
-                                Go to Login
-                            </Button>
-                        </Stack>
-                    </Card>
-                </Stack>
+                <Center h={400}>
+                    <Stack align="center" gap="md">
+                        <Loader size="lg" />
+                    </Stack>
+                </Center>
             </Container>
         )
     }
