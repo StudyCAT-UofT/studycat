@@ -49,6 +49,6 @@ next-env.d.ts
 # Claude
 CLAUDE.md
 
-# Shibboleth IdP auto-generated credentials and metadata
-shibboleth/idp/customized-shibboleth-idp/credentials/
-shibboleth/idp/customized-shibboleth-idp/metadata/idp-metadata.xml
+# Shibboleth IdP - entire generated configuration directory
+# Generated via Docker and configured manually per SHIBBOLETH-SETUP.md
+shibboleth/idp/customized-shibboleth-idp/
