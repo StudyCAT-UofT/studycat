@@ -687,13 +687,13 @@ const main = async () => {
       includedBlooms: "'REMEMBER', 'UNDERSTAND', 'APPLY', 'ANALYZE', 'EVALUATE', 'CREATE'",
       createdById: instructor.id,
       quizModules: {
-      createMany: {
-        data: [
-          { moduleId: module1.id },
-          { moduleId: module2.id },
-        ],
+        createMany: {
+          data: [
+            { moduleId: module1.id },
+            { moduleId: module2.id },
+          ],
+        },
       },
-    },
     },
   })
 

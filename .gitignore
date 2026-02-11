@@ -48,3 +48,7 @@ next-env.d.ts
 
 # Claude
 CLAUDE.md
+
+# Shibboleth IdP auto-generated credentials and metadata
+shibboleth/idp/customized-shibboleth-idp/credentials/
+shibboleth/idp/customized-shibboleth-idp/metadata/idp-metadata.xml

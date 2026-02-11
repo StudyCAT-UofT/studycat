@@ -61,7 +61,7 @@ This guide provides step-by-step instructions for setting up Shibboleth Single S
 
 ### 1. Add Host Entries
 
-Edit `/etc/hosts` (requires sudo):
+Edit `/etc/hosts` (requires sudo on Mac/Linux, run as Administrator on Windows):
 
 ```bash
 sudo nano /etc/hosts
@@ -74,7 +74,91 @@ Add these lines:
 127.0.0.1   sp.studycat.local
 ```
 
-### 2. Start All Services
+### 2. Generate Certificates
+
+Since security certificates are unique to each environment and excluded from Git, every developer must generate their own local certificates.
+
+#### Generate SP Certificates
+
+```bash
+# Create directory
+mkdir -p shibboleth/sp/certificates
+cd shibboleth/sp/certificates
+
+# Generate SP certificates (for Apache HTTPS and SAML signing)
+openssl req -x509 -newkey rsa:3072 \
+  -keyout sp-key.pem \
+  -out sp-cert.pem \
+  -days 3650 \
+  -nodes \
+  -subj "/CN=sp.studycat.local"
+
+# Copy to create signing certificates (same keypair used for SAML signing)
+cp sp-cert.pem sp-signing-cert.pem
+cp sp-key.pem sp-signing-key.pem
+
+# Fix permissions (Unix/Mac only, skip on Windows)
+chmod 600 sp-key.pem sp-signing-key.pem
+
+cd ../../..
+```
+
+#### Update the IdP with Your New SP Certificate
+
+> **⚠️ Important:** Whenever you generate new SP certificates, you MUST update the IdP's SP metadata file with your new public certificate. The IdP encrypts SAML assertions using your SP's public key—if they don't match, authentication will fail with "Unable to resolve any key decryption keys".
+
+1. Open your newly generated `shibboleth/sp/certificates/sp-cert.pem` in a text editor.
+
+2. Copy the certificate content between (but not including) the `-----BEGIN CERTIFICATE-----` and `-----END CERTIFICATE-----` lines.
+
+3. Open `shibboleth/idp/customized-shibboleth-idp/metadata/sp-metadata.xml`.
+
+4. Find the `<ds:X509Certificate>` tag and replace its contents with the certificate string you copied.
+
+5. Rebuild and restart the IdP to load the new metadata:
+   ```bash
+   docker compose --profile shibboleth build idp
+   docker compose --profile shibboleth up -d idp
+   ```
+
+#### Generate IdP Credentials
+
+```bash
+# Create credentials directory
+mkdir -p shibboleth/idp/customized-shibboleth-idp/credentials
+cd shibboleth/idp/customized-shibboleth-idp/credentials
+
+# Generate signing key/cert
+openssl req -newkey rsa:2048 -nodes -keyout idp-signing.key -x509 -days 365 -out idp-signing.crt \
+  -subj "/CN=idp.studycat.local"
+
+# Generate encryption key/cert
+openssl req -newkey rsa:2048 -nodes -keyout idp-encryption.key -x509 -days 365 -out idp-encryption.crt \
+  -subj "/CN=idp.studycat.local"
+
+# Generate browser TLS certificate (PKCS12 format for Jetty)
+openssl req -newkey rsa:2048 -nodes -keyout idp-browser.key -x509 -days 365 -out idp-browser.crt \
+  -subj "/CN=idp.studycat.local"
+openssl pkcs12 -export -legacy -inkey idp-browser.key -in idp-browser.crt \
+  -out idp-browser.p12 -password pass:abc123
+
+# Generate backchannel TLS certificate (PKCS12 format for Jetty)
+openssl req -newkey rsa:2048 -nodes -keyout idp-backchannel.key -x509 -days 365 -out idp-backchannel.crt \
+  -subj "/CN=idp.studycat.local"
+openssl pkcs12 -export -legacy -inkey idp-backchannel.key -in idp-backchannel.crt \
+  -out idp-backchannel.p12 -password pass:abc123
+
+# Generate sealer keystore (for cookie encryption) - requires Java
+openssl rand -out sealer.kver 32
+keytool -genseckey -alias secret1 -keyalg AES -keysize 128 -keystore sealer.jks \
+  -storepass abc123 -keypass abc123 -storetype JCEKS
+
+cd ../../../..
+```
+
+**Note:** The `keytool` command requires Java. If Java is not available, copy `sealer.jks` and `sealer.kver` from another developer who has generated them.
+
+### 3. Start All Services
 
 ```bash
 cd /path/to/studycat
@@ -90,58 +174,7 @@ pnpm db:migrate
 pnpm dev
 ```
 
-## 🔐 Shibboleth Security Setup
-Since security certificates (.pem files) are unique to each environment and are excluded from Git, every developer must generate their own local keys and register them with the Identity Provider (IdP).
-
-### Run the Generation Script
-We provide a script to automate the folder creation and key generation. Run this from the project root:
-
-```
-mkdir shibboleth/sp/certificates
-
-# Ensure the script is executable
-chmod +x generate-shib-certs.sh
-
-# Run the script
-./generate-shib-certs.sh
-```
-
-What to do during the prompt: The script will trigger an interactive OpenSSL session.
-
-You can safely hit Enter to skip most fields.
-
-Important: When it asks for Common Name (CN), type sp.studycat.local.
-
-### Update the Identity Provider (IdP)
-The IdP cannot talk to your local machine until it has your new Public Certificate.
-
-Open shibboleth/sp/certificates/sp-cert.pem in your editor.
-
-Copy the long string of text between the -----BEGIN CERTIFICATE----- and -----END CERTIFICATE----- lines.
-
-On your IdP server (or local IdP container), open the metadata file: shibboleth-idp/metadata/sp-metadata.xml
-
-Find the <ds:X509Certificate> tag and replace its contents with the string you copied.
-
-Restart the IdP (e.g., restart the Jetty or Docker container) to refresh the metadata.
-
-### Restart the Service Provider
-Finally, restart your Shibboleth SP container to load the new keys:
-
-```
-docker-compose restart sp
-```
-
-### ⚠️ Troubleshooting: "Unable to resolve any key decryption keys"
-If you see this error in your browser after authenticating:
-
-Mismatch: Your local sp-key.pem does not match the sp-cert.pem you gave to the IdP. This happens if you ran the script twice but only updated the IdP once.
-
-Permissions: Ensure sp-key.pem is not world-readable (chmod 600).
-
-Paths: Double-check that the paths in shibboleth2.xml are absolute and correct.
-
-### 3. Test the Setup
+### 4. Test the Setup
 
 1. Open browser: `https://sp.studycat.local/`
 2. Click "Login"
@@ -155,25 +188,15 @@ Paths: Double-check that the paths in shibboleth2.xml are absolute and correct.
 
 ## Detailed Setup
 
-### Step 1: Initialize IdP Configuration
+### Step 1: IdP Configuration
 
-The IdP configuration is already included in the repository at `shibboleth/idp/customized-shibboleth-idp/`. If you need to regenerate it:
+The IdP configuration files are already included in the repository at `shibboleth/idp/customized-shibboleth-idp/conf/`. These files have been customized for StudyCAT and should not be regenerated.
 
-```bash
-cd shibboleth/idp
-
-# Initialize IdP (only needed once)
-docker run -it -v "$(pwd)":/ext-mount --rm unicon/shibboleth-idp init-idp.sh
-```
-
-**What this does:**
-- Generates IdP configuration in `customized-shibboleth-idp/`
-- Creates cryptographic keys and certificates
-- Sets up default configuration files
+> **⚠️ Warning:** Do NOT run `init-idp.sh` - it would overwrite the custom configuration files in the repository. The configuration is already set up; you only need to generate credentials.
 
 ### Step 2: Generate TLS Certificates
 
-The IdP needs TLS certificates for browser and backchannel communication.
+The IdP needs TLS certificates for browser and backchannel communication. These are generated in the Quick Start section above.
 
 ```bash
 cd shibboleth/idp/customized-shibboleth-idp/credentials
@@ -333,7 +356,6 @@ Apache configuration in `shibboleth/sp/config/apache-studycat.conf`:
 **Note:** The actual configuration is dynamically patched at startup referencing:
 - `shibboleth/sp/config/protected-routes.conf`: Defines protected paths and callback routes.
 - `shibboleth/sp/config/shibboleth-headers.conf`: Maps SAML attributes to HTTP headers.
-```
 
 ### Step 7: Configure Next.js Application
 
@@ -389,8 +411,11 @@ services:
   sp:
     build: ./shibboleth/sp
     ports:
+      - "80:80"
       - "443:443"
-      - "9443:9443"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"  # Allow SP to reach Next.js
+      - "idp.studycat.local:host-gateway"    # Allow SP to reach IdP
     environment:
       HOSTNAME: "sp.studycat.local"
       SERVICE_TO_PROTECT: "host.docker.internal"
@@ -400,9 +425,9 @@ services:
       SHIB_DOWNLOAD_METADATA: "false"
     volumes:
       - ./shibboleth/sp/config/idp-metadata.xml:/etc/shibboleth/metadata/idp-metadata.xml:ro
-      - ./shibboleth/sp/config/shibboleth2.xml:/etc/shibboleth/shibboleth2.xml:ro
+      - ./shibboleth/sp/certificates/sp-key.pem:/etc/shibboleth/sp-key.pem:ro
+      - ./shibboleth/sp/certificates/sp-cert.pem:/etc/shibboleth/sp-cert.pem:ro
       - ./shibboleth/sp/config/attribute-map.xml:/etc/shibboleth/attribute-map.xml:ro
-      - ./shibboleth/sp/config/apache-studycat.conf:/etc/apache2/sites-enabled/studycat.conf:ro
     profiles:
       - shibboleth
 ```
@@ -602,7 +627,45 @@ Attributes:
 1. Import certificates into your system keychain (macOS/Linux)
 2. Or use browser flags to accept self-signed certs on localhost
 
-### Issue 7: Port Already in Use
+### Issue 7: "Unable to resolve any key decryption keys"
+
+**Symptom:** After authenticating at the IdP, you see an error page with "Unable to resolve any key decryption keys"
+
+**Cause:** Your SP private key doesn't match the public certificate registered with the IdP. This typically happens when you regenerate SP certificates but don't update the IdP's `sp-metadata.xml`.
+
+**Fix:**
+1. Open your SP certificate: `shibboleth/sp/certificates/sp-cert.pem`
+2. Copy the certificate content (between `BEGIN CERTIFICATE` and `END CERTIFICATE`)
+3. Open `shibboleth/idp/customized-shibboleth-idp/metadata/sp-metadata.xml`
+4. Replace the content of `<ds:X509Certificate>` with your certificate
+5. Rebuild and restart the IdP:
+   ```bash
+   docker compose --profile shibboleth build --no-cache idp
+   docker compose --profile shibboleth up -d idp
+   ```
+
+**Prevention:** Always update the IdP's sp-metadata.xml whenever you regenerate SP certificates.
+
+### Issue 8: "Metadata instance was invalid at time of acquisition"
+
+**Symptom:** SP logs show:
+```
+ERROR OpenSAML.MetadataProvider.XML : metadata instance was invalid at time of acquisition
+CRIT Shibboleth.Application : error initializing MetadataProvider
+```
+
+**Cause:** The IdP metadata has expired. The `validUntil` attribute in the metadata XML is in the past.
+
+**Fix:**
+1. Check the current date and the `validUntil` date in `shibboleth/sp/config/idp-metadata.xml` and `shibboleth/idp/customized-shibboleth-idp/metadata/idp-metadata.xml`
+2. Update the `validUntil` attribute to a future date (e.g., `validUntil="2027-02-10T00:00:00.000Z"`)
+3. Rebuild and restart both IdP and SP:
+   ```bash
+   docker compose --profile shibboleth build --no-cache idp sp
+   docker compose --profile shibboleth up -d idp sp
+   ```
+
+### Issue 9: Port Already in Use
 
 **Symptom:** `docker compose up` fails with "port is already allocated"
 
@@ -614,6 +677,92 @@ lsof -i :4443
 
 # Kill the process or change Docker port mappings
 ```
+
+### Issue 10: SP Cannot Reach IdP (DNS Resolution)
+
+**Symptom:** SP logs show:
+```
+ERROR XMLTooling.ParserPool : unable to connect socket for URL 'https://idp.studycat.local:4443/idp/shibboleth'
+```
+
+**Cause:** The SP container cannot resolve `idp.studycat.local` hostname.
+
+**Fix:** Ensure `docker-compose.yml` has the `extra_hosts` entry for the SP service:
+```yaml
+sp:
+  extra_hosts:
+    - "host.docker.internal:host-gateway"
+    - "idp.studycat.local:host-gateway"  # This line is required
+```
+
+Then rebuild and restart the SP:
+```bash
+docker compose --profile shibboleth up -d sp
+```
+
+### Issue 11: "Message was signed, but signature could not be verified"
+
+**Symptom:** After authenticating at the IdP, you see:
+```
+opensaml::SecurityPolicyException at (https://sp.studycat.local/Shibboleth.sso/SAML2/POST)
+Message was signed, but signature could not be verified.
+```
+
+**Cause:** The IdP's signing certificate in the metadata files doesn't match the actual certificate the IdP is using to sign assertions. This happens when IdP credentials are regenerated but the metadata files aren't updated.
+
+**Fix:**
+1. Get the current IdP signing certificate content:
+   ```bash
+   cat shibboleth/idp/customized-shibboleth-idp/credentials/idp-signing.crt
+   ```
+
+2. Update both metadata files with the new certificate:
+   - `shibboleth/sp/config/idp-metadata.xml`
+   - `shibboleth/idp/customized-shibboleth-idp/metadata/idp-metadata.xml`
+
+   Replace the content of `<ds:X509Certificate>` tags in the `KeyDescriptor use="signing"` sections.
+
+3. Do the same for the encryption certificate from `idp-encryption.crt`.
+
+4. Rebuild and restart both services:
+   ```bash
+   docker compose --profile shibboleth up -d --build idp
+   docker compose --profile shibboleth restart sp
+   ```
+
+**Prevention:** Whenever you regenerate IdP credentials, always update the certificates in both idp-metadata.xml files.
+
+### Issue 12: "A valid authentication statement was not found"
+
+**Symptom:** After authenticating at the IdP, you see:
+```
+opensaml::FatalProfileException at (https://sp.studycat.local/Shibboleth.sso/SAML2/POST)
+A valid authentication statement was not found in the incoming message.
+```
+
+**Cause:** The IdP encrypts SAML assertions by default, and the SP may have trouble decrypting them (especially if certificates don't match or there are compatibility issues).
+
+**Fix:** Disable assertion encryption for development by adding a relying party override in `shibboleth/idp/customized-shibboleth-idp/conf/relying-party.xml`:
+
+```xml
+<util:list id="shibboleth.RelyingPartyOverrides">
+    <!-- StudyCAT SP - disable encryption for development -->
+    <bean parent="RelyingPartyByName" c:relyingPartyIds="https://sp.studycat.local/shibboleth">
+        <property name="profileConfigurations">
+            <list>
+                <bean parent="SAML2.SSO" p:encryptAssertions="false" />
+            </list>
+        </property>
+    </bean>
+</util:list>
+```
+
+Then rebuild the IdP:
+```bash
+docker compose --profile shibboleth up -d --build idp
+```
+
+**Note:** In production with a real IdP, assertion encryption should remain enabled for security.
 
 ---
 
@@ -655,16 +804,11 @@ lsof -i :4443
    - Next.js validates JWT
    - User is authenticated!
 
-### Role Mapping
+### User Authentication
 
-The application maps Shibboleth attributes to internal user roles (`student`, `instructor`, `admin`) based on the `scoped-affiliation` or `affiliation` attribute.
+The application authenticates users by matching the `uid` header (username) against existing users in the database. User roles are **NOT** determined by Shibboleth affiliation attributes—they are managed through course enrollments in the database (`offeringRole`: STUDENT, INSTRUCTOR, TA).
 
-**Mapping Logic:**
-1. **Admin**: If affiliation contains `employee` or `admin`.
-2. **Instructor**: If affiliation contains `faculty`, `staff`, or `instructor`.
-3. **Student**: Default role if no other matches found (or explicitly `student`).
-
-This logic is implemented in `app/api/auth/shibboleth/callback/route.ts`.
+While the IdP releases affiliation attributes and the SP forwards them as headers, the application only uses the username (`uid`) for authentication. The authentication callback is implemented in `app/api/auth/shibboleth/callback/route.ts`.
 
 ### Logout Behavior
 
@@ -794,5 +938,5 @@ For issues or questions:
 
 ---
 
-**Last Updated:** January 27, 2026  
-**Version:** 1.0.0
+**Last Updated:** February 11, 2026
+**Version:** 1.2.0
