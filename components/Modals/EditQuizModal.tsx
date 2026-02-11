@@ -95,9 +95,9 @@ const EditQuizModal = ({
 
             const thresholds: Record<string, number> = {}
             quiz.quizModules?.forEach(qm => {
-            if (qm.moduleId && qm.masteryThreshold !== undefined) {
-                thresholds[qm.moduleId] = qm.masteryThreshold
-            }
+                if (qm.moduleId && qm.masteryThreshold !== undefined) {
+                    thresholds[qm.moduleId] = qm.masteryThreshold
+                }
             })
 
             setFormData(prev => ({
@@ -287,7 +287,10 @@ const EditQuizModal = ({
                             Mastery thresholds represent the theta value where it can be reasonably assumed a student has mastered a certain module.
                         </Text>
                         <Text fw={400} size="xs">
-                            Once a student&apos;s theta value reaches this threshold, questions from this module will be deprioritzed. 
+                            Once a student&apos;s theta value reaches this threshold, questions from this module will no longer be shown.
+                        </Text>
+                        <Text fw={400} size="xs">
+                            When a student has reached the threshold value for all included modules, the quiz will end.
                         </Text>
                         <Text fw={400} size="xs">
                             1.0 is a standard threshold. For a higher level of mastery, use a threshold around 1.3. For a lower level of mastery, use a threshold around 0.7.
