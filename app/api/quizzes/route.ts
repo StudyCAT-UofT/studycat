@@ -86,7 +86,7 @@ export async function GET(request: Request) {
           select: {
             quizId: true,
             moduleId: true,
-            masteryThreshold: true, // <-- add this
+            masteryThreshold: true,
             module: {
               select: {
                 id: true,
