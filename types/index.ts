@@ -61,6 +61,7 @@ export interface QuizItem {
 export interface QuizModule {
     quizId: string    
     moduleId: string 
+    masteryThreshold: number
 }
 
 // Quiz Attempt Interfaces

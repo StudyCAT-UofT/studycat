@@ -1001,7 +1001,7 @@ const main = async () => {
       quizModules: {
         createMany: {
           data: [
-            { moduleId: module2.id },
+            { moduleId: module2.id, masteryThreshold: 0.7 },
           ],
         },
       }
@@ -1033,8 +1033,8 @@ const main = async () => {
       quizModules: {
         createMany: {
           data: [
-            { moduleId: module1.id },
-            { moduleId: module2.id },
+            { moduleId: module1.id, masteryThreshold: 0.7 },
+            { moduleId: module2.id, masteryThreshold: 0.7 },
           ],
         },
       }
