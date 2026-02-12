@@ -38,13 +38,6 @@ export default function QuizFeedback({ feedbackData, onContinue, onReturnToDashb
         return `${minutes}m ${remainingSeconds}s`
     }
 
-    // Prepare data for radar chart
-    const radarData = feedbackData.modulePerformance.map(mod => ({
-        module: mod.moduleName,
-        performance: mod.performanceValue,
-        fullMark: 100,
-    }))
-
     // Get performance color
     const getPerformanceColor = (level: string) => {
         switch (level) {
@@ -190,8 +183,8 @@ export default function QuizFeedback({ feedbackData, onContinue, onReturnToDashb
                             </Text>
                             <Text size="sm">
                                 <strong>What does mastery mean?</strong> Our adaptive system uses Item Response Theory (IRT) to estimate your ability level for each module. 
-                                When your estimated ability exceeds the mastery threshold set by your instructor, you've demonstrated sufficient understanding of that topic. 
-                                Since you've reached the mastery threshold for all modules in this quiz, there's no need to continue - you've already shown you know the material!
+                                When your estimated ability exceeds the mastery threshold set by your instructor, you&apos;ve demonstrated sufficient understanding of that topic. 
+                                Since you&apos;ve reached the mastery threshold for all modules in this quiz, there&apos;s no need to continue - you&apos;ve already shown you know the material!
                             </Text>
                             <Text size="sm">
                                 Keep up the excellent work! You can return to the dashboard to practice other topics or review your performance below.
@@ -229,7 +222,7 @@ export default function QuizFeedback({ feedbackData, onContinue, onReturnToDashb
                                 <Text size="sm">
                                     <strong>Overall Mastery:</strong> This shows your overall understanding across all past quiz attempts, not just this quiz.
                                     The chart shows your current ability level (theta) as bars compared to the mastery threshold shown as a line.
-                                    When your ability exceeds the threshold, you've achieved mastery!
+                                    When your ability exceeds the threshold, you&apos;ve achieved mastery!
                                 </Text>
                             </Alert>
 
