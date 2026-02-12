@@ -102,6 +102,7 @@ export interface StepAttemptResponse {
     nextAction: string
     nextItem?: QuizItem
     isFinished: boolean
+    allMastered: boolean
     feedback?: Feedback
 }
 

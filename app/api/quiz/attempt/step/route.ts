@@ -119,8 +119,10 @@ export const POST = async (request: NextRequest) => {
       );
     }
 
+    console.log(fastApiData.next_action)
+
     // Update attempt based on response
-    if (fastApiData.next_action === 'FINISH') {
+    if (fastApiData.next_action === 'FINISH' || fastApiData.next_action === 'MASTERED') {
       await prisma.attempt.update({
         where: { id: attempt.id },
         data: {
@@ -148,6 +150,7 @@ export const POST = async (request: NextRequest) => {
       nextAction: fastApiData.next_action,
       nextItem: fastApiData.next_item,
       isFinished: fastApiData.next_action === 'FINISH',
+      allMastered: fastApiData.next_action === 'MASTERED',
       feedback: {
         correctAnswerIndex: correctAnswerIndex,
         selectedAnswerIndex: answerIndex,
