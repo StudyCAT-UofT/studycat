@@ -74,8 +74,43 @@ export const POST = async (request: NextRequest) => {
       );
     }
 
+    // Check for existing in-progress attempt for this quiz and enrollment
+    let attempt = await prisma.attempt.findFirst({
+      where: {
+        quizId,
+        enrollmentId: enrollment.id,
+        status: 'IN_PROGRESS',
+      },
+      orderBy: {
+        startedAt: 'desc', // Get the most recent one
+      },
+    });
+
+    // If an in-progress attempt exists, return it
+    if (attempt) {
+      // Call FastAPI to get current state
+      const fastApiRequest: FastAPIInitRequest = {
+        attempt_id: attempt.id,
+        concepts: concepts || moduleIds,
+        prior_mu: priorMu,
+        prior_sigma2: priorSigma2,
+      };
+
+      const fastApiData = await fastApiClient.initAttempt(fastApiRequest);
+
+      return NextResponse.json({
+        attemptId: attempt.id,
+        quizId,
+        enrollmentId: enrollment.id,
+        theta: fastApiData.theta,
+        nextItem: fastApiData.next_item,
+        nextAction: fastApiData.next_action,
+        startedAt: attempt.startedAt,
+      });
+    }
+
     // Create attempt in database
-    const attempt = await prisma.attempt.create({
+    attempt = await prisma.attempt.create({
       data: {
         quiz: {
           connect: { id: quizId }
