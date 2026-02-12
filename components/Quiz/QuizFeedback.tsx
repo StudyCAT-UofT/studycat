@@ -18,7 +18,7 @@ import {
     Flex,
 } from '@mantine/core'
 import { IconCheck, IconX, IconClock, IconInfoCircle } from '@tabler/icons-react'
-import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from 'recharts'
+import { CompositeChart } from '@mantine/charts'
 import type { FeedbackData, DetailedQuestionReview } from '@/types'
 import { getBloomColor } from '@/utils/getBloomColor'
 
@@ -219,7 +219,7 @@ export default function QuizFeedback({ feedbackData, onContinue, onReturnToDashb
                     )}
                 </Paper>
 
-                {/* Module Mastery Spiderweb Plot */}
+                {/* Module Mastery Composite Chart */}
                 {feedbackData.modulePerformance.length > 0 && (
                     <Paper p="xl" radius="md" withBorder>
                         <Stack gap="lg">
@@ -228,69 +228,92 @@ export default function QuizFeedback({ feedbackData, onContinue, onReturnToDashb
                             <Alert icon={<IconInfoCircle size={20} />} color="blue" variant="light">
                                 <Text size="sm">
                                     <strong>Overall Mastery:</strong> This shows your overall understanding across all past quiz attempts, not just this quiz.
-                                    Performance levels: <strong>Developing</strong> (building foundations),
-                                    <strong> Proficient</strong> (solid understanding),
-                                    <strong> Advanced</strong> (mastery achieved)
+                                    The chart shows your current ability level (theta) as bars compared to the mastery threshold shown as a line.
+                                    When your ability exceeds the threshold, you've achieved mastery!
                                 </Text>
                             </Alert>
 
                             <Text size="sm" c="dimmed">
-                                Your overall mastery across different modules
+                                Your current ability level compared to mastery thresholds
                             </Text>
 
-                            <ResponsiveContainer width="100%" height={400}>
-                                <RadarChart data={radarData}>
-                                    <PolarGrid />
-                                    <PolarAngleAxis
+                            {/* Prepare data for chart */}
+                            {(() => {
+                                const chartData = feedbackData.modulePerformance.map(module => ({
+                                    module: module.moduleName,
+                                    'Your Ability (θ)': module.theta,
+                                    'Mastery Threshold': module.threshold,
+                                }))
+
+                                return (
+                                    <CompositeChart
+                                        h={300}
+                                        data={chartData}
                                         dataKey="module"
-                                        tick={{ fontSize: 12 }}
+                                        maxBarWidth={60}
+                                        series={[
+                                            { name: 'Your Ability (θ)', color: 'blue.6', type: 'bar' },
+                                            { name: 'Mastery Threshold', color: 'orange.6', type: 'line' },
+                                        ]}
+                                        curveType="linear"
+                                        tickLine="xy"
+                                        gridAxis="xy"
+                                        withLegend
+                                        legendProps={{ verticalAlign: 'bottom', height: 50 }}
                                     />
-                                    <PolarRadiusAxis
-                                        angle={90}
-                                        domain={[0, 100]}
-                                        tick={{ fontSize: 12 }}
-                                    />
-                                    <Radar
-                                        name="Mastery"
-                                        dataKey="performance"
-                                        stroke="#2196F3"
-                                        fill="#2196F3"
-                                        fillOpacity={0.6}
-                                    />
-                                </RadarChart>
-                            </ResponsiveContainer>
+                                )
+                            })()}
 
                             <Divider />
 
+                            {/* Individual module cards with details */}
                             <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
-                                {feedbackData.modulePerformance.map(module => (
-                                    <Card key={module.moduleId} withBorder padding="md">
-                                        <Stack gap="xs">
-                                            <Group justify="space-between" align="center">
-                                                <Text fw={600}>{module.moduleName}</Text>
-                                                {module.questionsAttempted === 0 ? (
-                                                    <Badge color="gray">
-                                                        Not Attempted
-                                                    </Badge>
-                                                ) : (
-                                                    <Badge color={getPerformanceColor(module.performanceLevel)}>
-                                                        {module.performanceLevel}
-                                                    </Badge>
+                                {feedbackData.modulePerformance.map(module => {
+                                    const hasMastered = module.theta >= module.threshold
+
+                                    return (
+                                        <Card key={module.moduleId} withBorder padding="lg">
+                                            <Stack gap="xs">
+                                                <Group justify="space-between" align="center">
+                                                    <Text fw={600}>{module.moduleName}</Text>
+                                                    {module.questionsAttempted === 0 ? (
+                                                        <Badge color="gray">Not Attempted</Badge>
+                                                    ) : hasMastered ? (
+                                                        <Badge color="green" leftSection={<IconCheck size={14} />}>
+                                                            Mastered
+                                                        </Badge>
+                                                    ) : (
+                                                        <Badge color={getPerformanceColor(module.performanceLevel)}>
+                                                            {module.performanceLevel}
+                                                        </Badge>
+                                                    )}
+                                                </Group>
+                                                <Group justify="space-between">
+                                                    <Text size="sm" c="dimmed">
+                                                        <strong>Your Ability:</strong> θ = {module.theta.toFixed(2)}
+                                                    </Text>
+                                                    <Text size="sm" c="orange" fw={500}>
+                                                        <strong>Threshold:</strong> {module.threshold.toFixed(2)}
+                                                    </Text>
+                                                </Group>
+                                                <Text size="sm" c="dimmed">
+                                                    <strong>This quiz:</strong> {module.questionsCorrect} / {module.questionsAttempted} correct
+                                                </Text>
+                                                {hasMastered && (
+                                                    <Alert icon={<IconCheck size={16} />} color="green" variant="light" p="xs">
+                                                        <Text size="xs">
+                                                            Mastered! Your ability exceeds the threshold.
+                                                        </Text>
+                                                    </Alert>
                                                 )}
-                                            </Group>
-                                            <Text size="sm" c="dimmed">
-                                                <strong>This quiz:</strong> {module.questionsCorrect} / {module.questionsAttempted} correct
-                                            </Text>
-                                            <Text size="sm" c="dimmed">
-                                                <strong>Overall mastery:</strong> {module.performanceValue}%
-                                            </Text>
-                                        </Stack>
-                                    </Card>
-                                ))}
+                                            </Stack>
+                                        </Card>
+                                    )
+                                })}
                             </SimpleGrid>
 
                             {/* Resource placeholder */}
-                            {feedbackData.modulePerformance.some(m => m.performanceLevel === 'Developing') && (
+                            {feedbackData.modulePerformance.some(m => m.theta < m.threshold) && (
                                 <Alert icon={<IconInfoCircle size={20} />} color="orange" variant="light">
                                     <Text size="sm" fw={500}>
                                         Recommended resources coming soon for modules where you can improve!
