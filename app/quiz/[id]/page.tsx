@@ -14,6 +14,7 @@ interface QuizState {
     attemptId: string
     currentItem?: QuizItem
     isFinished: boolean
+    allMastered: boolean
     loading: boolean
     error?: string
     feedback?: Feedback | null
@@ -32,6 +33,7 @@ const QuizContent = ({ quizId }: { quizId: string }) => {
     const [quizState, setQuizState] = useState<QuizState>({
         attemptId: '',
         isFinished: false,
+        allMastered: false,
         loading: true,
         loadingResults: false,
         showFeedback: false,
@@ -70,6 +72,7 @@ const QuizContent = ({ quizId }: { quizId: string }) => {
                     attemptId: response.attemptId,
                     currentItem: response.nextItem,
                     isFinished: false,
+                    allMastered: false,
                     loading: false,
                     loadingResults: false,
                     showFeedback: false,
@@ -106,7 +109,8 @@ const QuizContent = ({ quizId }: { quizId: string }) => {
                 ...prev,
                 feedback: response.feedback || null,
                 nextItem: response.nextItem,
-                isFinished: response.isFinished
+                isFinished: response.isFinished,
+                allMastered: response.allMastered
             }))
         } catch (error) {
             setQuizState(prev => ({
@@ -117,7 +121,7 @@ const QuizContent = ({ quizId }: { quizId: string }) => {
     }
 
     const handleNext = async () => {
-        if (quizState.isFinished) {
+        if (quizState.isFinished || quizState.allMastered) {
             // Quiz is finished, show feedback screen
             await showFeedbackScreen()
         } else {
@@ -221,7 +225,7 @@ const QuizContent = ({ quizId }: { quizId: string }) => {
     }
 
     // Show feedback screen
-    if (quizState.showFeedback) {
+    if (quizState.showFeedback || quizState.allMastered) {
         if (quizState.loadingFeedback) {
             return (
                 <Container size="md" py="xl">
@@ -241,6 +245,7 @@ const QuizContent = ({ quizId }: { quizId: string }) => {
                     feedbackData={quizState.feedbackData}
                     onContinue={handleContinueQuiz}
                     onReturnToDashboard={handleReturnToDashboard}
+                    allMastered={quizState.allMastered}
                 />
             )
         }

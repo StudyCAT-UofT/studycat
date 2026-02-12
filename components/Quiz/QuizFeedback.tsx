@@ -26,9 +26,10 @@ interface QuizFeedbackProps {
     feedbackData: FeedbackData
     onContinue: () => void
     onReturnToDashboard: () => void
+    allMastered: boolean
 }
 
-export default function QuizFeedback({ feedbackData, onContinue, onReturnToDashboard }: QuizFeedbackProps) {
+export default function QuizFeedback({ feedbackData, onContinue, onReturnToDashboard, allMastered }: QuizFeedbackProps) {
     // Format time for display
     const formatTime = (ms: number) => {
         const seconds = Math.floor(ms / 1000)
@@ -174,6 +175,30 @@ export default function QuizFeedback({ feedbackData, onContinue, onReturnToDashb
                         </SimpleGrid>
                     </Stack>
                 </Paper>
+
+                {/* Mastery Achievement Alert */}
+                {allMastered && (
+                    <Alert 
+                        icon={<IconCheck size={24} />} 
+                        color="green" 
+                        variant="filled"
+                        title="Congratulations! You've Mastered All Modules!"
+                    >
+                        <Stack gap="sm">
+                            <Text size="sm" fw={500}>
+                                You have achieved mastery in all modules covered by this quiz, causing it to end early!
+                            </Text>
+                            <Text size="sm">
+                                <strong>What does mastery mean?</strong> Our adaptive system uses Item Response Theory (IRT) to estimate your ability level for each module. 
+                                When your estimated ability exceeds the mastery threshold set by your instructor, you've demonstrated sufficient understanding of that topic. 
+                                Since you've reached the mastery threshold for all modules in this quiz, there's no need to continue - you've already shown you know the material!
+                            </Text>
+                            <Text size="sm">
+                                Keep up the excellent work! You can return to the dashboard to practice other topics or review your performance below.
+                            </Text>
+                        </Stack>
+                    </Alert>
+                )}
 
                 {/* Action Buttons - Positioned early for easy access */}
                 <Paper p="lg" radius="md" withBorder style={{ position: 'sticky', top: 20, zIndex: 100, backgroundColor: 'white' }}>
