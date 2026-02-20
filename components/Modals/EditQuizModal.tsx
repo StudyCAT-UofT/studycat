@@ -345,6 +345,15 @@ const EditQuizModal = ({
                     />
                 </Box>
 
+                <Box>
+                    <Text size="sm" fw={500} mb="xs">Shuffle Options?</Text>
+                    <Switch
+                        label={formData.shuffled ? 'Shuffled' : 'Not Shuffled'}
+                        checked={formData.shuffled}
+                        onChange={(e) => setFormData({ ...formData, shuffled: e.currentTarget.checked })}
+                    />
+                </Box>
+
                 <Group justify="flex-end" mt="md">
                     <Button variant="outline" onClick={onClose} disabled={loading}>
                         Cancel
