@@ -170,7 +170,7 @@ export async function GET(request: Request) {
  * - includedModuleIds (required): Array of module IDs to include
  * - masteryThresholds (required): Array of mastery thresholds (same order as modules)
  * - active (optional): Whether the quiz is active (default: true)
- * - shuffled (optional): Whether answers to each question should be shuffled (default: true)
+ * - shuffled (optional): Whether answers to each question should be shuffled (default: false)
  * - fixedLength (required): Number of questions in the quiz
  * 
  * Returns:
