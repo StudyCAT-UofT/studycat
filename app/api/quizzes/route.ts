@@ -83,7 +83,10 @@ export async function GET(request: Request) {
           }
         },
         quizModules: {
-          include: {
+          select: {
+            quizId: true,
+            moduleId: true,
+            masteryThreshold: true,
             module: {
               select: {
                 id: true,
@@ -121,16 +124,13 @@ export async function GET(request: Request) {
       // Convert includedModuleIds to module names
       const includedModuleNames = quiz.quizModules.map(qm => qm.module.name)
 
-      // Use the included module names as the modules for display
-      const modules = includedModuleNames
-
       // Return standardized quiz object with calculated statistics
       return {
         id: quiz.id,
         title: quiz.title,
         description: null, // Not in current schema, but kept for API compatibility
-        modules: modules,
-        module: modules.length > 0 ? modules[0] : 'Unknown', // Primary module for table display
+        modules: includedModuleNames,
+        module: includedModuleNames.length > 0 ? includedModuleNames[0] : 'Unknown', // Primary module for table display
         fixedLength: quiz.fixedLength,
         timeLimit: null, // Not in current schema, but kept for API compatibility
         maxAttempts: null, // Not in current schema, but kept for API compatibility
@@ -146,7 +146,8 @@ export async function GET(request: Request) {
           completionRate
         },
         includedModules: includedModuleNames,
-        includedBlooms: quiz.includedBlooms
+        includedBlooms: quiz.includedBlooms,
+        quizModules: quiz.quizModules
       }
     })
 
@@ -167,6 +168,7 @@ export async function GET(request: Request) {
  * - courseOfferingId (required): The ID of the course offering
  * - title (required): The quiz title
  * - includedModuleIds (required): Array of module IDs to include
+ * - masteryThresholds (required): Array of mastery thresholds (same order as modules)
  * - active (optional): Whether the quiz is active (default: true)
  * - shuffled (optional): Whether answers to each question should be shuffled (default: true)
  * - fixedLength (required): Number of questions in the quiz
@@ -185,7 +187,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { courseOfferingId, title, includedModuleIds, active = true, shuffled = true, fixedLength } = body
+    const { courseOfferingId, title, includedModuleIds, masteryThresholds, active = true, shuffled = false, fixedLength } = body
 
     // Validate required fields
     if (!courseOfferingId || !title || !includedModuleIds || !Array.isArray(includedModuleIds) || includedModuleIds.length === 0) {
@@ -194,6 +196,17 @@ export async function POST(request: Request) {
 
     if (!fixedLength || fixedLength < 1) {
       return NextResponse.json({ error: 'Fixed length must be at least 1' }, { status: 400 })
+    }
+
+    if (
+      !masteryThresholds ||
+      !Array.isArray(masteryThresholds) ||
+      masteryThresholds.length !== includedModuleIds.length
+    ) {
+      return NextResponse.json(
+        { error: 'masteryThresholds must be an array matching includedModuleIds length' },
+        { status: 400 }
+      )
     }
 
     // Verify the course offering exists
@@ -230,10 +243,13 @@ export async function POST(request: Request) {
     })
 
     // Create QuizModule entries linking the quiz to modules
-    const quizModulesData = includedModuleIds.map((moduleId: string) => ({
-      quizId: quiz.id,
-      moduleId
-    }))
+    const quizModulesData = includedModuleIds.map(
+      (moduleId: string, index: number) => ({
+        quizId: quiz.id,
+        moduleId,
+        masteryThreshold: masteryThresholds[index]
+      })
+    )
 
     await prisma.quizModule.createMany({
       data: quizModulesData
