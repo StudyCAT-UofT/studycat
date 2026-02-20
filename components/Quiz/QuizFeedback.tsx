@@ -174,7 +174,7 @@ export default function QuizFeedback({ feedbackData, onContinue, onReturnToDashb
                     <Alert 
                         icon={<IconCheck size={24} />} 
                         color="green" 
-                        variant="filled"
+                        variant="light"
                         title="Congratulations! You've Mastered All Modules!"
                     >
                         <Stack gap="sm">
@@ -182,8 +182,8 @@ export default function QuizFeedback({ feedbackData, onContinue, onReturnToDashb
                                 You have achieved mastery in all modules covered by this quiz, causing it to end early!
                             </Text>
                             <Text size="sm">
-                                <strong>What does mastery mean?</strong> Our adaptive system uses Item Response Theory (IRT) to estimate your ability level for each module. 
-                                When your estimated ability exceeds the mastery threshold set by your instructor, you&apos;ve demonstrated sufficient understanding of that topic. 
+                                <strong>What does mastery mean?</strong> Our adaptive system uses Item Response Theory (IRT) to estimate your mastery level for each module. 
+                                When your estimated mastery exceeds the mastery threshold set by your instructor, you&apos;ve demonstrated sufficient understanding of that topic. 
                                 Since you&apos;ve reached the mastery threshold for all modules in this quiz, there&apos;s no need to continue - you&apos;ve already shown you know the material!
                             </Text>
                             <Text size="sm">
@@ -221,20 +221,20 @@ export default function QuizFeedback({ feedbackData, onContinue, onReturnToDashb
                             <Alert icon={<IconInfoCircle size={20} />} color="blue" variant="light">
                                 <Text size="sm">
                                     <strong>Overall Mastery:</strong> This shows your overall understanding across all past quiz attempts, not just this quiz.
-                                    The chart shows your current ability level (theta) as bars compared to the mastery threshold shown as a line.
-                                    When your ability exceeds the threshold, you&apos;ve achieved mastery!
+                                    The chart shows your current mastery level (theta) as bars compared to the mastery threshold shown as a line.
+                                    When your mastery exceeds the threshold, you&apos;ve achieved mastery!
                                 </Text>
                             </Alert>
 
                             <Text size="sm" c="dimmed">
-                                Your current ability level compared to mastery thresholds
+                                Your current mastery level compared to mastery thresholds
                             </Text>
 
                             {/* Prepare data for chart */}
                             {(() => {
                                 const chartData = feedbackData.modulePerformance.map(module => ({
                                     module: module.moduleName,
-                                    'Your Ability (θ)': module.theta,
+                                    'Your Mastery (θ)': module.theta,
                                     'Mastery Threshold': module.threshold,
                                 }))
 
@@ -245,13 +245,14 @@ export default function QuizFeedback({ feedbackData, onContinue, onReturnToDashb
                                         dataKey="module"
                                         maxBarWidth={60}
                                         series={[
-                                            { name: 'Your Ability (θ)', color: 'blue.6', type: 'bar' },
+                                            { name: 'Your Mastery (θ)', color: 'blue.6', type: 'bar' },
                                             { name: 'Mastery Threshold', color: 'orange.6', type: 'line' },
                                         ]}
                                         curveType="linear"
                                         tickLine="xy"
                                         gridAxis="xy"
                                         withLegend
+                                        strokeWidth={0}
                                         legendProps={{ verticalAlign: 'bottom', height: 50 }}
                                     />
                                 )
@@ -283,7 +284,7 @@ export default function QuizFeedback({ feedbackData, onContinue, onReturnToDashb
                                                 </Group>
                                                 <Group justify="space-between">
                                                     <Text size="sm" c="dimmed">
-                                                        <strong>Your Ability:</strong> θ = {module.theta.toFixed(2)}
+                                                        <strong>Your Mastery:</strong> θ = {module.theta.toFixed(2)}
                                                     </Text>
                                                     <Text size="sm" c="orange" fw={500}>
                                                         <strong>Threshold:</strong> {module.threshold.toFixed(2)}
@@ -295,7 +296,7 @@ export default function QuizFeedback({ feedbackData, onContinue, onReturnToDashb
                                                 {hasMastered && (
                                                     <Alert icon={<IconCheck size={16} />} color="green" variant="light" p="xs">
                                                         <Text size="xs">
-                                                            Mastered! Your ability exceeds the threshold.
+                                                            Mastered! Your mastery exceeds the threshold.
                                                         </Text>
                                                     </Alert>
                                                 )}
