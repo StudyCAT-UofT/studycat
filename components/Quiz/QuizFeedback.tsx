@@ -221,8 +221,8 @@ export default function QuizFeedback({ feedbackData, onContinue, onReturnToDashb
                             <Alert icon={<IconInfoCircle size={20} />} color="blue" variant="light">
                                 <Text size="sm">
                                     <strong>Overall Mastery:</strong> This shows your overall understanding across all past quiz attempts, not just this quiz.
-                                    The chart shows your current mastery level (theta) as bars compared to the mastery threshold shown as a line.
-                                    When your mastery exceeds the threshold, you&apos;ve achieved mastery!
+                                    The chart shows your current mastery level (theta) as bars compared to the mastery threshold shown as dots.
+                                    When your mastery exceeds the threshold set by your instructor for this quiz, you&apos;ve achieved mastery!
                                 </Text>
                             </Alert>
 
@@ -259,6 +259,16 @@ export default function QuizFeedback({ feedbackData, onContinue, onReturnToDashb
                             })()}
 
                             <Divider />
+
+                            <Alert color="gray" variant="light">
+                                <Text size="sm">
+                                    <strong>Why are there more questions from certain modules than others?</strong>
+                                </Text>
+                                <Text size="sm">
+                                    StudyCAT is a computerized adaptive testing platform, meaning quizzes adapt to every individual student.
+                                    Questions from modules where your mastery value is lowest are prioritized, while questions from modules you&apos;ve already mastered won&apos;t be shown.
+                                </Text>
+                            </Alert>
 
                             {/* Individual module cards with details */}
                             <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
