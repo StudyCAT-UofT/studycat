@@ -119,8 +119,6 @@ export const POST = async (request: NextRequest) => {
       );
     }
 
-    console.log(fastApiData.next_action)
-
     // Update attempt based on response
     if (fastApiData.next_action === 'FINISH' || fastApiData.next_action === 'MASTERED') {
       await prisma.attempt.update({
