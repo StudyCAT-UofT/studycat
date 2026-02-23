@@ -23,6 +23,7 @@ const EditQuizModal = ({
         includedModuleIds: [] as string[],
         masteryThresholds: {} as Record<string, number | undefined>,
         isActive: true,
+        shuffled: false,
         fixedLength: 10
     })
     const [loading, setLoading] = useState(false)
@@ -73,6 +74,7 @@ const EditQuizModal = ({
                     includedModuleIds: [],
                     masteryThresholds: {},
                     isActive: true,
+                    shuffled: false,
                     fixedLength: 10
                 })
             } else if (quiz) {
@@ -81,6 +83,7 @@ const EditQuizModal = ({
                     includedModuleIds: [], // Will be set when modules are loaded
                     masteryThresholds: {},
                     isActive: quiz.isActive,
+                    shuffled: quiz.shuffled,
                     fixedLength: quiz.fixedLength
                 })
             }
@@ -180,6 +183,7 @@ const EditQuizModal = ({
                         includedModuleIds: formData.includedModuleIds,
                         masteryThresholds: masteryThresholdsArray,
                         active: formData.isActive,
+                        shuffled: formData.shuffled,
                         fixedLength: formData.fixedLength
                     }),
                 })
@@ -196,6 +200,7 @@ const EditQuizModal = ({
                         includedModuleIds: formData.includedModuleIds,
                         masteryThresholds: masteryThresholdsArray,
                         active: formData.isActive,
+                        shuffled: formData.shuffled,
                         fixedLength: formData.fixedLength
                     }),
                 })
@@ -337,6 +342,15 @@ const EditQuizModal = ({
                         label={formData.isActive ? 'Active' : 'Inactive'}
                         checked={formData.isActive}
                         onChange={(e) => setFormData({ ...formData, isActive: e.currentTarget.checked })}
+                    />
+                </Box>
+
+                <Box>
+                    <Text size="sm" fw={500} mb="xs">Shuffle Options?</Text>
+                    <Switch
+                        label={formData.shuffled ? 'Shuffled' : 'Not Shuffled'}
+                        checked={formData.shuffled}
+                        onChange={(e) => setFormData({ ...formData, shuffled: e.currentTarget.checked })}
                     />
                 </Box>
 

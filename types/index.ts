@@ -36,6 +36,7 @@ export interface Quiz {
     maxAttempts: number | null // Not in schema but kept for compatibility
     modules: string[] | null
     isActive: boolean
+    shuffled: boolean
     dueDate: string | null // Not in schema but kept for compatibility
     createdAt: string
     updatedAt: string
@@ -86,7 +87,8 @@ export interface InitAttemptResponse {
     theta: Record<string, number>
     nextItem?: QuizItem
     nextAction: string
-    startedAt: string
+    startedAt: string,
+    shuffled: boolean
 }
 
 export interface StepAttemptRequest {

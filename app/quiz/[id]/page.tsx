@@ -23,6 +23,7 @@ interface QuizState {
     showFeedback: boolean
     feedbackData?: FeedbackData
     loadingFeedback: boolean
+    shuffled: boolean
 }
 
 const QuizContent = ({ quizId }: { quizId: string }) => {
@@ -35,7 +36,8 @@ const QuizContent = ({ quizId }: { quizId: string }) => {
         loading: true,
         loadingResults: false,
         showFeedback: false,
-        loadingFeedback: false
+        loadingFeedback: false,
+        shuffled: false
     })
     const [isInitialized, setIsInitialized] = useState(false)
 
@@ -73,7 +75,8 @@ const QuizContent = ({ quizId }: { quizId: string }) => {
                     loading: false,
                     loadingResults: false,
                     showFeedback: false,
-                    loadingFeedback: false
+                    loadingFeedback: false, 
+                    shuffled: response.shuffled
                 })
                 setIsInitialized(true) // Mark as initializing to prevent duplicate calls
             } catch (error) {
@@ -271,6 +274,7 @@ const QuizContent = ({ quizId }: { quizId: string }) => {
                     onAnswer={handleAnswer}
                     onNext={handleNext}
                     feedback={quizState.feedback}
+                    shuffled={quizState.shuffled}
                 />
             </Stack>
         </Container>
