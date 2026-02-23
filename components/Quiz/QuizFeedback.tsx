@@ -18,7 +18,7 @@ import {
     Flex,
 } from '@mantine/core'
 import { IconCheck, IconX, IconClock, IconInfoCircle } from '@tabler/icons-react'
-import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from 'recharts'
+import { CompositeChart } from '@mantine/charts'
 import type { FeedbackData, DetailedQuestionReview } from '@/types'
 import { getBloomColor } from '@/utils/getBloomColor'
 
@@ -26,9 +26,10 @@ interface QuizFeedbackProps {
     feedbackData: FeedbackData
     onContinue: () => void
     onReturnToDashboard: () => void
+    allMastered: boolean
 }
 
-export default function QuizFeedback({ feedbackData, onContinue, onReturnToDashboard }: QuizFeedbackProps) {
+export default function QuizFeedback({ feedbackData, onContinue, onReturnToDashboard, allMastered }: QuizFeedbackProps) {
     // Format time for display
     const formatTime = (ms: number) => {
         const seconds = Math.floor(ms / 1000)
@@ -36,13 +37,6 @@ export default function QuizFeedback({ feedbackData, onContinue, onReturnToDashb
         const remainingSeconds = seconds % 60
         return `${minutes}m ${remainingSeconds}s`
     }
-
-    // Prepare data for radar chart
-    const radarData = feedbackData.modulePerformance.map(mod => ({
-        module: mod.moduleName,
-        performance: mod.performanceValue,
-        fullMark: 100,
-    }))
 
     // Get performance color
     const getPerformanceColor = (level: string) => {
@@ -175,6 +169,30 @@ export default function QuizFeedback({ feedbackData, onContinue, onReturnToDashb
                     </Stack>
                 </Paper>
 
+                {/* Mastery Achievement Alert */}
+                {allMastered && (
+                    <Alert 
+                        icon={<IconCheck size={24} />} 
+                        color="green" 
+                        variant="light"
+                        title="Congratulations! You've Mastered All Modules!"
+                    >
+                        <Stack gap="sm">
+                            <Text size="sm" fw={500}>
+                                You have achieved mastery in all modules covered by this quiz, causing it to end early!
+                            </Text>
+                            <Text size="sm">
+                                <strong>What does mastery mean?</strong> Our adaptive system uses Item Response Theory (IRT) to estimate your mastery level for each module. 
+                                When your estimated mastery exceeds the mastery threshold set by your instructor, you&apos;ve demonstrated sufficient understanding of that topic. 
+                                Since you&apos;ve reached the mastery threshold for all modules in this quiz, there&apos;s no need to continue - you&apos;ve already shown you know the material!
+                            </Text>
+                            <Text size="sm">
+                                Keep up the excellent work! You can return to the dashboard to practice other topics or review your performance below.
+                            </Text>
+                        </Stack>
+                    </Alert>
+                )}
+
                 {/* Action Buttons - Positioned early for easy access */}
                 <Paper p="lg" radius="md" withBorder style={{ position: 'sticky', top: 20, zIndex: 100, backgroundColor: 'white' }}>
                     <Group justify="center" gap="md">
@@ -194,7 +212,7 @@ export default function QuizFeedback({ feedbackData, onContinue, onReturnToDashb
                     )}
                 </Paper>
 
-                {/* Module Mastery Spiderweb Plot */}
+                {/* Module Mastery Composite Chart */}
                 {feedbackData.modulePerformance.length > 0 && (
                     <Paper p="xl" radius="md" withBorder>
                         <Stack gap="lg">
@@ -203,69 +221,103 @@ export default function QuizFeedback({ feedbackData, onContinue, onReturnToDashb
                             <Alert icon={<IconInfoCircle size={20} />} color="blue" variant="light">
                                 <Text size="sm">
                                     <strong>Overall Mastery:</strong> This shows your overall understanding across all past quiz attempts, not just this quiz.
-                                    Performance levels: <strong>Developing</strong> (building foundations),
-                                    <strong> Proficient</strong> (solid understanding),
-                                    <strong> Advanced</strong> (mastery achieved)
+                                    The chart shows your current mastery level (theta) as bars compared to the mastery threshold shown as dots.
+                                    When your mastery exceeds the threshold set by your instructor for this quiz, you&apos;ve achieved mastery!
                                 </Text>
                             </Alert>
 
                             <Text size="sm" c="dimmed">
-                                Your overall mastery across different modules
+                                Your current mastery level compared to mastery thresholds
                             </Text>
 
-                            <ResponsiveContainer width="100%" height={400}>
-                                <RadarChart data={radarData}>
-                                    <PolarGrid />
-                                    <PolarAngleAxis
+                            {/* Prepare data for chart */}
+                            {(() => {
+                                const chartData = feedbackData.modulePerformance.map(module => ({
+                                    module: module.moduleName,
+                                    'Your Mastery (θ)': module.theta,
+                                    'Mastery Threshold': module.threshold,
+                                }))
+
+                                return (
+                                    <CompositeChart
+                                        h={300}
+                                        data={chartData}
                                         dataKey="module"
-                                        tick={{ fontSize: 12 }}
+                                        maxBarWidth={60}
+                                        series={[
+                                            { name: 'Your Mastery (θ)', color: 'blue.6', type: 'bar' },
+                                            { name: 'Mastery Threshold', color: 'orange.6', type: 'line' },
+                                        ]}
+                                        curveType="linear"
+                                        tickLine="xy"
+                                        gridAxis="xy"
+                                        withLegend
+                                        strokeWidth={0}
+                                        legendProps={{ verticalAlign: 'bottom', height: 50 }}
                                     />
-                                    <PolarRadiusAxis
-                                        angle={90}
-                                        domain={[0, 100]}
-                                        tick={{ fontSize: 12 }}
-                                    />
-                                    <Radar
-                                        name="Mastery"
-                                        dataKey="performance"
-                                        stroke="#2196F3"
-                                        fill="#2196F3"
-                                        fillOpacity={0.6}
-                                    />
-                                </RadarChart>
-                            </ResponsiveContainer>
+                                )
+                            })()}
 
                             <Divider />
 
+                            <Alert color="gray" variant="light">
+                                <Text size="sm">
+                                    <strong>Why are there more questions from certain modules than others?</strong>
+                                </Text>
+                                <Text size="sm">
+                                    StudyCAT is a computerized adaptive testing platform, meaning quizzes adapt to every individual student.
+                                    Questions from modules where your mastery value is lowest are prioritized, while questions from modules you&apos;ve already mastered won&apos;t be shown.
+                                </Text>
+                            </Alert>
+
+                            {/* Individual module cards with details */}
                             <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="md">
-                                {feedbackData.modulePerformance.map(module => (
-                                    <Card key={module.moduleId} withBorder padding="md">
-                                        <Stack gap="xs">
-                                            <Group justify="space-between" align="center">
-                                                <Text fw={600}>{module.moduleName}</Text>
-                                                {module.questionsAttempted === 0 ? (
-                                                    <Badge color="gray">
-                                                        Not Attempted
-                                                    </Badge>
-                                                ) : (
-                                                    <Badge color={getPerformanceColor(module.performanceLevel)}>
-                                                        {module.performanceLevel}
-                                                    </Badge>
+                                {feedbackData.modulePerformance.map(module => {
+                                    const hasMastered = module.theta >= module.threshold
+
+                                    return (
+                                        <Card key={module.moduleId} withBorder padding="lg">
+                                            <Stack gap="xs">
+                                                <Group justify="space-between" align="center">
+                                                    <Text fw={600}>{module.moduleName}</Text>
+                                                    {module.questionsAttempted === 0 ? (
+                                                        <Badge color="gray">Not Attempted</Badge>
+                                                    ) : hasMastered ? (
+                                                        <Badge color="green" leftSection={<IconCheck size={14} />}>
+                                                            Mastered
+                                                        </Badge>
+                                                    ) : (
+                                                        <Badge color={getPerformanceColor(module.performanceLevel)}>
+                                                            {module.performanceLevel}
+                                                        </Badge>
+                                                    )}
+                                                </Group>
+                                                <Group justify="space-between">
+                                                    <Text size="sm" c="dimmed">
+                                                        <strong>Your Mastery:</strong> θ = {module.theta.toFixed(2)}
+                                                    </Text>
+                                                    <Text size="sm" c="orange" fw={500}>
+                                                        <strong>Threshold:</strong> {module.threshold.toFixed(2)}
+                                                    </Text>
+                                                </Group>
+                                                <Text size="sm" c="dimmed">
+                                                    <strong>This quiz:</strong> {module.questionsCorrect} / {module.questionsAttempted} correct
+                                                </Text>
+                                                {hasMastered && (
+                                                    <Alert icon={<IconCheck size={16} />} color="green" variant="light" p="xs">
+                                                        <Text size="xs">
+                                                            Mastered! Your mastery exceeds the threshold.
+                                                        </Text>
+                                                    </Alert>
                                                 )}
-                                            </Group>
-                                            <Text size="sm" c="dimmed">
-                                                <strong>This quiz:</strong> {module.questionsCorrect} / {module.questionsAttempted} correct
-                                            </Text>
-                                            <Text size="sm" c="dimmed">
-                                                <strong>Overall mastery:</strong> {module.performanceValue}%
-                                            </Text>
-                                        </Stack>
-                                    </Card>
-                                ))}
+                                            </Stack>
+                                        </Card>
+                                    )
+                                })}
                             </SimpleGrid>
 
                             {/* Resource placeholder */}
-                            {feedbackData.modulePerformance.some(m => m.performanceLevel === 'Developing') && (
+                            {feedbackData.modulePerformance.some(m => m.theta < m.threshold) && (
                                 <Alert icon={<IconInfoCircle size={20} />} color="orange" variant="light">
                                     <Text size="sm" fw={500}>
                                         Recommended resources coming soon for modules where you can improve!

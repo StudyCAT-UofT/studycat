@@ -40,7 +40,9 @@ export const POST = async (request: NextRequest) => {
               },
             },
             quizModules: {
-              select: { moduleId: true }
+              include: {
+                module: true
+              }
             }
           },
         },
@@ -101,6 +103,12 @@ export const POST = async (request: NextRequest) => {
       ? new Date(attempt.finishedAt).getTime() - new Date(attempt.startedAt).getTime()
       : Date.now() - new Date(attempt.startedAt).getTime();
 
+    // Build mastery threshold map from quizModules
+    const masteryThresholdMap = new Map<string, number>();
+    for (const quizModule of attempt.quiz.quizModules) {
+      masteryThresholdMap.set(quizModule.moduleId, quizModule.masteryThreshold);
+    }
+
     // Get module IDs included in this quiz
     const includedModuleIds = attempt.quiz.quizModules.map(qm => qm.moduleId) || [];
 
@@ -109,6 +117,7 @@ export const POST = async (request: NextRequest) => {
       moduleId: string;
       moduleName: string;
       theta: number;
+      masteryThreshold: number;
       questionsAttempted: number;
       questionsCorrect: number;
     }>();
@@ -116,11 +125,13 @@ export const POST = async (request: NextRequest) => {
     // Initialize modules from quiz scope
     for (const moduleId of includedModuleIds) {
       const m = attempt.quiz.offering.modules.find(m => m.id === moduleId);
+      const threshold = masteryThresholdMap.get(moduleId) ?? 0;
       if (m) {
         modulePerformanceMap.set(moduleId, {
           moduleId: moduleId,
           moduleName: m.name,
           theta: 0, // Default, will be updated from theta data
+          masteryThreshold: threshold,
           questionsAttempted: 0,
           questionsCorrect: 0,
         });
@@ -156,6 +167,7 @@ export const POST = async (request: NextRequest) => {
         moduleId: mod.moduleId,
         moduleName: mod.moduleName,
         theta: mod.theta,
+        threshold: mod.masteryThreshold,
         performanceLevel: performance.level,
         performanceValue: performance.numericValue,
         questionsAttempted: mod.questionsAttempted,

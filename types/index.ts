@@ -105,6 +105,7 @@ export interface StepAttemptResponse {
     nextAction: string
     nextItem?: QuizItem
     isFinished: boolean
+    allMastered: boolean
     feedback?: Feedback
 }
 
@@ -157,6 +158,7 @@ export interface ModulePerformance {
     performanceValue: number // 0-100 scale for visualization
     questionsAttempted: number
     questionsCorrect: number
+    threshold: number
 }
 
 export interface DetailedQuestionReview {
