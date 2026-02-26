@@ -1,7 +1,11 @@
 import jwt from 'jsonwebtoken'
 import { cookies } from 'next/headers'
+import { prisma } from './prisma'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
+
+const ADMIN_COURSE_CODE = 'SYSTEM';
+const ADMIN_TERM_NAME = 'ADMIN';
 
 export interface UserSession {
   userId: string
@@ -44,3 +48,26 @@ export const clearSessionCookie = async () => {
   const cookieStore = await cookies()
   cookieStore.delete('session-token')
 }
+
+export const isAdmin = async (userId: string): Promise<boolean> => {
+  const enrollment = await prisma.enrollment.findFirst({
+    where: {
+      userId,
+      offeringRole: 'ADMIN',
+      offering: {
+        course: { code: ADMIN_COURSE_CODE },
+        term: { name: ADMIN_TERM_NAME },
+      },
+    },
+    select: { id: true },
+  });
+
+  return !!enrollment;
+};
+
+export const requireAdmin = async (userId: string) => {
+  const admin = await isAdmin(userId);
+  if (!admin) {
+    throw new Error('Unauthorized: Admin access required');
+  }
+};
