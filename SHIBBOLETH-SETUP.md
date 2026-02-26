@@ -49,6 +49,7 @@ This guide provides step-by-step instructions for setting up Shibboleth Single S
 - **Docker & Docker Compose** (v2.0+)
 - **Node.js** (v18+) and **pnpm**
 - **OpenSSL** (for certificate generation)
+- **Python 3** (for automated XML edits)
 - **A text editor** for configuration files
 
 ### Required Permissions
@@ -59,7 +60,9 @@ This guide provides step-by-step instructions for setting up Shibboleth Single S
 
 ## Quick Start
 
-### 1. Add Host Entries
+### A. First-Time Setup (run once)
+
+**1. Add Host Entries**
 
 Edit `/etc/hosts` (requires sudo on Mac/Linux, run as Administrator on Windows):
 
@@ -74,9 +77,83 @@ Add these lines:
 127.0.0.1   sp.studycat.local
 ```
 
-### 2. Generate Certificates
+**2. Generate Certificates**
 
-Since security certificates are unique to each environment and excluded from Git, every developer must generate their own local certificates.
+Generate SP and IdP certificates as described in [Step 2 of Detailed Setup](#step-2-generate-tls-certificates).
+
+> **⚠️ Critical:** After generating SP certificates, you MUST update the IdP's SP metadata file with the new public certificate before starting the stack. Skipping this causes "Unable to resolve any key decryption keys" errors. See [Step 2](#step-2-generate-tls-certificates) for the full procedure.
+
+**3. Generate IdP Base Configuration**
+
+Run the IdP initialization script (see [Step 1 of Detailed Setup](#step-1-generate-idp-base-configuration)):
+
+```bash
+cd shibboleth/idp
+docker run -it -v $(pwd):/ext-mount --rm unicon/shibboleth-idp:3.4.3 init-idp.sh
+cd ../..
+```
+
+**4. Configure IdP**
+
+Apply all IdP configuration changes as described in [Step 3 of Detailed Setup](#step-3-configure-idp).
+
+**5. Configure Application**
+
+Set environment variables as described in [Step 4 of Detailed Setup](#step-4-configure-nextjs-application).
+
+---
+
+### B. Starting the App (run each time)
+
+```bash
+# Start database, IdP, SP, and OpenLDAP
+docker compose --profile shibboleth up -d --build
+
+# Set up database
+pnpm db:generate
+pnpm db:migrate
+
+# Start Next.js development server
+pnpm dev
+```
+
+Then open `https://sp.studycat.local/` and log in with username `student` or `instructor` / password `password123`.
+
+---
+
+## Detailed Setup
+
+### Step 1: Generate IdP Base Configuration
+
+The IdP configuration is NOT stored in the repository—it must be generated locally using the Shibboleth IdP Docker image's built-in initialization script.
+
+```bash
+cd shibboleth/idp
+docker run -it -v $(pwd):/ext-mount --rm unicon/shibboleth-idp:3.4.3 init-idp.sh
+cd ../..
+```
+
+The script will prompt you for configuration values. Use these settings:
+
+| Prompt | Value |
+|--------|-------|
+| Hostname | `idp.studycat.local` |
+| SAML Entity ID | `https://idp.studycat.local/idp/shibboleth` |
+| Attribute Scope | `studycat.local` |
+| Backchannel PKCS12 Password | `abc123` |
+| Re-enter password | `abc123` |
+| Cookie Encryption Key Password | `abc123` |
+| Re-enter password | `abc123` |
+
+This creates the `customized-shibboleth-idp/` directory with default Shibboleth IdP configuration. You must then apply the customizations documented in the steps below.
+
+> **Note:** The `customized-shibboleth-idp/` directory is gitignored. Each developer must generate and configure it locally.
+
+---
+
+### Step 2: Generate TLS Certificates
+
+Security certificates are unique to each environment and excluded from Git. Every developer must generate their own local certificates.
 
 #### Generate SP Certificates
 
@@ -158,143 +235,94 @@ cd ../../../..
 
 **Note:** The `keytool` command requires Java. If Java is not available, copy `sealer.jks` and `sealer.kver` from another developer who has generated them.
 
-### 3. Start All Services
-
-```bash
-cd /path/to/studycat
-
-# Start database, IdP, SP, and OpenLDAP
-docker compose --profile shibboleth up -d --build
-
-# Generate Prisma client and run migrations
-pnpm db:generate
-pnpm db:migrate
-
-# Start Next.js development server
-pnpm dev
-```
-
-### 4. Test the Setup
-
-1. Open browser: `https://sp.studycat.local/`
-2. Click "Login"
-3. Click "Login with UTORid"
-4. Enter credentials:
-   - **Username**: `student`
-   - **Password**: `password123`
-5. You should be logged in!
-
 ---
 
-## Detailed Setup
+### Step 3: Configure IdP
 
-### Step 1: Generate IdP Base Configuration
+All files in this step live under `shibboleth/idp/customized-shibboleth-idp/conf/` (created by Step 1).
 
-The IdP configuration is NOT stored in the repository—it must be generated locally using the Shibboleth IdP Docker image's built-in initialization script.
+#### Step 3a: Configure IdP Properties
+
+Edit `customized-shibboleth-idp/conf/idp.properties` to set the entity ID, scope, sealer passwords, and authentication flow.
+
+**macOS:**
+```bash
+CONF=shibboleth/idp/customized-shibboleth-idp/conf
+
+sed -i '' 's|^idp.entityID=.*|idp.entityID=https://idp.studycat.local/idp/shibboleth|' "$CONF/idp.properties"
+sed -i '' 's|^idp.scope=.*|idp.scope=studycat.local|' "$CONF/idp.properties"
+sed -i '' 's|^idp.sealer.storePassword=.*|idp.sealer.storePassword=abc123|' "$CONF/idp.properties"
+sed -i '' 's|^idp.sealer.keyPassword=.*|idp.sealer.keyPassword=abc123|' "$CONF/idp.properties"
+sed -i '' 's|^idp.authn.flows=.*|idp.authn.flows=Password|' "$CONF/idp.properties"
+```
+
+**Linux:**
+```bash
+CONF=shibboleth/idp/customized-shibboleth-idp/conf
+
+sed -i 's|^idp.entityID=.*|idp.entityID=https://idp.studycat.local/idp/shibboleth|' "$CONF/idp.properties"
+sed -i 's|^idp.scope=.*|idp.scope=studycat.local|' "$CONF/idp.properties"
+sed -i 's|^idp.sealer.storePassword=.*|idp.sealer.storePassword=abc123|' "$CONF/idp.properties"
+sed -i 's|^idp.sealer.keyPassword=.*|idp.sealer.keyPassword=abc123|' "$CONF/idp.properties"
+sed -i 's|^idp.authn.flows=.*|idp.authn.flows=Password|' "$CONF/idp.properties"
+```
+
+#### Step 3b: Configure LDAP Properties
+
+Edit `customized-shibboleth-idp/conf/ldap.properties` to point the IdP at the OpenLDAP container. The generated `ldap.properties` file uses spaces around `=` (e.g., `key = value`), so use Python to reliably set these values regardless of formatting:
 
 ```bash
-cd shibboleth/idp
-docker run -it -v $(pwd):/ext-mount --rm unicon/shibboleth-idp:3.4.3 init-idp.sh
+python3 << 'PYEOF'
+import re
+
+filepath = 'shibboleth/idp/customized-shibboleth-idp/conf/ldap.properties'
+
+settings = {
+    'idp.authn.LDAP.authenticator': 'bindSearchAuthenticator',
+    'idp.authn.LDAP.ldapURL': 'ldap://ldap:389',
+    'idp.authn.LDAP.useStartTLS': 'false',
+    'idp.authn.LDAP.useSSL': 'false',
+    'idp.authn.LDAP.baseDN': 'ou=people,dc=studycat,dc=local',
+    'idp.authn.LDAP.userFilter': '(uid={user})',
+    'idp.authn.LDAP.bindDN': 'cn=admin,dc=studycat,dc=local',
+    'idp.authn.LDAP.bindDNCredential': 'admin123',
+    'idp.authn.LDAP.dnFormat': 'uid=%s,ou=people,dc=studycat,dc=local',
+}
+
+with open(filepath, 'r') as f:
+    lines = f.readlines()
+
+updated = set()
+new_lines = []
+for line in lines:
+    matched = False
+    for key, val in settings.items():
+        pattern = r'^#*\s*' + re.escape(key) + r'\s*=.*'
+        if re.match(pattern, line):
+            new_lines.append(f'{key} = {val}\n')
+            updated.add(key)
+            matched = True
+            break
+    if not matched:
+        new_lines.append(line)
+
+for key, val in settings.items():
+    if key not in updated:
+        new_lines.append(f'{key} = {val}\n')
+
+with open(filepath, 'w') as f:
+    f.writelines(new_lines)
+
+print('Done. Updated:', updated)
+PYEOF
 ```
 
-The script will prompt you for configuration values. Use these settings:
+#### Step 3c: Configure Attribute Resolver
 
-| Prompt | Value |
-|--------|-------|
-| Hostname | `idp.studycat.local` |
-| SAML Entity ID | `https://idp.studycat.local/idp/shibboleth` |
-| Attribute Scope | `studycat.local` |
-| Backchannel PKCS12 Password | `abc123` |
-| Re-enter password | `abc123` |
-| Cookie Encryption Key Password | `abc123` |
-| Re-enter password | `abc123` |
-
-This creates the `customized-shibboleth-idp/` directory with default Shibboleth IdP configuration. You must then apply the customizations documented in the steps below.
-
-> **Note:** The `customized-shibboleth-idp/` directory is gitignored. Each developer must generate and configure it locally.
-
-### Step 2: Generate TLS Certificates
-
-The IdP needs TLS certificates for browser and backchannel communication. These are generated in the Quick Start section above.
+The application only uses `uid` (username) for authentication, with `eppn` as a fallback. Replace `customized-shibboleth-idp/conf/attribute-resolver.xml` entirely:
 
 ```bash
-cd shibboleth/idp/customized-shibboleth-idp/credentials
-
-# Generate browser certificate (valid for 1 year)
-openssl req -newkey rsa:2048 -nodes -keyout idp-browser.key -x509 -days 365 -out idp-browser.crt \
-  -subj "/CN=idp.studycat.local/O=StudyCAT/C=CA"
-
-# Convert to PKCS12 format with legacy flag (for Java compatibility)
-openssl pkcs12 -export -legacy -inkey idp-browser.key -in idp-browser.crt \
-  -out idp-browser.p12 -password pass:abc123
-
-# Generate backchannel certificate (valid for 1 year)
-openssl req -newkey rsa:2048 -nodes -keyout idp-backchannel.key -x509 -days 365 -out idp-backchannel.crt \
-  -subj "/CN=idp.studycat.local/O=StudyCAT/C=CA"
-
-# Convert to PKCS12 format
-openssl pkcs12 -export -legacy -inkey idp-backchannel.key -in idp-backchannel.crt \
-  -out idp-backchannel.p12 -password pass:abc123
-```
-
-**Important Notes:**
-- Use `-legacy` flag for PKCS12 generation (required for older Java versions)
-- Password is `abc123` (configured in Docker Compose)
-- Certificates are self-signed for development
-
-### Step 3: Configure IdP Properties
-
-Edit `customized-shibboleth-idp/conf/idp.properties` and set these values:
-
-```properties
-# Line ~11: Set entity ID
-idp.entityID=https://idp.studycat.local/idp/shibboleth
-
-# Line ~18: Set scope (used for scoped attributes like eppn)
-idp.scope=studycat.local
-
-# Lines ~47-48: Set sealer passwords (for cookie encryption)
-idp.sealer.storePassword=abc123
-idp.sealer.keyPassword=abc123
-
-# Line ~122: Enable only password authentication
-idp.authn.flows=Password
-```
-
-### Step 3b: Configure LDAP Properties
-
-Edit `customized-shibboleth-idp/conf/ldap.properties`:
-
-```properties
-# Line ~5: Set authenticator type
-idp.authn.LDAP.authenticator=bindSearchAuthenticator
-
-# Line ~8: LDAP URL (Docker internal DNS)
-idp.authn.LDAP.ldapURL=ldap://ldap:389
-
-# Lines ~9-10: Disable TLS (internal Docker network)
-idp.authn.LDAP.useStartTLS=false
-idp.authn.LDAP.useSSL=false
-
-# Line ~30: Base DN for user search
-idp.authn.LDAP.baseDN=ou=people,dc=studycat,dc=local
-
-# Line ~32: User filter
-idp.authn.LDAP.userFilter=(uid={user})
-
-# Lines ~35-36: Bind credentials for searching
-idp.authn.LDAP.bindDN=cn=admin,dc=studycat,dc=local
-idp.authn.LDAP.bindDNCredential=admin123
-
-# Line ~40: DN format for direct authentication
-idp.authn.LDAP.dnFormat=uid=%s,ou=people,dc=studycat,dc=local
-```
-
-### Step 3c: Configure Attribute Resolver
-
-The application only uses `uid` (username) for authentication, with `eppn` as a fallback. Replace `customized-shibboleth-idp/conf/attribute-resolver.xml` with this minimal configuration:
-
-```xml
+cat > shibboleth/idp/customized-shibboleth-idp/conf/attribute-resolver.xml << 'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
 <AttributeResolver xmlns="urn:mace:shibboleth:2.0:resolver"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -311,13 +339,15 @@ The application only uses `uid` (username) for authentication, with `eppn` as a 
         <AttributeEncoder xsi:type="SAML2ScopedString" name="urn:oid:1.3.6.1.4.1.5923.1.1.1.6" friendlyName="eduPersonPrincipalName" encodeType="false" />
     </AttributeDefinition>
 </AttributeResolver>
+EOF
 ```
 
-### Step 3d: Configure Attribute Filter
+#### Step 3d: Configure Attribute Filter
 
 Replace `customized-shibboleth-idp/conf/attribute-filter.xml` to release only the required attributes:
 
-```xml
+```bash
+cat > shibboleth/idp/customized-shibboleth-idp/conf/attribute-filter.xml << 'EOF'
 <?xml version="1.0" encoding="UTF-8"?>
 <AttributeFilterPolicyGroup id="ShibbolethFilterPolicy"
     xmlns="urn:mace:shibboleth:2.0:afp"
@@ -330,239 +360,146 @@ Replace `customized-shibboleth-idp/conf/attribute-filter.xml` to release only th
         <AttributeRule attributeID="eduPersonPrincipalName" permitAny="true" />
     </AttributeFilterPolicy>
 </AttributeFilterPolicyGroup>
+EOF
 ```
 
-### Step 3e: Configure Relying Party (Disable Encryption)
+#### Step 3e: Configure Relying Party (Disable Encryption)
 
-Edit `customized-shibboleth-idp/conf/relying-party.xml`. Find the `<util:list id="shibboleth.RelyingPartyOverrides">` section and add:
+Insert a StudyCAT-specific override into `customized-shibboleth-idp/conf/relying-party.xml` to disable assertion encryption for development. This prevents "A valid authentication statement was not found" errors caused by certificate mismatches.
 
-```xml
-<!-- StudyCAT SP - disable assertion encryption for development -->
-<bean parent="RelyingPartyByName" c:relyingPartyIds="https://sp.studycat.local/shibboleth">
-    <property name="profileConfigurations">
-        <list>
-            <bean parent="SAML2.SSO" p:encryptAssertions="false" />
-        </list>
-    </property>
-</bean>
+```bash
+python3 << 'PYEOF'
+with open('shibboleth/idp/customized-shibboleth-idp/conf/relying-party.xml', 'r') as f:
+    content = f.read()
+insert = '''
+    <!-- StudyCAT SP - disable assertion encryption for development -->
+    <bean parent="RelyingPartyByName" c:relyingPartyIds="https://sp.studycat.local/shibboleth">
+        <property name="profileConfigurations">
+            <list>
+                <bean parent="SAML2.SSO" p:encryptAssertions="false" />
+            </list>
+        </property>
+    </bean>'''
+content = content.replace(
+    '<util:list id="shibboleth.RelyingPartyOverrides">',
+    '<util:list id="shibboleth.RelyingPartyOverrides">' + insert
+)
+with open('shibboleth/idp/customized-shibboleth-idp/conf/relying-party.xml', 'w') as f:
+    f.write(content)
+print("Done.")
+PYEOF
 ```
 
-**Why:** The IdP encrypts SAML assertions by default, which can cause "A valid authentication statement was not found" errors if certificates don't match perfectly. For development, disabling encryption simplifies troubleshooting.
+#### Step 3f: Configure Metadata Provider
 
-### Step 3f: Configure Metadata Provider
+Replace `customized-shibboleth-idp/conf/metadata-providers.xml` entirely. The generated file's `ShibbolethMetadata` element is the root `ChainingMetadataProvider`—the `StudyCATSP` entry must go **inside** it as a child, not before it:
 
-Edit `customized-shibboleth-idp/conf/metadata-providers.xml`. Find the `<MetadataProvider id="ShibbolethMetadata">` element and add inside it:
+```bash
+cat > shibboleth/idp/customized-shibboleth-idp/conf/metadata-providers.xml << 'EOF'
+<?xml version="1.0" encoding="UTF-8"?>
+<MetadataProvider id="ShibbolethMetadata" xsi:type="ChainingMetadataProvider"
+    xmlns="urn:mace:shibboleth:2.0:metadata"
+    xmlns:resource="urn:mace:shibboleth:2.0:resource"
+    xmlns:security="urn:mace:shibboleth:2.0:security"
+    xmlns:md="urn:oasis:names:tc:SAML:2.0:metadata"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="urn:mace:shibboleth:2.0:metadata http://shibboleth.net/schema/idp/shibboleth-metadata.xsd
+                        urn:mace:shibboleth:2.0:resource http://shibboleth.net/schema/idp/shibboleth-resource.xsd
+                        urn:mace:shibboleth:2.0:security http://shibboleth.net/schema/idp/shibboleth-security.xsd
+                        urn:oasis:names:tc:SAML:2.0:metadata http://docs.oasis-open.org/security/saml/v2.0/saml-schema-metadata-2.0.xsd">
 
-```xml
-<MetadataProvider id="StudyCATSP"
-    xsi:type="FilesystemMetadataProvider"
-    metadataFile="%{idp.home}/metadata/sp-metadata.xml"/>
+    <!-- StudyCAT SP - load metadata from local file -->
+    <MetadataProvider id="StudyCATSP"
+        xsi:type="FilesystemMetadataProvider"
+        metadataFile="%{idp.home}/metadata/sp-metadata.xml"/>
+
+</MetadataProvider>
+EOF
 ```
 
-### Step 3g: Download SP Metadata
+#### Step 3g: Download SP Metadata and Update IdP Metadata
 
-After starting the SP, download its metadata for the IdP:
+Start the SP container first to expose its metadata endpoint, then download the metadata into the IdP. Also update the `validUntil` in both `idp-metadata.xml` files — the init script generates metadata that expires within minutes, which causes the SP to reject it:
 
 ```bash
 # Start SP first
 docker compose --profile shibboleth up -d sp
 
 # Wait for SP to be ready
-sleep 5
+sleep 8
 
 # Download SP metadata into IdP
 curl -k https://sp.studycat.local/Shibboleth.sso/Metadata > \
     shibboleth/idp/customized-shibboleth-idp/metadata/sp-metadata.xml
+
+# Update the SP's copy of idp-metadata.xml with the freshly-generated IdP certificates
+# (the init script generates metadata with a short-lived validUntil; both copies need updating)
+cp shibboleth/idp/customized-shibboleth-idp/metadata/idp-metadata.xml \
+   shibboleth/sp/config/idp-metadata.xml
+
+# Extend validUntil to 2028 in both files
+sed -i '' 's|validUntil="[^"]*"|validUntil="2028-01-01T00:00:00.000Z"|g' \
+    shibboleth/sp/config/idp-metadata.xml \
+    shibboleth/idp/customized-shibboleth-idp/metadata/idp-metadata.xml
+
+# Fix SSO/SLO endpoint URLs to use port 4443 (the IdP's HTTPS port).
+# The init script generates URLs without a port (defaulting to 443), but the IdP runs on 4443.
+# IMPORTANT: only fix Location= URLs — do NOT change the entityID attribute.
+python3 << 'PYEOF'
+import re
+files = [
+    'shibboleth/sp/config/idp-metadata.xml',
+    'shibboleth/idp/customized-shibboleth-idp/metadata/idp-metadata.xml',
+]
+for path in files:
+    with open(path) as f:
+        content = f.read()
+    # Add :4443 to endpoint Location URLs only (not the entityID attribute)
+    content = re.sub(
+        r'(Location="https://idp\.studycat\.local)(/idp/)',
+        r'\1:4443\2',
+        content
+    )
+    with open(path, 'w') as f:
+        f.write(content)
+    print(f"Fixed endpoint ports in {path}")
+PYEOF
 ```
 
-### Step 4: Set Up OpenLDAP Users
+> **Note:** The `sed -i ''` syntax is macOS-specific. On Linux use `sed -i` (no `''` argument).
 
-Test users are defined in `shibboleth/ldap/bootstrap.ldif`:
+---
 
-```ldif
-# Student user
-dn: uid=student,ou=people,dc=studycat,dc=local
-objectClass: inetOrgPerson
-objectClass: organizationalPerson
-objectClass: person
-uid: student
-cn: student
-sn: User
-mail: student@studycat.local
-displayName: student
-userPassword: password123
+### Step 4: Configure Next.js Application
 
-# Instructor user
-dn: uid=instructor,ou=people,dc=studycat,dc=local
-objectClass: inetOrgPerson
-objectClass: organizationalPerson
-objectClass: person
-uid: instructor
-cn: instructor
-sn: Teacher
-mail: instructor@studycat.local
-displayName: instructor
-userPassword: password123
+Update your `.env` file with the following values. Run the commands below for the standard settings, then set `JWT_SECRET` and `DATABASE_URL` manually since they are environment-specific.
 
-# Admin user
-dn: uid=admin,ou=people,dc=studycat,dc=local
-objectClass: inetOrgPerson
-objectClass: organizationalPerson
-objectClass: person
-uid: admin
-cn: admin
-sn: Administrator
-mail: admin@studycat.local
-displayName: admin
-userPassword: password123
+**macOS:**
+```bash
+sed -i '' 's|^NEXT_PUBLIC_AUTH_MODE=.*|NEXT_PUBLIC_AUTH_MODE=shibboleth|' .env
+sed -i '' 's|^SHIBBOLETH_LOGIN_URL=.*|SHIBBOLETH_LOGIN_URL=https://sp.studycat.local/Shibboleth.sso/Login|' .env
 ```
 
-### Step 5: Configure Service Provider (SP)
-
-The SP configuration is in `shibboleth/sp/config/shibboleth2.xml`:
-
-**Key settings:**
-```xml
-<ApplicationDefaults entityID="https://sp.studycat.local/shibboleth"
-                     REMOTE_USER="uid remote_user eppn"
-                     cipherSuites="DEFAULT:!EXP:!LOW:!aNULL:!eNULL:!DES:!IDEA:!SEED:!RC4:!3DES:!kRSA:!SSLv2:!SSLv3:!TLSv1:!TLSv1.1">
-
-    <Sessions lifetime="28800" timeout="3600" relayState="ss:mem"
-              checkAddress="false" handlerSSL="true" cookieProps="https">
-        
-        <!-- SessionInitiator for login -->
-        <SessionInitiator type="Chaining" Location="/Login" isDefault="true" id="Login">
-            <SessionInitiator type="SAML2" template="bindingTemplate.html"/>
-        </SessionInitiator>
-        
-        <!-- AssertionConsumerService endpoints -->
-        <md:AssertionConsumerService Location="/SAML2/POST" index="1"
-            Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST"/>
-    </Sessions>
-    
-    <!-- Metadata Provider (IdP metadata) -->
-    <MetadataProvider type="XML" validate="true"
-        path="/etc/shibboleth/metadata/idp-metadata.xml"/>
-</ApplicationDefaults>
+**Linux:**
+```bash
+sed -i 's|^NEXT_PUBLIC_AUTH_MODE=.*|NEXT_PUBLIC_AUTH_MODE=shibboleth|' .env
+sed -i 's|^SHIBBOLETH_LOGIN_URL=.*|SHIBBOLETH_LOGIN_URL=https://sp.studycat.local/Shibboleth.sso/Login|' .env
 ```
 
-### Step 6: Configure Apache Reverse Proxy
-
-Apache configuration in `shibboleth/sp/config/apache-studycat.conf`:
-
-```apache
-<VirtualHost *:443>
-    ServerName sp.studycat.local
-    
-    # SSL Configuration
-    SSLEngine on
-    SSLCertificateFile /etc/shibboleth/sp-cert.pem
-    SSLCertificateKeyFile /etc/shibboleth/sp-key.pem
-    
-    # Shibboleth handler (don't proxy)
-    <Location /Shibboleth.sso>
-        SetHandler shib
-    </Location>
-    
-    # Protected callback endpoint
-    <Location /api/auth/shibboleth/callback>
-        AuthType shibboleth
-        ShibRequestSetting requireSession 1
-        Require valid-user
-        ShibUseHeaders On
-    </Location>
-    
-    # Reverse proxy to Next.js (using internal host and port 3000)
-    ProxyPreserveHost On
-    
-    # Exclude Shibboleth handler from proxy
-    ProxyPass /Shibboleth.sso !
-    
-    ProxyPass / http://host.docker.internal:3000/
-    ProxyPassReverse / http://host.docker.internal:3000/
-</VirtualHost>
-```
-
-**Note:** The actual configuration is dynamically patched at startup referencing:
-- `shibboleth/sp/config/protected-routes.conf`: Defines protected paths and callback routes.
-- `shibboleth/sp/config/shibboleth-headers.conf`: Maps SAML attributes to HTTP headers.
-
-### Step 7: Configure Next.js Application
-
-Update `.env` file:
+Then set these values manually in `.env`:
 
 ```bash
-# Authentication mode
-NEXT_PUBLIC_AUTH_MODE=shibboleth
-
-# JWT configuration
+# JWT configuration — choose a strong random secret
 JWT_SECRET=your-secret-key-here
 JWT_EXPIRES_IN=7d
 
 # Database
 DATABASE_URL=postgresql://user:password@localhost:5432/studycat
-
-# Shibboleth (optional overrides)
-SHIBBOLETH_LOGIN_URL=https://sp.studycat.local/Shibboleth.sso/Login
 ```
 
-### Step 8: Update Docker Compose
+---
 
-The `docker-compose.yml` already includes the Shibboleth services:
-
-```yaml
-services:
-  # OpenLDAP directory server
-  ldap:
-    image: osixia/openldap:1.5.0
-    environment:
-      LDAP_ORGANISATION: "StudyCAT"
-      LDAP_DOMAIN: "studycat.local"
-      LDAP_ADMIN_PASSWORD: "admin123"
-    volumes:
-      - ./shibboleth/ldap/bootstrap.ldif:/container/service/slapd/assets/config/bootstrap/ldif/50-bootstrap.ldif
-    profiles:
-      - shibboleth
-
-  # Identity Provider
-  idp:
-    build: ./shibboleth/idp
-    ports:
-      - "4443:4443"
-    environment:
-      JETTY_BROWSER_SSL_KEYSTORE_PASSWORD: abc123
-      JETTY_BACKCHANNEL_SSL_KEYSTORE_PASSWORD: abc123
-    depends_on:
-      - ldap
-    profiles:
-      - shibboleth
-
-  # Service Provider
-  sp:
-    build: ./shibboleth/sp
-    ports:
-      - "80:80"
-      - "443:443"
-    extra_hosts:
-      - "host.docker.internal:host-gateway"  # Allow SP to reach Next.js
-      - "idp.studycat.local:host-gateway"    # Allow SP to reach IdP
-    environment:
-      HOSTNAME: "sp.studycat.local"
-      SERVICE_TO_PROTECT: "host.docker.internal"
-      SERVICE_PORT: "3000"
-      IDP_ENTITY_ID: "https://idp.studycat.local/idp/shibboleth"
-      IDP_METADATA_URL: "https://idp.studycat.local:4443/idp/shibboleth"
-      SHIB_DOWNLOAD_METADATA: "false"
-    volumes:
-      - ./shibboleth/sp/config/idp-metadata.xml:/etc/shibboleth/metadata/idp-metadata.xml:ro
-      - ./shibboleth/sp/certificates/sp-key.pem:/etc/shibboleth/sp-key.pem:ro
-      - ./shibboleth/sp/certificates/sp-cert.pem:/etc/shibboleth/sp-cert.pem:ro
-      - ./shibboleth/sp/config/attribute-map.xml:/etc/shibboleth/attribute-map.xml:ro
-    profiles:
-      - shibboleth
-```
-
-### Step 9: Build and Start Services
+### Step 5: Build and Start Services
 
 ```bash
 # Build Docker images
@@ -580,7 +517,9 @@ docker compose logs -f ldap
 docker compose ps
 ```
 
-### Step 10: Set Up Database
+---
+
+### Step 6: Set Up Database
 
 ```bash
 # Generate Prisma client
@@ -710,7 +649,7 @@ The application only uses `uid` for authentication (with `eppn` as fallback). Ot
 4. Clear Shibboleth session: `https://sp.studycat.local/Shibboleth.sso/Logout`
 5. Try login again
 
-### Issue 3: IdP Shows 503 Error
+### Issue 4: IdP Shows 503 Error
 
 **Symptom:** IdP page shows "HTTP ERROR 503"
 
@@ -726,7 +665,7 @@ The application only uses `uid` for authentication (with `eppn` as fallback). Ot
    docker exec ldap ldapsearch -x -H ldap://localhost -b "dc=studycat,dc=local" -D "cn=admin,dc=studycat,dc=local" -w admin123
    ```
 
-### Issue 4: Callback Not Executing
+### Issue 5: Callback Not Executing
 
 **Symptom:** No logs appear in Next.js terminal after IdP login
 
@@ -739,7 +678,7 @@ The application only uses `uid` for authentication (with `eppn` as fallback). Ot
 2. If you land on `/`, the SessionInitiator `target` parameter is missing
 3. Verify login button uses: `/Shibboleth.sso/Login?target=/api/auth/shibboleth/callback`
 
-### Issue 5: LDAP Login Fails
+### Issue 6: LDAP Login Fails
 
 **Symptom:** IdP shows "Login Failure: Invalid credentials"
 
@@ -760,7 +699,7 @@ The application only uses `uid` for authentication (with `eppn` as fallback). Ot
    docker compose --profile shibboleth up -d ldap
    ```
 
-### Issue 6: Certificate Errors
+### Issue 7: Certificate Errors
 
 **Symptom:** "Your connection is not private" / SSL certificate errors
 
@@ -772,7 +711,7 @@ The application only uses `uid` for authentication (with `eppn` as fallback). Ot
 1. Import certificates into your system keychain (macOS/Linux)
 2. Or use browser flags to accept self-signed certs on localhost
 
-### Issue 7: "Unable to resolve any key decryption keys"
+### Issue 8: "Unable to resolve any key decryption keys"
 
 **Symptom:** After authenticating at the IdP, you see an error page with "Unable to resolve any key decryption keys"
 
@@ -791,7 +730,7 @@ The application only uses `uid` for authentication (with `eppn` as fallback). Ot
 
 **Prevention:** Always update the IdP's sp-metadata.xml whenever you regenerate SP certificates.
 
-### Issue 8: "Metadata instance was invalid at time of acquisition"
+### Issue 9: "Metadata instance was invalid at time of acquisition"
 
 **Symptom:** SP logs show:
 ```
@@ -799,18 +738,27 @@ ERROR OpenSAML.MetadataProvider.XML : metadata instance was invalid at time of a
 CRIT Shibboleth.Application : error initializing MetadataProvider
 ```
 
-**Cause:** The IdP metadata has expired. The `validUntil` attribute in the metadata XML is in the past.
+**Cause:** The IdP metadata has expired. The `validUntil` attribute in the metadata XML is in the past. This commonly happens in two scenarios:
+- The committed `shibboleth/sp/config/idp-metadata.xml` has an old `validUntil` date.
+- The `init-idp.sh` script (Step 1) generates `idp-metadata.xml` with a `validUntil` only minutes in the future — if you don't run Step 3g promptly after Step 1, the newly-generated metadata will already be expired by the time the SP loads it.
 
 **Fix:**
-1. Check the current date and the `validUntil` date in `shibboleth/sp/config/idp-metadata.xml` and `shibboleth/idp/customized-shibboleth-idp/metadata/idp-metadata.xml`
-2. Update the `validUntil` attribute to a future date (e.g., `validUntil="2027-02-10T00:00:00.000Z"`)
+1. Check the `validUntil` date in both files:
+   - `shibboleth/sp/config/idp-metadata.xml`
+   - `shibboleth/idp/customized-shibboleth-idp/metadata/idp-metadata.xml`
+2. Update the `validUntil` attribute to a future date in both files:
+   ```bash
+   sed -i '' 's|validUntil="[^"]*"|validUntil="2028-01-01T00:00:00.000Z"|g' \
+       shibboleth/sp/config/idp-metadata.xml \
+       shibboleth/idp/customized-shibboleth-idp/metadata/idp-metadata.xml
+   ```
 3. Rebuild and restart both IdP and SP:
    ```bash
    docker compose --profile shibboleth build --no-cache idp sp
    docker compose --profile shibboleth up -d idp sp
    ```
 
-### Issue 9: Port Already in Use
+### Issue 10: Port Already in Use
 
 **Symptom:** `docker compose up` fails with "port is already allocated"
 
@@ -823,7 +771,7 @@ lsof -i :4443
 # Kill the process or change Docker port mappings
 ```
 
-### Issue 10: SP Cannot Reach IdP (DNS Resolution)
+### Issue 11: SP Cannot Reach IdP (DNS Resolution)
 
 **Symptom:** SP logs show:
 ```
@@ -845,7 +793,7 @@ Then rebuild and restart the SP:
 docker compose --profile shibboleth up -d sp
 ```
 
-### Issue 11: "Message was signed, but signature could not be verified"
+### Issue 12: "Message was signed, but signature could not be verified"
 
 **Symptom:** After authenticating at the IdP, you see:
 ```
@@ -877,7 +825,7 @@ Message was signed, but signature could not be verified.
 
 **Prevention:** Whenever you regenerate IdP credentials, always update the certificates in both idp-metadata.xml files.
 
-### Issue 12: "A valid authentication statement was not found"
+### Issue 13: "A valid authentication statement was not found"
 
 **Symptom:** After authenticating at the IdP, you see:
 ```
@@ -908,6 +856,93 @@ docker compose --profile shibboleth up -d --build idp
 ```
 
 **Note:** In production with a real IdP, assertion encryption should remain enabled for security.
+
+### Issue 14: IdP Login Page Returns 404
+
+**Symptom:** Clicking "Login with UTORid" redirects to `https://idp.studycat.local/idp/profile/SAML2/Redirect/SSO?...` (no port) and the browser shows a 404 error.
+
+**Cause:** The `idp-metadata.xml` SSO endpoint `Location` URLs are missing the `:4443` port. The `init-idp.sh` script generates metadata URLs without an explicit port (defaulting to the standard HTTPS port 443), but the IdP Docker container exposes HTTPS on port 4443.
+
+**Diagnosis:** Check the `SingleSignOnService` entries in `shibboleth/sp/config/idp-metadata.xml`:
+```bash
+grep "SingleSignOnService" shibboleth/sp/config/idp-metadata.xml
+```
+If the `Location` URLs say `https://idp.studycat.local/idp/...` (no port), they need `:4443`.
+
+**Fix:** Run this Python script to add `:4443` to endpoint `Location` URLs in both metadata files. It only targets `Location=` attributes so the `entityID` is not affected:
+```bash
+python3 << 'PYEOF'
+import re
+files = [
+    'shibboleth/sp/config/idp-metadata.xml',
+    'shibboleth/idp/customized-shibboleth-idp/metadata/idp-metadata.xml',
+]
+for path in files:
+    with open(path) as f:
+        content = f.read()
+    content = re.sub(
+        r'(Location="https://idp\.studycat\.local)(/idp/)',
+        r'\1:4443\2',
+        content
+    )
+    with open(path, 'w') as f:
+        f.write(content)
+    print(f"Fixed {path}")
+PYEOF
+docker compose --profile shibboleth build --no-cache idp sp
+docker compose --profile shibboleth up -d idp sp
+```
+
+**Prevention:** Step 3g of the Detailed Setup already includes this fix. If you are starting from scratch, follow Step 3g in full and this issue should not occur.
+
+### Issue 15: "Unable to locate metadata for identity provider"
+
+**Symptom:** SP logs (`docker compose logs sp`) show:
+```
+WARN Shibboleth.SessionInitiator.SAML2 : unable to locate metadata for provider (https://idp.studycat.local/idp/shibboleth)
+```
+And clicking "Login with UTORid" returns HTTP 500 from the SP.
+
+**Cause:** The `entityID` attribute in `idp-metadata.xml` does not match the entity ID the IdP is serving. The most common cause is accidentally modifying the `entityID` attribute when you meant to only change endpoint `Location` URLs. The `entityID` must exactly match `idp.entityID` in `shibboleth/idp/customized-shibboleth-idp/conf/idp.properties`.
+
+**Diagnosis:**
+```bash
+# Check what entityID the metadata files declare
+grep 'entityID=' shibboleth/sp/config/idp-metadata.xml | head -1
+grep 'entityID=' shibboleth/idp/customized-shibboleth-idp/metadata/idp-metadata.xml | head -1
+
+# Check what entityID the live IdP serves
+curl -k -s https://idp.studycat.local:4443/idp/shibboleth | grep -o 'entityID="[^"]*"' | head -1
+
+# Check what entityID is configured in idp.properties
+grep "^idp.entityID" shibboleth/idp/customized-shibboleth-idp/conf/idp.properties
+```
+All four values must be identical.
+
+**Fix:** Restore the `entityID` to `https://idp.studycat.local/idp/shibboleth` (no port) in both metadata files:
+```bash
+python3 << 'PYEOF'
+import re
+files = [
+    'shibboleth/sp/config/idp-metadata.xml',
+    'shibboleth/idp/customized-shibboleth-idp/metadata/idp-metadata.xml',
+]
+for path in files:
+    with open(path) as f:
+        content = f.read()
+    # Remove :4443 only from the entityID attribute (not from Location URLs)
+    content = re.sub(
+        r'(entityID="https://idp\.studycat\.local):4443(/idp/shibboleth")',
+        r'\1\2',
+        content
+    )
+    with open(path, 'w') as f:
+        f.write(content)
+    print(f"Fixed {path}")
+PYEOF
+docker compose --profile shibboleth build --no-cache idp sp
+docker compose --profile shibboleth up -d idp sp
+```
 
 ---
 
@@ -969,7 +1004,7 @@ StudyCAT implements **local logout only**—when a user logs out, only the appli
 - `shibboleth/idp/customized-shibboleth-idp/conf/relying-party.xml` - SP trust, encryption disabled
 - `shibboleth/idp/customized-shibboleth-idp/conf/metadata-providers.xml` - References SP metadata
 
-> **Note:** The `customized-shibboleth-idp/` directory is gitignored. See Step 1 and Steps 3-3g above for configuration instructions.
+> **Note:** The `customized-shibboleth-idp/` directory is gitignored. See Step 1 and Steps 3a–3g above for configuration instructions.
 
 **SP (in git):**
 - `shibboleth/sp/config/shibboleth2.xml` - SP configuration
@@ -1086,7 +1121,17 @@ For issues or questions:
 
 ---
 
-**Last Updated:** February 11, 2026
-**Version:** 2.0.0
+**Last Updated:** February 26, 2026
+**Version:** 2.4.0
 
-> **Version 2.0 Changes:** IdP configuration is no longer stored in git. Developers must generate and configure it locally using the documented steps. Attribute configuration simplified to only `uid` and `eppn`.
+> **Version 2.4 Changes:** Added Issues 14 and 15 to the Troubleshooting section covering the two runtime issues discovered during end-to-end testing: IdP login page returning 404 due to missing `:4443` port in SSO endpoint URLs (Issue 14), and SP failing to locate IdP metadata when the `entityID` attribute is accidentally changed alongside the endpoint URLs (Issue 15). Expanded Issue 9 to explain the init script's short-lived `validUntil` as a common cause.
+
+> **Version 2.3 Changes:** Fixed one additional bug in Step 3g found during end-to-end login testing:
+> 4. **Step 3g**: Added Python script to fix SSO/SLO endpoint `Location` URLs to include `:4443` (the IdP's HTTPS port). The init script generates metadata with port-less URLs (defaulting to 443), causing browsers to 404 on the IdP login page. The fix explicitly targets only `Location=` attributes to avoid corrupting the `entityID` attribute.
+
+> **Version 2.2 Changes:** Fixed three bugs found during fresh-setup verification:
+> 1. **Step 3b**: Replaced non-functional `sed` commands (which fail because the generated `ldap.properties` uses spaces around `=`) with a cross-format Python script.
+> 2. **Step 3f**: Replaced the Python `replace()` script (which incorrectly inserted `StudyCATSP` before the root XML element) with a `cat > file` command that writes the correct file directly.
+> 3. **Step 3g**: Added copy + `validUntil` fix for both `idp-metadata.xml` files—the init script generates metadata that expires within minutes, causing the SP to fail with "metadata instance was invalid".
+
+> **Version 2.1 Changes:** Quick Start restructured into First-Time Setup and Starting the App sections. Removed FYI steps (Steps 4, 5, 6, 8 from v2.0) that described committed files requiring no action. Added inline `sed` and Python commands for all manual file edits. IdP configuration sub-steps renamed 3a–3g with a parent Step 3 heading.
