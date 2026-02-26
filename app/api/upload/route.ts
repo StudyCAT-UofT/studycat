@@ -1,27 +1,191 @@
-// app/api/upload-spreadsheet/route.ts
+// app/api/upload/route.ts
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import * as xlsx from "xlsx";
-import { BloomCategory, OptionLabel } from '@/types'
+import { BloomCategory } from '@/types'
 
 export const runtime = "nodejs";
 
 /**
- * POST /api/upload-spreadsheet
+ * POST /api/upload
+ *
+ * Accepts two spreadsheet formats:
+ *
+ * NEW FORMAT (primary — Quizzical export):
+ *   lecture, question_id, category, question, correct_answer,
+ *   answer_a..answer_z (flexible count), answer_justification_a..z,
+ *   question_figure, biserial, average, attempts,
+ *   [ignored: index, submission_date, rating, author_name]
+ *   [not yet stored: answer_figure (answer-side figure, one per question) — see GitHub issue #68]
+ *
+ * LEGACY FORMAT (fallback — internal spreadsheet):
+ *   Module, Question_ID, Bloom_Cat, Stem, Response_A..D, Correct,
+ *   [optional: Justification_A..D, Reference, Figure, PtBi, Average, Attempts, IRT_a/b/c]
+ *
+ * Format is auto-detected from column headers. No user action required.
  *
  * Expects multipart/form-data with:
- * - file: the .xlsx spreadsheet (first sheet is used)
+ * - file: the .xlsx or .csv spreadsheet (first sheet is used)
  * - courseId: Prisma Course.id (string)
  * - offeringId: Prisma CourseOffering.id (string)
  *
  * Returns:
- * - 200: { importedCount, details: [...] }
+ * - 200: { format, importedCount, details: [...] }
  * - 400: missing params / invalid file
  * - 500: server error
  */
+
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+type SpreadsheetFormat = 'new' | 'legacy';
+
+interface ParsedRow {
+    moduleName: unknown;
+    externalQuestionId: unknown;
+    bloomRaw: unknown;
+    stem: unknown;
+    figureUrl: unknown;
+    ptBi: number | null;
+    average: number | null;
+    attemptsCount: number | null;
+    irtA: number;
+    irtB: number;
+    irtC: number;
+    correctRaw: unknown;
+    options: Array<{ label: string; text: string; justif: string | null }>;
+}
+
+// ---------------------------------------------------------------------------
+// Format detection
+// ---------------------------------------------------------------------------
+
+function detectFormat(headers: string[]): SpreadsheetFormat {
+    // New format signature: must have all three of these columns
+    if (headers.includes('question') && headers.includes('lecture') && headers.includes('correct_answer')) {
+        return 'new';
+    }
+    // Everything else falls back to legacy
+    return 'legacy';
+}
+
+// ---------------------------------------------------------------------------
+// Bloom mapping (shared)
+// ---------------------------------------------------------------------------
+
+const mapBloom = (raw: unknown): BloomCategory | undefined => {
+    if (raw == null) return undefined;
+    const s = String(raw).trim().toUpperCase();
+    const BloomKeys = ["REMEMBER", "UNDERSTAND", "APPLY", "ANALYZE", "EVALUATE", "CREATE"];
+    if (BloomKeys.includes(s)) return s as BloomCategory;
+    if (s.startsWith("REC")) return "REMEMBER";   // "Recall"
+    if (s.startsWith("UND")) return "UNDERSTAND"; // "Understanding"
+    if (s.startsWith("APP")) return "APPLY";       // "Application"
+    if (s.startsWith("ANA")) return "ANALYZE";     // "Analysis"
+    if (s.startsWith("EVA")) return "EVALUATE";    // "Evaluation"
+    if (s.startsWith("CRE")) return "CREATE";      // "Creation"
+    if (s.startsWith("COM")) return "UNDERSTAND";  // "Comprehension" (legacy Bloom taxonomy)
+    if (s.startsWith("KNO")) return "REMEMBER";    // "Knowledge" (legacy Bloom taxonomy)
+    if (s.startsWith("SYN")) return "CREATE";      // "Synthesis" (legacy Bloom taxonomy)
+    return undefined;
+};
+
+// ---------------------------------------------------------------------------
+// Correctness check (shared)
+// ---------------------------------------------------------------------------
+
+function isCorrectOption(label: string, correctRaw: unknown): boolean {
+    if (correctRaw == null) return false;
+    const c = String(correctRaw).trim();
+    // Single-letter match: "A", "B", "a", "b", etc.
+    if (/^[A-Za-z]$/.test(c)) return c.toUpperCase() === label.toUpperCase();
+    // Full-text match (legacy format only): exact string equality
+    return false;
+}
+
+// ---------------------------------------------------------------------------
+// New format: dynamic option scanning
+// ---------------------------------------------------------------------------
+
+function scanNewFormatOptions(
+    row: Record<string, unknown>
+): Array<{ label: string; text: string; justif: string | null }> {
+    const options: Array<{ label: string; text: string; justif: string | null }> = [];
+    const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    for (const letter of alphabet) {
+        const key = `answer_${letter.toLowerCase()}`;
+        if (row[key] == null) {
+            // Stop at first missing option after we have found at least one
+            if (options.length > 0) break;
+            continue;
+        }
+        const justifKey = `answer_justification_${letter.toLowerCase()}`;
+        options.push({
+            label: letter,
+            text: String(row[key]),
+            justif: row[justifKey] != null ? String(row[justifKey]) : null,
+        });
+    }
+    return options;
+}
+
+// ---------------------------------------------------------------------------
+// New format parser
+// ---------------------------------------------------------------------------
+
+function parseNewFormatRow(row: Record<string, unknown>): ParsedRow {
+    return {
+        moduleName:         row['lecture'],
+        externalQuestionId: row['question_id'],
+        bloomRaw:           row['category'],
+        stem:               row['question'] ?? '',
+        figureUrl:          row['question_figure'] ?? null,
+        // answer_figure (one figure per question, shown on the answer/explanation side) is not yet stored.
+        // Item schema lacks answerFigureUrl. See GitHub issue #68
+        ptBi:         row['biserial'] != null ? Number(row['biserial']) : null,
+        average:      row['average']  != null ? Number(row['average'])  : null,
+        attemptsCount: row['attempts'] != null ? parseInt(String(row['attempts']), 10) : null,
+        irtA: 0, irtB: 0, irtC: 0, // Not present in new format — defaults to 0
+        correctRaw:   row['correct_answer'],
+        options:      scanNewFormatOptions(row),
+    };
+}
+
+// ---------------------------------------------------------------------------
+// Legacy format parser
+// ---------------------------------------------------------------------------
+
+function parseLegacyFormatRow(row: Record<string, unknown>): ParsedRow {
+    const options = (['a', 'b', 'c', 'd'] as const).map((l) => ({
+        label: l.toUpperCase(),
+        text: String(row[`response_${l}`] ?? ''),
+        justif: row[`justification_${l}`] != null ? String(row[`justification_${l}`]) : null,
+    }));
+
+    return {
+        moduleName:         row['module'] || row['module name'] || row['module_name'],
+        externalQuestionId: row['question_id'] || row['question id'] || row['questionid'],
+        bloomRaw:           row['bloom_cat'] || row['bloom cat'] || row['bloom'],
+        stem:               row['stem'] ?? '',
+        figureUrl:          row['figure'] ?? null,
+        ptBi:         row['ptbi']    != null ? Number(row['ptbi'])    : null,
+        average:      row['average'] != null ? Number(row['average']) : null,
+        attemptsCount: row['attempts'] != null ? parseInt(String(row['attempts']), 10) : null,
+        irtA: row['irt_a'] != null ? Number(row['irt_a']) : 0,
+        irtB: row['irt_b'] != null ? Number(row['irt_b']) : 0,
+        irtC: row['irt_c'] != null ? Number(row['irt_c']) : 0,
+        correctRaw:   row['correct'],
+        options,
+    };
+}
+
+// ---------------------------------------------------------------------------
+// Main handler
+// ---------------------------------------------------------------------------
+
 export async function POST(request: Request) {
     try {
-        // Ensure Content-Type is form-data
         const contentType = request.headers.get("content-type") || "";
         if (!contentType.includes("multipart/form-data")) {
             return NextResponse.json({ error: "Content-Type must be multipart/form-data" }, { status: 400 });
@@ -42,7 +206,6 @@ export async function POST(request: Request) {
         const courseId = String(courseIdRaw);
         const offeringId = String(offeringIdRaw);
 
-        // Read uploaded file into buffer and parse via xlsx
         const arrayBuffer = await file.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
         const workbook = xlsx.read(buffer, { type: "buffer" });
@@ -54,34 +217,9 @@ export async function POST(request: Request) {
         const sheet = workbook.Sheets[sheetName];
         const rawRows = xlsx.utils.sheet_to_json(sheet, { defval: null }) as Record<string, unknown>[];
 
-        // helpers
         const normalizeHeader = (h: string) => h?.toString().trim().toLowerCase();
 
-        const mapBloom = (raw: unknown): BloomCategory | undefined => {
-            if (raw == null) return undefined;
-            const s = String(raw).trim().toUpperCase();
-            // direct match
-            const BloomKeys = ["REMEMBER", "UNDERSTAND", "APPLY", "ANALYZE", "EVALUATE", "CREATE"];
-            if (BloomKeys.includes(s)) return s as BloomCategory;
-            if (s.startsWith("REC")) return "REMEMBER";
-            if (s.startsWith("UND")) return "UNDERSTAND";
-            if (s.startsWith("APP")) return "APPLY";
-            if (s.startsWith("ANA")) return "ANALYZE";
-            if (s.startsWith("EVA")) return "EVALUATE";
-            if (s.startsWith("CRE")) return "CREATE";
-            return undefined;
-        };
-
-        const labelFromIndex = (i: number) => {
-            switch (i) {
-                case 0: return "A";
-                case 1: return "B";
-                case 2: return "C";
-                default: return "D";
-            }
-        };
-
-        // Normalize keys on rows so we can reference case-insensitively
+        // Normalize all keys to lowercase once
         const parsedRows = rawRows.map((r) => {
             const out: Record<string, unknown> = {};
             for (const key of Object.keys(r)) {
@@ -90,122 +228,85 @@ export async function POST(request: Request) {
             return out;
         });
 
+        if (parsedRows.length === 0) {
+            return NextResponse.json({ error: "Spreadsheet is empty" }, { status: 400 });
+        }
+
+        // Detect format from headers of the first row
+        const headers = Object.keys(parsedRows[0]);
+        const format = detectFormat(headers);
+
         type DetailResult =
             | { externalQuestionId: string | null; status: string }
             | { externalQuestionId: string; status: string; itemId: string; optionsCreated: number }
             | { status: string; error: string };
         const details: DetailResult[] = [];
 
-        // process rows sequentially (keeps DB small-batch friendly and easy to reason about)
         for (const row of parsedRows) {
             try {
-                const moduleName = row["module"] || row["module name"] || row["module_name"];
-                const externalQuestionIdRaw = row["question_id"] || row["question id"] || row["questionid"];
-                const bloomRaw = row["bloom_cat"] || row["bloom cat"] || row["bloom"];
-                const stem = row["stem"] ?? "";
-                const reference = row["reference"] ?? null;
-                const figure = row["figure"] ?? null;
-                const ptBi = row["ptbi"] != null ? Number(row["ptbi"]) : null;
-                const average = row["average"] != null ? Number(row["average"]) : null;
-                const attemptsCount = row["attempts"] != null ? parseInt(String(row["attempts"]), 10) : null;
-                const irtA = row["irt_a"] != null ? Number(row["irt_a"]) : 0;
-                const irtB = row["irt_b"] != null ? Number(row["irt_b"]) : 0;
-                const irtC = row["irt_c"] != null ? Number(row["irt_c"]) : 0;
-                const correctRaw = row["correct"]; // required by user note (always present)
+                const parsed = format === 'new' ? parseNewFormatRow(row) : parseLegacyFormatRow(row);
 
-                const externalQuestionId = externalQuestionIdRaw ? String(externalQuestionIdRaw) : null;
-                const moduleNameStr = moduleName ? String(moduleName) : null;
+                const externalQuestionId = parsed.externalQuestionId ? String(parsed.externalQuestionId) : null;
+                const moduleNameStr = parsed.moduleName ? String(parsed.moduleName) : null;
 
                 if (!moduleNameStr || !externalQuestionId) {
                     details.push({ externalQuestionId, status: "skipped: missing identifiers" });
                     continue;
                 }
 
-                const bloom = mapBloom(bloomRaw);
+                const bloom = mapBloom(parsed.bloomRaw);
                 if (!bloom) {
                     details.push({ externalQuestionId, status: "skipped: invalid bloom category" });
                     continue;
                 }
 
-                // prepare responses (case-insensitive header names accepted)
-                const responses = [
-                    row["response_a"],
-                    row["response_b"],
-                    row["response_c"],
-                    row["response_d"],
-                ];
-                const justifs = [
-                    row["justification_a"],
-                    row["justification_b"],
-                    row["justification_c"],
-                    row["justification_d"],
-                ];
+                if (parsed.options.length === 0) {
+                    details.push({ externalQuestionId, status: "skipped: no answer options found" });
+                    continue;
+                }
 
-                // find or create module by (offeringId, name)
+                // Find or create module
                 let moduleRecord = await prisma.module.findFirst({
-                    where: { offeringId: offeringId, name: moduleNameStr },
+                    where: { offeringId, name: moduleNameStr },
                 });
                 if (!moduleRecord) {
                     moduleRecord = await prisma.module.create({
-                        data: { offeringId: offeringId, name: moduleNameStr },
+                        data: { offeringId, name: moduleNameStr },
                     });
                 }
 
-                // skip if item already exists for (courseId, externalQuestionId)
+                // Skip duplicates
                 const existing = await prisma.item.findFirst({
-                    where: { courseId: courseId, externalQuestionId },
+                    where: { courseId, externalQuestionId },
                 });
                 if (existing) {
                     details.push({ externalQuestionId, status: "skipped: already exists" });
                     continue;
                 }
 
-                // Build options, mark correct by either A/B/C/D or by matching option text
-                const optionsToCreate: Array<{
-                    label: OptionLabel;
-                    text: string;
-                    justification: string | null;
-                    isCorrect: boolean;
-                }> = [];
-                for (let i = 0; i < 4; i++) {
-                    const text = responses[i] ?? "";
-                    const justification = justifs[i] ?? null;
-                    const label = labelFromIndex(i) as OptionLabel;
-                    let isCorrect = false;
+                // Build options (flexible count)
+                const optionsToCreate = parsed.options.map((opt) => ({
+                    label: opt.label,
+                    text: opt.text,
+                    justification: opt.justif,
+                    isCorrect: isCorrectOption(opt.label, parsed.correctRaw),
+                }));
 
-                    if (correctRaw != null) {
-                        const c = String(correctRaw).trim();
-                        if (/^[ABCDabcd]$/.test(c)) {
-                            if (c.toUpperCase() === label) isCorrect = true;
-                        } else {
-                            if (String(text).trim() && String(text).trim() === c) isCorrect = true;
-                        }
-                    }
-
-                    optionsToCreate.push({
-                        label,
-                        text: String(text),
-                        justification: justification ? String(justification) : null,
-                        isCorrect,
-                    });
-                }
-
-                // create item and options
                 const createdItem = await prisma.item.create({
                     data: {
                         courseId,
                         moduleId: moduleRecord.id,
                         externalQuestionId,
                         bloom,
-                        stem: String(stem),
-                        reference: reference ? String(reference) : null,
-                        figureUrl: figure ? String(figure) : null,
-                        ptBi,
-                        average,
-                        attemptsCount,
-                        irtA: irtA ?? 0,
-                        irtB: irtB ?? 0,
-                        irtC: irtC ?? 0,
+                        stem: String(parsed.stem),
+                        reference: null,
+                        figureUrl: parsed.figureUrl ? String(parsed.figureUrl) : null,
+                        ptBi: parsed.ptBi,
+                        average: parsed.average,
+                        attemptsCount: parsed.attemptsCount,
+                        irtA: parsed.irtA,
+                        irtB: parsed.irtB,
+                        irtC: parsed.irtC,
                         active: true,
                         options: {
                             create: optionsToCreate,
@@ -221,13 +322,12 @@ export async function POST(request: Request) {
                     optionsCreated: createdItem.options.length,
                 });
             } catch (rowErr) {
-                // Row-level failure — record and continue
                 console.error("Row import failed:", rowErr);
                 details.push({ status: "error", error: String(rowErr) });
             }
-        } // end rows loop
+        }
 
-        return NextResponse.json({ importedCount: details.length, details }, { status: 200 });
+        return NextResponse.json({ format, importedCount: details.length, details }, { status: 200 });
     } catch (error) {
         console.error("Failed to import spreadsheet:", error);
         return NextResponse.json({ error: "Failed to import spreadsheet", details: String(error) }, { status: 500 });
