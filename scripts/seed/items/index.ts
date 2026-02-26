@@ -1,10 +1,24 @@
 import { PrismaClient, Item, Module } from '@prisma/client'
 import { BCH210_ITEMS } from './bch210'
 import { CSC108_ITEMS } from './csc108'
-import { OTHER_COURSE_ITEMS } from './other-courses'
+import { CSC207_ITEMS } from './csc207'
+import { CSC343_ITEMS } from './csc343'
+import { CSC358_ITEMS } from './csc358'
+import { CSC369_ITEMS } from './csc369'
+import { CSC373_ITEMS } from './csc373'
+import { MAT137_ITEMS } from './mat137'
 import type { ItemDef } from '../types'
 
-const ALL_ITEMS: ItemDef[] = [...BCH210_ITEMS, ...CSC108_ITEMS, ...OTHER_COURSE_ITEMS]
+const ALL_ITEMS: ItemDef[] = [
+  ...BCH210_ITEMS,
+  ...CSC108_ITEMS,
+  ...CSC207_ITEMS,
+  ...CSC343_ITEMS,
+  ...CSC358_ITEMS,
+  ...CSC369_ITEMS,
+  ...CSC373_ITEMS,
+  ...MAT137_ITEMS,
+]
 
 export async function seedItems(
   prisma: PrismaClient,

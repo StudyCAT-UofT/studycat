@@ -1,4 +1,4 @@
-import type { ItemDef } from '../types'
+import type { ItemDef } from '../../types'
 
 export const CSC108_ITEMS: ItemDef[] = [
   // ─── Module 1: Python Basics & Variables ─────────────────────────────────────

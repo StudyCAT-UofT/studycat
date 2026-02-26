@@ -26,6 +26,7 @@ export async function seedQuizzes(
     moduleNames: string[],
     includedBlooms: string,
     createdByUsername: string,
+    masteryThreshold = 1.0,
   ): Promise<Quiz> {
     const offering = offerings.get(offeringKey(courseCode, termName))!
     const createdBy = users.get(createdByUsername)!
@@ -45,7 +46,7 @@ export async function seedQuizzes(
     for (const modName of moduleNames) {
       const mod = modules.get(moduleKey(courseCode, termName, modName))!
       await prisma.quizModule.create({
-        data: { quizId: quiz.id, moduleId: mod.id },
+        data: { quizId: quiz.id, moduleId: mod.id, masteryThreshold },
       })
     }
 

@@ -118,6 +118,25 @@ The following pnpm scripts are available for working with the database:
 - `pnpm db:status` - Check migration status
 - `pnpm db:seed` - Seed the database with initial test data
 
+### Seeding the Database
+
+To seed the database for the first time (after running migrations):
+
+```bash
+pnpm db:seed
+```
+
+All seed operations use upserts and are idempotent, so running `pnpm db:seed` multiple times is safe.
+
+To wipe all data and re-seed from scratch, use Prisma's built-in reset command followed by the seed script:
+
+```bash
+pnpm db:migrate:reset
+pnpm db:seed
+```
+
+`pnpm db:migrate:reset` drops and recreates the database, then reruns all migrations. You can also use `prisma migrate reset --skip-seed` if you want to reset without seeding.
+
 ### Updating the Schema Submodule
 
 When the schema repository is updated, you need to update the submodule:

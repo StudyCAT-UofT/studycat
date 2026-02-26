@@ -15,7 +15,6 @@
  */
 
 import { PrismaClient } from '@prisma/client'
-import { cleanup } from './seed/cleanup'
 import { seedUsers } from './seed/users'
 import { seedTerms } from './seed/terms'
 import { seedCourses } from './seed/courses'
@@ -28,8 +27,6 @@ const prisma = new PrismaClient()
 
 async function main() {
   console.log('🌱 Starting comprehensive seed...\n')
-
-  await cleanup(prisma)
 
   const users = await seedUsers(prisma)
   const terms = await seedTerms(prisma)

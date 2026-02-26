@@ -1,4 +1,4 @@
-import type { ItemDef } from '../types'
+import type { ItemDef } from '../../types'
 
 export const BCH210_ITEMS: ItemDef[] = [
   // ─── Module 1: Amino Acids & Proteins ────────────────────────────────────────
