@@ -204,7 +204,7 @@ async function main() {
       fixedLength: 5,
       createdById: instructor.id,
       quizModules: {
-        create: off101Modules.map((m) => ({ moduleId: m.id }))
+        create: off101Modules.map((m) => ({ moduleId: m.id, masteryThreshold: 0.7 }))
       }
     }
   })
@@ -218,7 +218,7 @@ async function main() {
       fixedLength: 3,
       createdById: instructor.id,
       quizModules: {
-        create: [{ moduleId: off101Modules[0].id }] // Just first module
+        create: [{ moduleId: off101Modules[0].id, masteryThreshold: 0.7 }] // Just first module
       }
     }
   })
