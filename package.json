@@ -13,6 +13,7 @@
     "test:run": "vitest run --config vitest.config.mts",
     "test:coverage": "vitest run --coverage --config vitest.config.mts",
     "db:seed": "tsx scripts/seed.ts",
+    "db:seed:basic": "tsx scripts/basic_seed.ts",
     "db:generate": "prisma generate --schema=external/studycat-schema/schema.prisma --generator=client",
     "db:migrate": "prisma migrate dev --schema=external/studycat-schema/schema.prisma",
     "db:migrate:deploy": "prisma migrate deploy --schema=external/studycat-schema/schema.prisma",

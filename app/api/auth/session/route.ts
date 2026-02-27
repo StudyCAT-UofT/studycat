@@ -6,7 +6,7 @@ export const runtime = 'nodejs'
 export async function GET() {
   try {
     const session = await getSession()
-    
+
     if (!session) {
       return NextResponse.json({ user: null }, { status: 401 })
     }

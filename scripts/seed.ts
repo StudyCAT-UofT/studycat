@@ -5,31 +5,37 @@ const prisma = new PrismaClient()
 const main = async () => {
   console.log('🌱 Starting seed...')
 
-  // Clean existing data (optional - comment out if you want to preserve data)
+  // Cleanup existing data
+  // Note: Order matters for foreign key constraints
   await prisma.response.deleteMany()
   await prisma.attempt.deleteMany()
+  await prisma.theta.deleteMany()
+  await prisma.enrollment.deleteMany()
   await prisma.quizItem.deleteMany()
+  await prisma.quizModule.deleteMany() // Fix: Added explicit cleanup
   await prisma.quiz.deleteMany()
   await prisma.itemOption.deleteMany()
   await prisma.item.deleteMany()
-  await prisma.theta.deleteMany()
   await prisma.module.deleteMany()
-  await prisma.enrollment.deleteMany()
   await prisma.courseOffering.deleteMany()
   await prisma.course.deleteMany()
   await prisma.term.deleteMany()
   await prisma.user.deleteMany()
 
-  // Create users
+  // Create users - MATCHING IdP CREDENTIALS
   const instructor = await prisma.user.create({
     data: {
-      username: 'instructor1',
+      username: 'instructor', // Matches IdP uid=instructor
+      givenName: 'Test',
+      familyName: 'Instructor',
     },
   })
 
   const student1 = await prisma.user.create({
     data: {
-      username: 'student1',
+      username: 'student', // Matches IdP uid=student
+      givenName: 'Test',
+      familyName: 'Student',
     },
   })
 
@@ -687,13 +693,13 @@ const main = async () => {
       includedBlooms: "'REMEMBER', 'UNDERSTAND', 'APPLY', 'ANALYZE', 'EVALUATE', 'CREATE'",
       createdById: instructor.id,
       quizModules: {
-      createMany: {
-        data: [
-          { moduleId: module1.id, masteryThreshold: 0.7 },
-          { moduleId: module2.id, masteryThreshold: 0.7 },
-        ],
+        createMany: {
+          data: [
+            { moduleId: module1.id, masteryThreshold: 0.7 },
+            { moduleId: module2.id, masteryThreshold: 0.7 },
+          ],
+        },
       },
-    },
     },
   })
 
@@ -1333,12 +1339,13 @@ const main = async () => {
   console.log(`- Attempts: 4 (2 completed, 1 in-progress, 1 abandoned)`)
   console.log(`- Responses: 11 total`)
   console.log(`- Theta values: 8 (initial values for all students)`)
-  console.log('\n🔑 Test credentials:')
-  console.log('- Instructor: instructor1 (enrolled in all 4 courses)')
+  console.log('🔑 Test credentials:')
+  console.log('- Instructor: instructor (enrolled in all 4 courses)')
   console.log('- TA: ta1 (enrolled in CS101)')
-  console.log('- Students: student1, student2, student3, student4 (enrolled in CS101)')
-  console.log('\n📝 Test Scenarios:')
-  console.log('- student1: Has completed attempt on Programming Basics Quiz (5/5 correct)')
+  console.log('- Students: student, student2, student3, student4 (enrolled in CS101)')
+  console.log('')
+  console.log('📝 Test Scenarios:')
+  console.log('- student: Has completed attempt on Programming Basics Quiz (5/5 correct)')
   console.log('- student2: Has in-progress attempt on Programming Basics Quiz (2/5 answered)')
   console.log('- student3: Has completed attempt on Data Structures Quiz (1/3 correct)')
   console.log('- student4: Has abandoned attempt on Programming Basics Quiz (1 response)')

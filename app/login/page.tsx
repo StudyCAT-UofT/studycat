@@ -10,8 +10,26 @@ export default function LoginPage() {
     const [username, setUsername] = useState('')
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState('')
+    const [authMode, setAuthMode] = useState<'simple' | 'shibboleth'>('simple')
+    const [authModeLoading, setAuthModeLoading] = useState(true)
     const router = useRouter()
     const { user, loading: authLoading, refreshUser } = useAuth()
+
+    // Fetch auth mode from environment
+    useEffect(() => {
+        const fetchAuthMode = async () => {
+            try {
+                const mode = process.env.AUTH_MODE || 'shibboleth'
+                setAuthMode(mode as 'simple' | 'shibboleth')
+            } catch (error) {
+                console.error('Failed to fetch auth mode:', error)
+                setAuthMode('simple')
+            } finally {
+                setAuthModeLoading(false)
+            }
+        }
+        fetchAuthMode()
+    }, [])
 
     const handleLogin = async () => {
         if (!username.trim()) {
@@ -42,7 +60,7 @@ export default function LoginPage() {
         }
     }, [user, authLoading, router])
 
-    if (authLoading) {
+    if (authLoading || authModeLoading) {
         return (
             <Container size="sm" py="xl">
                 <Stack align="center" gap="md">
@@ -57,6 +75,44 @@ export default function LoginPage() {
         return null
     }
 
+    // Shibboleth Mode: Redirect to SP
+    if (authMode === 'shibboleth') {
+        return (
+            <Container size="sm" py="xl">
+                <Stack gap="lg">
+                    <Title order={2}>StudyCAT Login</Title>
+
+                    {error && (
+                        <Alert color="red" title="Error">
+                            {error}
+                        </Alert>
+                    )}
+
+                    <Card withBorder padding="lg" radius="md">
+                        <Stack gap="md">
+                            <Text size="sm" c="dimmed">
+                                This application uses UTORid single sign-on for authentication.
+                            </Text>
+                            <Button
+                                onClick={() => {
+                                    // Use Shibboleth SessionInitiator with target parameter
+                                    // This will trigger SSO flow and return to the callback URL
+                                    const callbackUrl = encodeURIComponent('/api/auth/shibboleth/callback');
+                                    window.location.href = `https://sp.studycat.local/Shibboleth.sso/Login?target=${callbackUrl}`;
+                                }}
+                                fullWidth
+                                size="lg"
+                            >
+                                Login with UTORid
+                            </Button>
+                        </Stack>
+                    </Card>
+                </Stack>
+            </Container>
+        )
+    }
+
+    // Simple Mode: Username-only authentication
     return (
         <Container size="sm" py="xl">
             <Stack gap="lg">
