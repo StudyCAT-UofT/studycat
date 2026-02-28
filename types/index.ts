@@ -210,9 +210,6 @@ export interface FeedbackData {
     continueReason: 'not_started' | 'in_progress' | 'reached_limit' | 'completed' | null
 }
 
-// OptionLabel represents the standard 4-option set used by the legacy spreadsheet format
-// and throughout the quiz engine. The upload route uses `string` directly when handling
-// the new spreadsheet format, which supports a flexible number of options (A, B, C, ...).
 export type OptionLabel = 'A' | 'B' | 'C' | 'D';
 
 export const optionLabels: OptionLabel[] = ['A', 'B', 'C', 'D'];
