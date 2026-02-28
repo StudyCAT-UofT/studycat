@@ -64,12 +64,6 @@ For those interested in learning more about IRT:
 
 - **Embretson, S. E., & Reise, S. P. (2000).** *Item Response Theory for Psychologists.* Lawrence Erlbaum Associates. (Accessible introduction to IRT concepts) [Purchase](https://www.amazon.ca/Psychologists-Multivariate-Applications-Embretson-2000-05-03/dp/B01FIWFNY2)
 
-- **Baker, F. B., & Kim, S.-H. (2004).** *Item Response Theory: Parameter Estimation Techniques.* CRC Press. (Technical guide to calibration methods) [PDF](https://www.researchgate.net/publication/273588782_Item_Response_Theory_Parameter_Estimation_Techniques)
+- **Baker, F. B., & Kim, S.-H. (2004).** *Item Response Theory: Parameter Estimation Techniques.* CRC Press. (Technical guide to calibration methods) [Purchase](https://www.amazon.ca/Item-Response-Theory-Estimation-Techniques/dp/0824758250)
 
-- **De Ayala, R. J. (2009).** *The Theory and Practice of Item Response Theory.* Guilford Press. (Comprehensive textbook) [PDF](https://www.researchgate.net/publication/227596113_RJ_DE_AYALA_2009_The_Theory_and_Practice_of_Item_Response_Theory)
-
-## Online Resources
-
-- [IRT Tutorial by Frank Baker](http://www.education.umd.edu/EDMS/tutorials/IRT/) - A comprehensive online tutorial
-- [UCLA IDRE IRT Resources](https://stats.oarc.ucla.edu/r/seminars/irt/) - Practical guides with R examples
-- [The R mirt Package Documentation](https://cran.r-project.org/web/packages/mirt/index.html) - Official documentation with examples
+- **De Ayala, R. J. (2009).** *The Theory and Practice of Item Response Theory.* Guilford Press. (Comprehensive textbook) [Purchase](https://www.amazon.ca/Theory-Practice-Item-Response/dp/1593858698)
