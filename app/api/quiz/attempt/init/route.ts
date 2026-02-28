@@ -86,47 +86,27 @@ export const POST = async (request: NextRequest) => {
       },
     });
 
-    // If an in-progress attempt exists, return it
-    if (attempt) {
-      // Call FastAPI to get current state
-      const fastApiRequest: FastAPIInitRequest = {
-        attempt_id: attempt.id,
-        concepts: concepts || moduleIds,
-        prior_mu: priorMu,
-        prior_sigma2: priorSigma2,
-      };
-
-      const fastApiData = await fastApiClient.initAttempt(fastApiRequest);
-
-      return NextResponse.json({
-        attemptId: attempt.id,
-        quizId,
-        enrollmentId: enrollment.id,
-        theta: fastApiData.theta,
-        nextItem: fastApiData.next_item,
-        nextAction: fastApiData.next_action,
-        startedAt: attempt.startedAt,
+    // ensure we are not creating a new attempt if one already exists
+    if (!attempt) {
+      // Create attempt in database
+      attempt = await prisma.attempt.create({
+        data: {
+          quiz: {
+            connect: { id: quizId }
+          },
+          enrollment: {
+            connect: { id: enrollment.id }
+          },
+          fixedLengthN: quiz.fixedLength,
+          status: 'IN_PROGRESS',
+          scopeSnapshot: JSON.stringify({
+            includedModuleIds: moduleIds,
+            includedBlooms: quiz.includedBlooms,
+            eligibleItemIds: quiz.quizItems.map(qi => qi.itemId),
+          }),
+        },
       });
     }
-
-    // Create attempt in database
-    attempt = await prisma.attempt.create({
-      data: {
-        quiz: {
-          connect: { id: quizId }
-        },
-        enrollment: {
-          connect: { id: enrollment.id }
-        },
-        fixedLengthN: quiz.fixedLength,
-        status: 'IN_PROGRESS',
-        scopeSnapshot: JSON.stringify({
-          includedModuleIds: moduleIds,
-          includedBlooms: quiz.includedBlooms,
-          eligibleItemIds: quiz.quizItems.map(qi => qi.itemId),
-        }),
-      },
-    });
 
     // Prepare request for FastAPI service
     const fastApiRequest: FastAPIInitRequest = {
