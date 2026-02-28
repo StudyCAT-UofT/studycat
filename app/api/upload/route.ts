@@ -13,7 +13,9 @@ export const runtime = "nodejs";
  * - file: the .xlsx or .csv spreadsheet (first sheet is used)
  *   Columns: lecture, question_id, category, question, correct_answer,
  *   answer_a/b/c/... (flexible count), answer_justification_a/b/c/...,
- *   question_figure, biserial, average, attempts
+ *   question_figure, biserial, average, attempts,
+ *   irt_a, irt_b, irt_c (optional, defaults: 1.0 / 0.0 / 1/n_options),
+ *   reference (optional)
  *   (answer_figure is not yet stored — see GitHub issue #68)
  * - courseId: Prisma Course.id (string)
  * - offeringId: Prisma CourseOffering.id (string)
@@ -103,6 +105,10 @@ export async function POST(request: Request) {
                 const ptBi = row["biserial"] != null ? Number(row["biserial"]) : null;
                 const average = row["average"] != null ? Number(row["average"]) : null;
                 const attemptsCount = row["attempts"] != null ? parseInt(String(row["attempts"]), 10) : null;
+                const reference = row["reference"] != null ? String(row["reference"]) : null;
+                const irtA = row["irt_a"] != null ? Number(row["irt_a"]) : 1.0;
+                const irtB = row["irt_b"] != null ? Number(row["irt_b"]) : 0.0;
+                const irtCRaw = row["irt_c"] != null ? Number(row["irt_c"]) : null;
                 const correctRaw = row["correct_answer"];
 
                 const externalQuestionId = externalQuestionIdRaw ? String(externalQuestionIdRaw) : null;
@@ -137,6 +143,8 @@ export async function POST(request: Request) {
                     details.push({ externalQuestionId, status: "skipped: no answer options found" });
                     continue;
                 }
+
+                const irtC = irtCRaw ?? (1 / labels.length);
 
                 // find or create module by (offeringId, name)
                 let moduleRecord = await prisma.module.findFirst({
@@ -193,14 +201,14 @@ export async function POST(request: Request) {
                         externalQuestionId,
                         bloom,
                         stem: String(stem),
-                        reference: null,
+                        reference,
                         figureUrl: figure ? String(figure) : null,
                         ptBi,
                         average,
                         attemptsCount,
-                        irtA: 0,
-                        irtB: 0,
-                        irtC: 0,
+                        irtA,
+                        irtB,
+                        irtC,
                         active: true,
                         options: {
                             create: optionsToCreate,

@@ -312,7 +312,7 @@ const UploadPageContent = () => {
                                     <List.Item><strong>answer_a, answer_b, ...</strong> - Answer options (flexible count)</List.Item>
                                     <List.Item><strong>answer_justification_a, answer_justification_b, ...</strong> - Explanations (optional)</List.Item>
                                     <List.Item><strong>correct_answer</strong> - Correct option letter (A, B, C, ...)</List.Item>
-                                    <List.Item><strong>question_figure, biserial, average, attempts</strong> - Optional metadata</List.Item>
+                                    <List.Item><strong>question_figure, biserial, average, attempts, irt_a, irt_b, irt_c, reference</strong> - Optional metadata</List.Item>
                                 </List>
                             </Stack>
                         </Card>
