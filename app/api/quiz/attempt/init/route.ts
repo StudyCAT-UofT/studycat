@@ -74,24 +74,39 @@ export const POST = async (request: NextRequest) => {
       );
     }
 
-    // Create attempt in database
-    const attempt = await prisma.attempt.create({
-      data: {
-        quiz: {
-          connect: { id: quizId }
-        },
-        enrollment: {
-          connect: { id: enrollment.id }
-        },
-        fixedLengthN: quiz.fixedLength,
+    // Check for existing in-progress attempt for this quiz and enrollment
+    let attempt = await prisma.attempt.findFirst({
+      where: {
+        quizId,
+        enrollmentId: enrollment.id,
         status: 'IN_PROGRESS',
-        scopeSnapshot: JSON.stringify({
-          includedModuleIds: moduleIds,
-          includedBlooms: quiz.includedBlooms,
-          eligibleItemIds: quiz.quizItems.map(qi => qi.itemId),
-        }),
+      },
+      orderBy: {
+        startedAt: 'desc', // Get the most recent one
       },
     });
+
+    // ensure we are not creating a new attempt if one already exists
+    if (!attempt) {
+      // Create attempt in database
+      attempt = await prisma.attempt.create({
+        data: {
+          quiz: {
+            connect: { id: quizId }
+          },
+          enrollment: {
+            connect: { id: enrollment.id }
+          },
+          fixedLengthN: quiz.fixedLength,
+          status: 'IN_PROGRESS',
+          scopeSnapshot: JSON.stringify({
+            includedModuleIds: moduleIds,
+            includedBlooms: quiz.includedBlooms,
+            eligibleItemIds: quiz.quizItems.map(qi => qi.itemId),
+          }),
+        },
+      });
+    }
 
     // Prepare request for FastAPI service
     const fastApiRequest: FastAPIInitRequest = {
