@@ -2,15 +2,21 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import * as xlsx from "xlsx";
-import { BloomCategory, OptionLabel } from '@/types'
+import { BloomCategory } from '@/types'
 
 export const runtime = "nodejs";
 
 /**
- * POST /api/upload-spreadsheet
+ * POST /api/upload
  *
  * Expects multipart/form-data with:
- * - file: the .xlsx spreadsheet (first sheet is used)
+ * - file: the .xlsx or .csv spreadsheet (first sheet is used)
+ *   Columns: lecture, question_id, category, question, correct_answer,
+ *   answer_a/b/c/... (flexible count), answer_justification_a/b/c/...,
+ *   question_figure, biserial, average, attempts,
+ *   irt_a, irt_b, irt_c (optional, defaults: 1.0 / 0.0 / 1/n_options),
+ *   reference (optional)
+ *   (answer_figure is not yet stored — see GitHub issue #68)
  * - courseId: Prisma Course.id (string)
  * - offeringId: Prisma CourseOffering.id (string)
  *
@@ -72,15 +78,6 @@ export async function POST(request: Request) {
             return undefined;
         };
 
-        const labelFromIndex = (i: number) => {
-            switch (i) {
-                case 0: return "A";
-                case 1: return "B";
-                case 2: return "C";
-                default: return "D";
-            }
-        };
-
         // Normalize keys on rows so we can reference case-insensitively
         const parsedRows = rawRows.map((r) => {
             const out: Record<string, unknown> = {};
@@ -99,19 +96,20 @@ export async function POST(request: Request) {
         // process rows sequentially (keeps DB small-batch friendly and easy to reason about)
         for (const row of parsedRows) {
             try {
-                const moduleName = row["module"] || row["module name"] || row["module_name"];
-                const externalQuestionIdRaw = row["question_id"] || row["question id"] || row["questionid"];
-                const bloomRaw = row["bloom_cat"] || row["bloom cat"] || row["bloom"];
-                const stem = row["stem"] ?? "";
-                const reference = row["reference"] ?? null;
-                const figure = row["figure"] ?? null;
-                const ptBi = row["ptbi"] != null ? Number(row["ptbi"]) : null;
+                const moduleName = row["lecture"];
+                const externalQuestionIdRaw = row["question_id"];
+                const bloomRaw = row["category"];
+                const stem = row["question"] ?? "";
+                const figure = row["question_figure"] ?? null;
+                // answer_figure is not yet stored — see GitHub issue #68
+                const ptBi = row["biserial"] != null ? Number(row["biserial"]) : null;
                 const average = row["average"] != null ? Number(row["average"]) : null;
                 const attemptsCount = row["attempts"] != null ? parseInt(String(row["attempts"]), 10) : null;
-                const irtA = row["irt_a"] != null ? Number(row["irt_a"]) : 0;
-                const irtB = row["irt_b"] != null ? Number(row["irt_b"]) : 0;
-                const irtC = row["irt_c"] != null ? Number(row["irt_c"]) : 0;
-                const correctRaw = row["correct"]; // required by user note (always present)
+                const reference = row["reference"] != null ? String(row["reference"]) : null;
+                const irtA = row["irt_a"] != null ? Number(row["irt_a"]) : 1.0;
+                const irtB = row["irt_b"] != null ? Number(row["irt_b"]) : 0.0;
+                const irtCRaw = row["irt_c"] != null ? Number(row["irt_c"]) : null;
+                const correctRaw = row["correct_answer"];
 
                 const externalQuestionId = externalQuestionIdRaw ? String(externalQuestionIdRaw) : null;
                 const moduleNameStr = moduleName ? String(moduleName) : null;
@@ -127,19 +125,26 @@ export async function POST(request: Request) {
                     continue;
                 }
 
-                // prepare responses (case-insensitive header names accepted)
-                const responses = [
-                    row["response_a"],
-                    row["response_b"],
-                    row["response_c"],
-                    row["response_d"],
-                ];
-                const justifs = [
-                    row["justification_a"],
-                    row["justification_b"],
-                    row["justification_c"],
-                    row["justification_d"],
-                ];
+                // prepare responses (answer_a, answer_b, ... — flexible count)
+                const labels: string[] = [];
+                const responses: unknown[] = [];
+                const justifs: unknown[] = [];
+                for (const letter of 'ABCDEFGHIJKLMNOPQRSTUVWXYZ') {
+                    const key = `answer_${letter.toLowerCase()}`;
+                    if (row[key] == null && labels.length > 0) break;
+                    if (row[key] != null) {
+                        labels.push(letter);
+                        responses.push(row[key]);
+                        justifs.push(row[`answer_justification_${letter.toLowerCase()}`] ?? null);
+                    }
+                }
+
+                if (labels.length === 0) {
+                    details.push({ externalQuestionId, status: "skipped: no answer options found" });
+                    continue;
+                }
+
+                const irtC = irtCRaw ?? (1 / labels.length);
 
                 // find or create module by (offeringId, name)
                 let moduleRecord = await prisma.module.findFirst({
@@ -160,25 +165,23 @@ export async function POST(request: Request) {
                     continue;
                 }
 
-                // Build options, mark correct by either A/B/C/D or by matching option text
+                // Build options, mark correct by letter (A/B/C/...)
                 const optionsToCreate: Array<{
-                    label: OptionLabel;
+                    label: string;
                     text: string;
                     justification: string | null;
                     isCorrect: boolean;
                 }> = [];
-                for (let i = 0; i < 4; i++) {
+                for (let i = 0; i < labels.length; i++) {
                     const text = responses[i] ?? "";
                     const justification = justifs[i] ?? null;
-                    const label = labelFromIndex(i) as OptionLabel;
+                    const label = labels[i];
                     let isCorrect = false;
 
                     if (correctRaw != null) {
                         const c = String(correctRaw).trim();
-                        if (/^[ABCDabcd]$/.test(c)) {
+                        if (/^[A-Za-z]$/.test(c)) {
                             if (c.toUpperCase() === label) isCorrect = true;
-                        } else {
-                            if (String(text).trim() && String(text).trim() === c) isCorrect = true;
                         }
                     }
 
@@ -198,14 +201,14 @@ export async function POST(request: Request) {
                         externalQuestionId,
                         bloom,
                         stem: String(stem),
-                        reference: reference ? String(reference) : null,
+                        reference,
                         figureUrl: figure ? String(figure) : null,
                         ptBi,
                         average,
                         attemptsCount,
-                        irtA: irtA ?? 0,
-                        irtB: irtB ?? 0,
-                        irtC: irtC ?? 0,
+                        irtA,
+                        irtB,
+                        irtC,
                         active: true,
                         options: {
                             create: optionsToCreate,

@@ -56,15 +56,11 @@ const UploadPageContent = () => {
 
             // Required columns (case-insensitive matches)
             const requiredColumns = [
-                { names: ['module', 'module name', 'module_name'], display: 'Module' },
-                { names: ['question_id', 'question id', 'questionid'], display: 'Question_ID' },
-                { names: ['bloom_cat', 'bloom cat', 'bloom'], display: 'Bloom_Cat' },
-                { names: ['stem'], display: 'Stem' },
-                { names: ['response_a'], display: 'Response_A' },
-                { names: ['response_b'], display: 'Response_B' },
-                { names: ['response_c'], display: 'Response_C' },
-                { names: ['response_d'], display: 'Response_D' },
-                { names: ['correct'], display: 'Correct' }
+                { names: ['lecture'],        display: 'lecture' },
+                { names: ['question_id'],    display: 'question_id' },
+                { names: ['category'],       display: 'category' },
+                { names: ['question'],       display: 'question' },
+                { names: ['correct_answer'], display: 'correct_answer' },
             ]
 
             const missingColumns: string[] = []
@@ -74,6 +70,12 @@ const UploadPageContent = () => {
                 if (!found) {
                     missingColumns.push(col.display)
                 }
+            }
+
+            // At least one answer option (answer_a, answer_b, ...) must be present
+            const hasAnswerOption = headers.some(h => /^answer_[a-z]$/.test(h))
+            if (!hasAnswerOption) {
+                missingColumns.push('answer_a (at least one answer option required)')
             }
 
             if (missingColumns.length > 0) {
@@ -233,8 +235,8 @@ const UploadPageContent = () => {
                                     <Stack gap="md" align="center">
                                         <IconUpload size={48} stroke={1.5} color="#228be6" />
                                         <FileInput
-                                            placeholder="Click to choose .xlsx or .xls file"
-                                            accept=".xlsx,.xls"
+                                            placeholder="Click to choose .xlsx, .xls, or .csv file"
+                                            accept=".xlsx,.xls,.csv"
                                             value={file}
                                             onChange={handleFileChange}
                                             disabled={!selectedCourseOffering || loading}
@@ -303,14 +305,14 @@ const UploadPageContent = () => {
                                     Your spreadsheet should include the following columns (case-insensitive):
                                 </Text>
                                 <List size="sm" spacing="xs">
-                                    <List.Item><strong>Module</strong> - Module name</List.Item>
-                                    <List.Item><strong>Question_ID</strong> - Unique question identifier</List.Item>
-                                    <List.Item><strong>Bloom_Cat</strong> - Bloom&apos;s taxonomy category</List.Item>
-                                    <List.Item><strong>Stem</strong> - Question text</List.Item>
-                                    <List.Item><strong>Response_A, Response_B, Response_C, Response_D</strong> - Answer options</List.Item>
-                                    <List.Item><strong>Justification_A, Justification_B, Justification_C, Justification_D</strong> - Explanations</List.Item>
-                                    <List.Item><strong>Correct</strong> - Correct answer (A/B/C/D or full text)</List.Item>
-                                    <List.Item><strong>Reference, Figure, PtBi, Average, Attempts, IRT_a, IRT_b, IRT_c</strong> - Optional metadata</List.Item>
+                                    <List.Item><strong>lecture</strong> - Module/lecture name</List.Item>
+                                    <List.Item><strong>question_id</strong> - Unique question identifier</List.Item>
+                                    <List.Item><strong>category</strong> - Bloom&apos;s taxonomy category</List.Item>
+                                    <List.Item><strong>question</strong> - Question text</List.Item>
+                                    <List.Item><strong>answer_a, answer_b, ...</strong> - Answer options (flexible count)</List.Item>
+                                    <List.Item><strong>answer_justification_a, answer_justification_b, ...</strong> - Explanations (optional)</List.Item>
+                                    <List.Item><strong>correct_answer</strong> - Correct option letter (A, B, C, ...)</List.Item>
+                                    <List.Item><strong>question_figure, biserial, average, attempts, irt_a, irt_b, irt_c, reference</strong> - Optional metadata</List.Item>
                                 </List>
                             </Stack>
                         </Card>
