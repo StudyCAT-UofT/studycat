@@ -4,9 +4,6 @@ import { prisma } from './prisma'
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
 
-const ADMIN_COURSE_CODE = 'SYSTEM';
-const ADMIN_TERM_NAME = 'ADMIN';
-
 export interface UserSession {
   userId: string
   username: string
@@ -50,19 +47,16 @@ export const clearSessionCookie = async () => {
 }
 
 export const isAdmin = async (userId: string): Promise<boolean> => {
-  const enrollment = await prisma.enrollment.findFirst({
+  const user = await prisma.user.findFirst({
     where: {
-      userId,
-      offeringRole: 'ADMIN',
-      offering: {
-        course: { code: ADMIN_COURSE_CODE },
-        term: { name: ADMIN_TERM_NAME },
-      },
-    },
-    select: { id: true },
-  });
-
-  return !!enrollment;
+      id: userId
+    }
+  })
+  if (!user) {
+    return false;
+  } else {
+    return user.isAdmin;
+  }
 };
 
 export const requireAdmin = async (userId: string) => {
