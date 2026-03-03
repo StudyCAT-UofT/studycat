@@ -138,3 +138,13 @@ git commit -m "chore: update schema submodule to v0.2.0"
 ## Deploying
 
 WIP.
+
+## Authentication (Shibboleth)
+
+A local Shibboleth Service Provider (SP) and Identity Provider (IdP) simulation environment has been set up for development and testing.
+
+**Note:** This setup is designed to mimic the production environment locally. In the actual production deployment:
+*   The **IdP** will be replaced by the University of Toronto's **UTORauth** system.
+*   The **SP** container will potentially be replaced by a standard **Apache** server in front of the application.
+
+For detailed instructions on running, configuring, and testing the Shibboleth environment, please refer to [SHIBBOLETH-SETUP.md](SHIBBOLETH-SETUP.md).

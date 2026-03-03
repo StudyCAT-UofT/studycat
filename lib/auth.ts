@@ -1,27 +1,19 @@
-import jwt from 'jsonwebtoken'
 import { cookies } from 'next/headers'
 import { prisma } from './prisma'
+import { verifyToken as verifyJWT, signToken, JWTPayload } from './jwt'
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
+// Re-export JWTPayload as UserSession for backwards compatibility
+export type UserSession = JWTPayload
 
-export interface UserSession {
-  userId: string
-  username: string
+export const createToken = (user: Omit<JWTPayload, 'iat' | 'exp'>): string => {
+  return signToken(user)
 }
 
-export const createToken = (user: UserSession): string => {
-  return jwt.sign(user, JWT_SECRET, { expiresIn: '7d' })
+export const verifyToken = (token: string): JWTPayload | null => {
+  return verifyJWT(token)
 }
 
-export const verifyToken = (token: string): UserSession | null => {
-  try {
-    return jwt.verify(token, JWT_SECRET) as UserSession
-  } catch {
-    return null
-  }
-}
-
-export const getSession = async (): Promise<UserSession | null> => {
+export const getSession = async (): Promise<JWTPayload | null> => {
   const cookieStore = await cookies()
   const token = cookieStore.get('session-token')?.value
   

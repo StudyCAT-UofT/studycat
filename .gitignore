@@ -45,3 +45,10 @@ next-env.d.ts
 
 # test files
 /test-csv-samples
+
+# Claude
+CLAUDE.md
+
+# Shibboleth IdP - entire generated configuration directory
+# Generated via Docker and configured manually per SHIBBOLETH-SETUP.md
+shibboleth/idp/customized-shibboleth-idp/

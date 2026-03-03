@@ -1,0 +1,17 @@
+# Exclude documentation
+*.md
+README.md
+
+# Exclude git files
+.git
+.gitignore
+
+# Exclude editor files
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Exclude macOS files
+.DS_Store

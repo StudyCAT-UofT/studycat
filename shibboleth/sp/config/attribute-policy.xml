@@ -1,0 +1,65 @@
+<afp:AttributeFilterPolicyGroup
+    xmlns="urn:mace:shibboleth:2.0:afp:mf:basic"
+    xmlns:afp="urn:mace:shibboleth:2.0:afp"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+
+    <!--
+    StudyCAT Attribute Filter Policy
+    Accept all attributes from our trusted IdP
+    -->
+
+    <afp:AttributeFilterPolicy id="AcceptAllAttributes">
+        <!-- Accept from any IdP (for development) -->
+        <afp:PolicyRequirementRule xsi:type="ANY"/>
+        
+        <!-- Accept all attributes -->
+        <afp:AttributeRule attributeID="eppn">
+            <afp:PermitValueRule xsi:type="ANY"/>
+        </afp:AttributeRule>
+        
+        <afp:AttributeRule attributeID="uid">
+            <afp:PermitValueRule xsi:type="ANY"/>
+        </afp:AttributeRule>
+        
+        <afp:AttributeRule attributeID="mail">
+            <afp:PermitValueRule xsi:type="ANY"/>
+        </afp:AttributeRule>
+        
+        <afp:AttributeRule attributeID="displayName">
+            <afp:PermitValueRule xsi:type="ANY"/>
+        </afp:AttributeRule>
+        
+        <afp:AttributeRule attributeID="cn">
+            <afp:PermitValueRule xsi:type="ANY"/>
+        </afp:AttributeRule>
+        
+        <afp:AttributeRule attributeID="sn">
+            <afp:PermitValueRule xsi:type="ANY"/>
+        </afp:AttributeRule>
+        
+        <afp:AttributeRule attributeID="givenName">
+            <afp:PermitValueRule xsi:type="ANY"/>
+        </afp:AttributeRule>
+        
+        <afp:AttributeRule attributeID="affiliation">
+            <afp:PermitValueRule xsi:type="ANY"/>
+        </afp:AttributeRule>
+        
+        <afp:AttributeRule attributeID="scoped-affiliation">
+            <afp:PermitValueRule xsi:type="ANY"/>
+        </afp:AttributeRule>
+        
+        <afp:AttributeRule attributeID="entitlement">
+            <afp:PermitValueRule xsi:type="ANY"/>
+        </afp:AttributeRule>
+        
+        <afp:AttributeRule attributeID="primary-affiliation">
+            <afp:PermitValueRule xsi:type="ANY"/>
+        </afp:AttributeRule>
+        
+        <afp:AttributeRule attributeID="targeted-id">
+            <afp:PermitValueRule xsi:type="ANY"/>
+        </afp:AttributeRule>
+    </afp:AttributeFilterPolicy>
+
+</afp:AttributeFilterPolicyGroup>
