@@ -1,7 +1,8 @@
 'use client'
 
-import { Container, Stack, Title, Group, TextInput, MultiSelect, Button, Card, Flex, Modal, Text, Box } from '@mantine/core'
-import { IconSearch, IconFilter, IconX, IconPlus, IconTrash, IconUpload } from '@tabler/icons-react'
+import { Container, Stack, Title, Group, TextInput, MultiSelect, Button, Card, Flex, Modal, Text, Box, Menu, Switch } from '@mantine/core'
+import { IconSearch, IconFilter, IconX, IconPlus, IconTrash, IconUpload, IconDownload, IconFileSpreadsheet, IconCsv, IconEyeOff, IconEye } from '@tabler/icons-react'
+import { notifications } from '@mantine/notifications'
 import { ProtectedRoute, RoleBasedRoute } from '@/components'
 import { useCourse } from '@/lib/course-context'
 import { useEffect, useState, useMemo, useCallback } from 'react'
@@ -23,6 +24,7 @@ const QuestionBankContent = () => {
     const [selectedModules, setSelectedModules] = useState<string[]>([])
     const [selectedBlooms, setSelectedBlooms] = useState<string[]>([])
     const [showFilters, setShowFilters] = useState(false)
+    const [showInactive, setShowInactive] = useState(false)
 
     // Modal state
     const [isNewQuestionModalOpen, setIsNewQuestionModalOpen] = useState(false)
@@ -32,6 +34,7 @@ const QuestionBankContent = () => {
     const [deleteModalOpened, setDeleteModalOpened] = useState(false)
     const [deletingItems, setDeletingItems] = useState<Item[]>([])
     const [isDeleting, setIsDeleting] = useState(false)
+    const [downloading, setDownloading] = useState(false)
 
     const fetchItems = useCallback(async () => {
         if (!selectedCourseOffering?.course?.id) {
@@ -43,7 +46,9 @@ const QuestionBankContent = () => {
         setError(null)
 
         try {
-            const response = await fetch(`/api/items?courseId=${selectedCourseOffering.course.id}`, {
+            const params = new URLSearchParams({ courseId: selectedCourseOffering.course.id })
+            if (showInactive) params.set('includeInactive', 'true')
+            const response = await fetch(`/api/items?${params.toString()}`, {
                 credentials: 'include'
             })
             if (!response.ok) {
@@ -57,7 +62,7 @@ const QuestionBankContent = () => {
         } finally {
             setLoading(false)
         }
-    }, [selectedCourseOffering?.course?.id])
+    }, [selectedCourseOffering?.course?.id, showInactive])
 
     useEffect(() => {
         fetchItems()
@@ -105,13 +110,76 @@ const QuestionBankContent = () => {
         setSearchQuery('')
         setSelectedModules([])
         setSelectedBlooms([])
+        setShowInactive(false)
     }
 
-    const hasActiveFilters = searchQuery.trim() || selectedModules.length > 0 || selectedBlooms.length > 0
+    const hasActiveFilters = searchQuery.trim() || selectedModules.length > 0 || selectedBlooms.length > 0 || showInactive
 
     const handleDeleteSelected = (items: Item[]) => {
         setDeletingItems(items)
         setDeleteModalOpened(true)
+    }
+
+    const handleToggleActive = async (itemIds: string[], active: boolean) => {
+        try {
+            const response = await fetch('/api/items', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ids: itemIds, active })
+            })
+
+            if (!response.ok) {
+                const errorData = await response.json()
+                throw new Error(errorData.error || 'Failed to update items')
+            }
+
+            const data = await response.json()
+            notifications.show({
+                title: active ? 'Questions Activated' : 'Questions Deactivated',
+                message: data.message,
+                color: active ? 'green' : 'orange',
+            })
+
+            setSelectedRecords([])
+            fetchItems()
+        } catch (err) {
+            console.error('Toggle active error:', err)
+            notifications.show({
+                title: 'Error',
+                message: err instanceof Error ? err.message : 'Failed to update items',
+                color: 'red',
+            })
+        }
+    }
+
+    const handleDownload = async (format: 'xlsx' | 'csv') => {
+        if (!selectedCourseOffering?.course?.id) return
+
+        setDownloading(true)
+        try {
+            const response = await fetch(
+                `/api/items/export?courseId=${selectedCourseOffering.course.id}&format=${format}`,
+                { credentials: 'include' }
+            )
+
+            if (!response.ok) {
+                throw new Error('Failed to download questions')
+            }
+
+            const blob = await response.blob()
+            const url = window.URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = url
+            a.download = `${selectedCourseOffering.course.code}-questions.${format}`
+            document.body.appendChild(a)
+            a.click()
+            window.URL.revokeObjectURL(url)
+            document.body.removeChild(a)
+        } catch (err) {
+            console.error('Download error:', err)
+        } finally {
+            setDownloading(false)
+        }
     }
 
     const handleDeleteConfirm = async () => {
@@ -156,16 +224,72 @@ const QuestionBankContent = () => {
                     <Title order={2}>Question Bank</Title>
                     <Group gap="sm">
                         {selectedRecords.length > 0 && (
-                            <Button
-                                color="red"
-                                variant="light"
-                                leftSection={<IconTrash size={16} />}
-                                onClick={() => handleDeleteSelected(selectedRecords)}
-                                disabled={loading}
-                            >
-                                Delete Selected ({selectedRecords.length})
-                            </Button>
+                            <>
+                                {selectedRecords.some(r => r.active) && (
+                                    <Button
+                                        color="orange"
+                                        variant="light"
+                                        leftSection={<IconEyeOff size={16} />}
+                                        onClick={() => handleToggleActive(
+                                            selectedRecords.filter(r => r.active).map(r => r.id),
+                                            false
+                                        )}
+                                        disabled={loading}
+                                    >
+                                        Deactivate ({selectedRecords.filter(r => r.active).length})
+                                    </Button>
+                                )}
+                                {selectedRecords.some(r => !r.active) && (
+                                    <Button
+                                        color="green"
+                                        variant="light"
+                                        leftSection={<IconEye size={16} />}
+                                        onClick={() => handleToggleActive(
+                                            selectedRecords.filter(r => !r.active).map(r => r.id),
+                                            true
+                                        )}
+                                        disabled={loading}
+                                    >
+                                        Reactivate ({selectedRecords.filter(r => !r.active).length})
+                                    </Button>
+                                )}
+                                <Button
+                                    color="red"
+                                    variant="light"
+                                    leftSection={<IconTrash size={16} />}
+                                    onClick={() => handleDeleteSelected(selectedRecords)}
+                                    disabled={loading}
+                                >
+                                    Delete Selected ({selectedRecords.length})
+                                </Button>
+                            </>
                         )}
+                        <Menu shadow="md" width={200}>
+                            <Menu.Target>
+                                <Button
+                                    variant="outline"
+                                    leftSection={<IconDownload size={16} />}
+                                    disabled={!selectedCourseOffering?.course?.id || items.length === 0}
+                                    loading={downloading}
+                                >
+                                    Download Questions
+                                </Button>
+                            </Menu.Target>
+                            <Menu.Dropdown>
+                                <Menu.Item
+                                    leftSection={<IconFileSpreadsheet size={16} />}
+                                    onClick={() => handleDownload('xlsx')}
+                                >
+                                    Download as .xlsx
+                                </Menu.Item>
+                                <Menu.Item
+                                    leftSection={<IconCsv size={16} />}
+                                    onClick={() => handleDownload('csv')}
+                                >
+                                    Download as .csv
+                                </Menu.Item>
+                            </Menu.Dropdown>
+                        </Menu>
                         <Button
                             variant="outline"
                             leftSection={<IconUpload size={16} />}
@@ -217,7 +341,7 @@ const QuestionBankContent = () => {
 
                         {/* Filter Controls */}
                         {showFilters && (
-                            <Flex gap="md" wrap="wrap">
+                            <Flex gap="md" wrap="wrap" align="center">
                                 <MultiSelect
                                     placeholder="Filter by modules"
                                     data={uniqueModules.map(module => ({ value: module, label: module }))}
@@ -233,6 +357,11 @@ const QuestionBankContent = () => {
                                     onChange={setSelectedBlooms}
                                     clearable
                                     style={{ minWidth: 240 }}
+                                />
+                                <Switch
+                                    label="Show inactive"
+                                    checked={showInactive}
+                                    onChange={(e) => setShowInactive(e.currentTarget.checked)}
                                 />
                                 {hasActiveFilters && (
                                     <Button
