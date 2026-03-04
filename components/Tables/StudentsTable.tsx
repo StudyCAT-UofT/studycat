@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { Text, Badge, Group } from '@mantine/core'
+import { Text, Badge, Group, Button } from '@mantine/core'
 import { DataTable, DataTableSortStatus } from 'mantine-datatable'
 
 interface Student {
@@ -11,6 +11,7 @@ interface Student {
     givenName: string
     familyName: string
     enrolledAt: string
+    hidden: boolean
     totalAttempts: number
     averageScore: number | null
     lastActivity: string | null
@@ -22,6 +23,7 @@ interface StudentsTableProps {
     error: string | null
     selectedRecords?: Student[]
     onSelectedRecordsChange?: (records: Student[]) => void
+    onToggleHidden?: (enrollmentId: string, hidden: boolean) => void
 }
 
 export const StudentsTable = ({
@@ -29,7 +31,8 @@ export const StudentsTable = ({
     loading,
     error,
     selectedRecords: externalSelectedRecords,
-    onSelectedRecordsChange
+    onSelectedRecordsChange,
+    onToggleHidden
 }: StudentsTableProps) => {
     const [sortStatus, setSortStatus] = useState<DataTableSortStatus<Student>>({
         columnAccessor: 'familyName',
@@ -55,9 +58,12 @@ export const StudentsTable = ({
         setPage(1) // Reset to first page when sorting changes
     }
 
-    // Sort the students based on the current sort status
+    // Sort the students based on the current sort status; hidden students always last
     const sortedStudents = useMemo(() => {
         const sorted = [...students].sort((a, b) => {
+            // Hidden students always go to the end, regardless of sort direction
+            if (a.hidden !== b.hidden) return a.hidden ? 1 : -1
+
             const { columnAccessor, direction } = sortStatus
             const aValue = a[columnAccessor as keyof Student]
             const bValue = b[columnAccessor as keyof Student]
@@ -73,7 +79,7 @@ export const StudentsTable = ({
                 const bLower = bValue.toLowerCase()
                 if (aLower < bLower) return direction === 'asc' ? -1 : 1
                 if (aLower > bLower) return direction === 'asc' ? 1 : -1
-                
+
                 // If sorting by family name and values are equal, sort by given name
                 if (columnAccessor === 'familyName') {
                     const aGivenName = (a.givenName || '').toLowerCase()
@@ -81,7 +87,7 @@ export const StudentsTable = ({
                     if (aGivenName < bGivenName) return direction === 'asc' ? -1 : 1
                     if (aGivenName > bGivenName) return direction === 'asc' ? 1 : -1
                 }
-                
+
                 return 0
             }
 
@@ -116,9 +122,16 @@ export const StudentsTable = ({
             sortable: true,
             width: 150,
             render: (student: Student) => (
-                <Text size="sm" fw={500}>
-                    {student.familyName || '—'}
-                </Text>
+                <Group gap={6}>
+                    <Text size="sm" fw={500} c={student.hidden ? 'dimmed' : undefined}>
+                        {student.familyName || '—'}
+                    </Text>
+                    {student.hidden && (
+                        <Badge variant="light" color="gray" size="xs">
+                            Hidden
+                        </Badge>
+                    )}
+                </Group>
             )
         },
         {
@@ -127,7 +140,7 @@ export const StudentsTable = ({
             sortable: true,
             width: 150,
             render: (student: Student) => (
-                <Text size="sm" fw={500}>
+                <Text size="sm" fw={500} c={student.hidden ? 'dimmed' : undefined}>
                     {student.givenName || '—'}
                 </Text>
             )
@@ -138,7 +151,7 @@ export const StudentsTable = ({
             sortable: true,
             width: 150,
             render: (student: Student) => (
-                <Text size="sm">
+                <Text size="sm" c={student.hidden ? 'dimmed' : undefined}>
                     {student.username}
                 </Text>
             )
@@ -149,7 +162,7 @@ export const StudentsTable = ({
             sortable: true,
             width: 130,
             render: (student: Student) => (
-                <Text size="sm">
+                <Text size="sm" c={student.hidden ? 'dimmed' : undefined}>
                     {new Date(student.enrolledAt).toLocaleDateString()}
                 </Text>
             )
@@ -160,7 +173,7 @@ export const StudentsTable = ({
             sortable: true,
             width: 130,
             render: (student: Student) => (
-                <Text size="sm">
+                <Text size="sm" c={student.hidden ? 'dimmed' : undefined}>
                     {student.totalAttempts}
                 </Text>
             )
@@ -175,7 +188,7 @@ export const StudentsTable = ({
                     <Group gap={4}>
                         <Badge
                             variant="light"
-                            color={getScoreColor(student.averageScore)}
+                            color={student.hidden ? 'gray' : getScoreColor(student.averageScore)}
                             size="md"
                         >
                             {student.averageScore.toFixed(1)}%
@@ -194,11 +207,29 @@ export const StudentsTable = ({
             sortable: true,
             width: 130,
             render: (student: Student) => (
-                <Text size="sm">
+                <Text size="sm" c={student.hidden ? 'dimmed' : undefined}>
                     {student.lastActivity ? new Date(student.lastActivity).toLocaleDateString() : '—'}
                 </Text>
             )
-        }
+        },
+        ...(onToggleHidden ? [{
+            accessor: 'actions',
+            title: '',
+            width: 90,
+            render: (student: Student) => (
+                <Button
+                    size="xs"
+                    variant="subtle"
+                    color={student.hidden ? 'blue' : 'gray'}
+                    onClick={(e) => {
+                        e.stopPropagation()
+                        onToggleHidden(student.id, !student.hidden)
+                    }}
+                >
+                    {student.hidden ? 'Unhide' : 'Hide'}
+                </Button>
+            )
+        }] : [])
     ]
 
     if (error) {
@@ -224,6 +255,7 @@ export const StudentsTable = ({
             withTableBorder
             withColumnBorders
             withRowBorders
+            rowStyle={(student: Student) => student.hidden ? { opacity: 0.6 } : undefined}
             page={page}
             onPageChange={setPage}
             totalRecords={sortedStudents.length}
@@ -234,4 +266,3 @@ export const StudentsTable = ({
         />
     )
 }
-
