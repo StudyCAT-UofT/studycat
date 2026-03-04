@@ -31,6 +31,7 @@ export async function GET(request: Request) {
         const thetas = await prisma.theta.findMany({
             where: {
                 module: { offeringId: courseOfferingId },
+                enrollment: { hidden: false },
             },
             include: {
                 module: true,

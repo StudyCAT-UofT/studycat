@@ -63,8 +63,11 @@ export async function GET(request: Request) {
         }
 
         // Get attempt IDs for this quiz to filter responses
-        // Optionally filter by completion status based on includeIncomplete flag
-        const attemptWhereClause: { quizId: string; status?: string } = { quizId: String(quizId) };
+        // Optionally filter by completion status based on includeIncomplete flag; always exclude hidden students
+        const attemptWhereClause: { quizId: string; status?: string; enrollment: { hidden: boolean } } = {
+            quizId: String(quizId),
+            enrollment: { hidden: false },
+        };
         if (!includeIncomplete) {
             attemptWhereClause.status = "COMPLETED";
         }
