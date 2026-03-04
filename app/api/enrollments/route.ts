@@ -127,15 +127,76 @@ export async function DELETE(request: NextRequest) {
       where: { id: { in: enrollmentIds } }
     })
 
-    return NextResponse.json({ 
-      success: true, 
-      deletedCount: result.count 
+    return NextResponse.json({
+      success: true,
+      deletedCount: result.count
     })
   } catch (error) {
     // Log error for debugging while keeping client response generic
     console.error('Error deleting enrollments:', error)
     return NextResponse.json(
       { error: 'Failed to delete enrollments' },
+      { status: 500 }
+    )
+  }
+}
+
+/**
+ * PATCH /api/enrollments
+ *
+ * Toggles the hidden status of multiple enrollments.
+ * Hidden students are excluded from analytics and reports but their data is preserved.
+ *
+ * Body:
+ * - enrollmentIds (required): Array of enrollment IDs to update
+ * - hidden (required): Boolean — true to hide, false to unhide
+ *
+ * Authentication:
+ * - Requires valid session token in cookies
+ *
+ * Returns:
+ * - 200: Success with count of updated enrollments
+ * - 400: Missing or invalid fields
+ * - 401: Missing or invalid session token
+ * - 500: Server error
+ */
+export async function PATCH(request: NextRequest) {
+  try {
+    const token = request.cookies.get('session-token')?.value
+    if (!token) {
+      return NextResponse.json({ error: 'No session found' }, { status: 401 })
+    }
+
+    const payload = verifyToken(token)
+    if (!payload) {
+      return NextResponse.json({ error: 'Invalid session' }, { status: 401 })
+    }
+
+    const body = await request.json()
+    const { enrollmentIds, hidden } = body
+
+    if (!enrollmentIds || !Array.isArray(enrollmentIds) || enrollmentIds.length === 0) {
+      return NextResponse.json({ error: 'Enrollment IDs are required' }, { status: 400 })
+    }
+
+    if (!enrollmentIds.every((id: unknown) => typeof id === 'string')) {
+      return NextResponse.json({ error: 'All enrollment IDs must be strings' }, { status: 400 })
+    }
+
+    if (typeof hidden !== 'boolean') {
+      return NextResponse.json({ error: 'hidden must be a boolean' }, { status: 400 })
+    }
+
+    const result = await prisma.enrollment.updateMany({
+      where: { id: { in: enrollmentIds } },
+      data: { hidden },
+    })
+
+    return NextResponse.json({ success: true, updatedCount: result.count })
+  } catch (error) {
+    console.error('Error updating enrollment hidden status:', error)
+    return NextResponse.json(
+      { error: 'Failed to update enrollment hidden status' },
       { status: 500 }
     )
   }
