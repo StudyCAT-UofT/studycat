@@ -19,6 +19,7 @@ export const runtime = "nodejs";
  *   (answer_figure is not yet stored — see GitHub issue #68)
  * - courseId: Prisma Course.id (string)
  * - offeringId: Prisma CourseOffering.id (string)
+ * - deactivateMissing: "true" to deactivate items not present in the file
  *
  * Returns:
  * - 200: { importedCount, details: [...] }
@@ -37,6 +38,7 @@ export async function POST(request: Request) {
         const courseIdRaw = formData.get("courseId");
         const offeringIdRaw = formData.get("offeringId");
         const file = formData.get("file") as File | null;
+        const deactivateMissing = formData.get("deactivateMissing") === "true";
 
         if (!courseIdRaw || !offeringIdRaw) {
             return NextResponse.json({ error: "courseId and offeringId are required" }, { status: 400 });
@@ -93,6 +95,9 @@ export async function POST(request: Request) {
             | { status: string; error: string };
         const details: DetailResult[] = [];
 
+        // Track all question IDs seen in the spreadsheet for deactivation
+        const seenQuestionIds: string[] = [];
+
         // process rows sequentially (keeps DB small-batch friendly and easy to reason about)
         for (const row of parsedRows) {
             try {
@@ -118,6 +123,8 @@ export async function POST(request: Request) {
                     details.push({ externalQuestionId, status: "skipped: missing identifiers" });
                     continue;
                 }
+
+                seenQuestionIds.push(externalQuestionId);
 
                 const bloom = mapBloom(bloomRaw);
                 if (!bloom) {
@@ -146,25 +153,6 @@ export async function POST(request: Request) {
 
                 const irtC = irtCRaw ?? (1 / labels.length);
 
-                // find or create module by (offeringId, name)
-                let moduleRecord = await prisma.module.findFirst({
-                    where: { offeringId: offeringId, name: moduleNameStr },
-                });
-                if (!moduleRecord) {
-                    moduleRecord = await prisma.module.create({
-                        data: { offeringId: offeringId, name: moduleNameStr },
-                    });
-                }
-
-                // skip if item already exists for (courseId, externalQuestionId)
-                const existing = await prisma.item.findFirst({
-                    where: { courseId: courseId, externalQuestionId },
-                });
-                if (existing) {
-                    details.push({ externalQuestionId, status: "skipped: already exists" });
-                    continue;
-                }
-
                 // Build options, mark correct by letter (A/B/C/...)
                 const optionsToCreate: Array<{
                     label: string;
@@ -191,6 +179,139 @@ export async function POST(request: Request) {
                         justification: justification ? String(justification) : null,
                         isCorrect,
                     });
+                }
+
+                // find or create module by (offeringId, name)
+                let moduleRecord = await prisma.module.findFirst({
+                    where: { offeringId: offeringId, name: moduleNameStr },
+                });
+                if (!moduleRecord) {
+                    moduleRecord = await prisma.module.create({
+                        data: { offeringId: offeringId, name: moduleNameStr },
+                    });
+                }
+
+                // Check if item already exists for (courseId, externalQuestionId)
+                const existing = await prisma.item.findFirst({
+                    where: { courseId: courseId, externalQuestionId },
+                    include: { options: true },
+                });
+
+                if (existing) {
+                    // Diff check: only update if something actually changed
+                    const newFigureUrl = figure ? String(figure) : null;
+                    const itemChanged =
+                        existing.moduleId !== moduleRecord!.id ||
+                        existing.bloom !== bloom ||
+                        existing.stem !== String(stem) ||
+                        existing.reference !== reference ||
+                        existing.figureUrl !== newFigureUrl ||
+                        existing.ptBi !== ptBi ||
+                        existing.average !== average ||
+                        existing.attemptsCount !== attemptsCount ||
+                        existing.irtA !== irtA ||
+                        existing.irtB !== irtB ||
+                        existing.irtC !== irtC ||
+                        !existing.active;
+
+                    // Check if options changed
+                    const existingLabels = new Set(existing.options.map((o) => o.label));
+                    const newLabels = new Set(optionsToCreate.map((o) => o.label));
+                    const labelsMatch =
+                        existingLabels.size === newLabels.size &&
+                        [...existingLabels].every((l) => newLabels.has(l));
+
+                    let optionsChanged = !labelsMatch;
+                    if (!optionsChanged) {
+                        // Labels match — check if any option content differs
+                        for (const opt of optionsToCreate) {
+                            const existingOpt = existing.options.find((o) => o.label === opt.label);
+                            if (
+                                !existingOpt ||
+                                existingOpt.text !== opt.text ||
+                                (existingOpt.justification ?? null) !== opt.justification ||
+                                existingOpt.isCorrect !== opt.isCorrect
+                            ) {
+                                optionsChanged = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (!itemChanged && !optionsChanged) {
+                        // Nothing changed — skip without updating
+                        details.push({ externalQuestionId, status: "unchanged" });
+                        continue;
+                    }
+
+                    // Update existing item in-place (preserves id and FK references)
+                    const updatedItem = await prisma.$transaction(async (tx) => {
+                        const item = await tx.item.update({
+                            where: { id: existing.id },
+                            data: {
+                                moduleId: moduleRecord!.id,
+                                bloom,
+                                stem: String(stem),
+                                reference,
+                                figureUrl: newFigureUrl,
+                                ptBi,
+                                average,
+                                attemptsCount,
+                                irtA,
+                                irtB,
+                                irtC,
+                                active: true, // re-activate if it was deactivated
+                            },
+                        });
+
+                        // Upsert options by label to preserve option IDs where possible
+                        const upsertedOptions = await Promise.all(
+                            optionsToCreate.map((opt) => {
+                                if (existingLabels.has(opt.label)) {
+                                    const existingOpt = existing.options.find((o) => o.label === opt.label)!;
+                                    return tx.itemOption.update({
+                                        where: { id: existingOpt.id },
+                                        data: {
+                                            text: opt.text,
+                                            justification: opt.justification,
+                                            isCorrect: opt.isCorrect,
+                                        },
+                                    });
+                                } else {
+                                    return tx.itemOption.create({
+                                        data: {
+                                            itemId: existing.id,
+                                            label: opt.label,
+                                            text: opt.text,
+                                            justification: opt.justification,
+                                            isCorrect: opt.isCorrect,
+                                        },
+                                    });
+                                }
+                            })
+                        );
+
+                        // Delete options that are no longer in the spreadsheet
+                        const labelsToDelete = [...existingLabels].filter((l) => !newLabels.has(l));
+                        if (labelsToDelete.length > 0) {
+                            await tx.itemOption.deleteMany({
+                                where: {
+                                    itemId: existing.id,
+                                    label: { in: labelsToDelete },
+                                },
+                            });
+                        }
+
+                        return { ...item, options: upsertedOptions };
+                    });
+
+                    details.push({
+                        externalQuestionId,
+                        status: "updated",
+                        itemId: updatedItem.id,
+                        optionsCreated: updatedItem.options.length,
+                    });
+                    continue;
                 }
 
                 // create item and options
@@ -229,6 +350,34 @@ export async function POST(request: Request) {
                 details.push({ status: "error", error: String(rowErr) });
             }
         } // end rows loop
+
+        // Deactivate items not present in the spreadsheet (opt-in)
+        if (deactivateMissing && seenQuestionIds.length > 0) {
+            const itemsToDeactivate = await prisma.item.findMany({
+                where: {
+                    courseId,
+                    active: true,
+                    externalQuestionId: { notIn: seenQuestionIds },
+                },
+                select: { id: true, externalQuestionId: true },
+            });
+
+            if (itemsToDeactivate.length > 0) {
+                await prisma.item.updateMany({
+                    where: {
+                        id: { in: itemsToDeactivate.map((i) => i.id) },
+                    },
+                    data: { active: false },
+                });
+
+                for (const item of itemsToDeactivate) {
+                    details.push({
+                        externalQuestionId: item.externalQuestionId,
+                        status: "deactivated",
+                    });
+                }
+            }
+        }
 
         return NextResponse.json({ importedCount: details.length, details }, { status: 200 });
     } catch (error) {

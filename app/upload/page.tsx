@@ -1,8 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { Container, Stack, Title, Card, Text, Button, FileInput, Alert, List, Group, Loader, Box } from '@mantine/core'
-import { IconUpload, IconInfoCircle, IconCheck, IconX, IconAlertCircle } from '@tabler/icons-react'
+import { Container, Stack, Title, Card, Text, Button, FileInput, Alert, List, Group, Loader, Box, Checkbox } from '@mantine/core'
+import { IconUpload, IconInfoCircle, IconCheck, IconX, IconAlertCircle, IconAlertTriangle } from '@tabler/icons-react'
 import { useRouter } from 'next/navigation'
 import { notifications } from '@mantine/notifications'
 import { ProtectedRoute, RoleBasedRoute } from '@/components'
@@ -21,6 +21,7 @@ const UploadPageContent = () => {
         missingColumns?: string[]
     } | null>(null)
     const [validating, setValidating] = useState(false)
+    const [deactivateMissing, setDeactivateMissing] = useState(false)
 
     const validateSpreadsheet = async (file: File) => {
         setValidating(true)
@@ -136,6 +137,9 @@ const UploadPageContent = () => {
         formData.append('file', file)
         formData.append('courseId', selectedCourseOffering.course.id)
         formData.append('offeringId', selectedCourseOffering.id)
+        if (deactivateMissing) {
+            formData.append('deactivateMissing', 'true')
+        }
 
         try {
             const response = await fetch('/api/upload', {
@@ -159,17 +163,37 @@ const UploadPageContent = () => {
 
             // Count the results
             const created = data.details.filter((d) => d.status === 'created').length
+            const updated = data.details.filter((d) => d.status === 'updated').length
+            const unchanged = data.details.filter((d) => d.status === 'unchanged').length
+            const deactivated = data.details.filter((d) => d.status === 'deactivated').length
             const skipped = data.details.filter((d) => d.status?.includes('skipped')).length
             const errors = data.details.filter((d) => d.status === 'error').length
 
             // Show success notification
+            const parts: string[] = []
+            if (created > 0) parts.push(`Created: ${created}`)
+            if (updated > 0) parts.push(`Updated: ${updated}`)
+            if (unchanged > 0) parts.push(`Unchanged: ${unchanged}`)
+            if (skipped > 0) parts.push(`Skipped: ${skipped}`)
+            if (errors > 0) parts.push(`Errors: ${errors}`)
             notifications.show({
                 title: 'Upload Successful',
-                message: `Created: ${created} questions${skipped > 0 ? `, Skipped: ${skipped}` : ''}${errors > 0 ? `, Errors: ${errors}` : ''}`,
+                message: parts.join(', ') || 'No changes',
                 color: 'green',
                 icon: <IconCheck size={16} />,
                 autoClose: 5000,
             })
+
+            // Show separate warning for deactivated items
+            if (deactivated > 0) {
+                notifications.show({
+                    title: 'Questions Deactivated',
+                    message: `${deactivated} question(s) not in the uploaded file were deactivated.`,
+                    color: 'orange',
+                    icon: <IconAlertTriangle size={16} />,
+                    autoClose: 8000,
+                })
+            }
 
             // Redirect to question bank after a brief delay
             setTimeout(() => {
@@ -236,7 +260,7 @@ const UploadPageContent = () => {
                                         <IconUpload size={48} stroke={1.5} color="#228be6" />
                                         <FileInput
                                             placeholder="Click to choose .xlsx, .xls, or .csv file"
-                                            accept=".xlsx,.xls,.csv"
+                                            accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv"
                                             value={file}
                                             onChange={handleFileChange}
                                             disabled={!selectedCourseOffering || loading}
@@ -292,6 +316,14 @@ const UploadPageContent = () => {
                                         {error}
                                     </Alert>
                                 )}
+
+                                <Checkbox
+                                    label="Deactivate questions not in file"
+                                    description="Questions with IDs not present in the uploaded file will be deactivated"
+                                    checked={deactivateMissing}
+                                    onChange={(e) => setDeactivateMissing(e.currentTarget.checked)}
+                                    disabled={!selectedCourseOffering || loading}
+                                />
                             </Stack>
                         </Card>
 
@@ -314,6 +346,9 @@ const UploadPageContent = () => {
                                     <List.Item><strong>correct_answer</strong> - Correct option letter (A, B, C, ...)</List.Item>
                                     <List.Item><strong>question_figure, biserial, average, attempts, irt_a, irt_b, irt_c, reference</strong> - Optional metadata</List.Item>
                                 </List>
+                                <Text size="sm" c="dimmed" mt="xs">
+                                    Re-uploading a spreadsheet will update existing questions matched by <strong>question_id</strong>. New questions will be created automatically.
+                                </Text>
                             </Stack>
                         </Card>
 
