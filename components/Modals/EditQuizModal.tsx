@@ -388,7 +388,7 @@ const EditQuizModal = ({
                             </Text>
                         )}
 
-                        {formData.feedbackVisibility === 'none' && (
+                        {formData.feedbackVisibility === 'no-just' && (
                             <Text size="xs" c="dimmed">
                                 <strong>No Justifications:</strong> Students see whether answers are correct or incorrect,
                                 but do not see justifications. Similar to full, but slightly less detailed. 
