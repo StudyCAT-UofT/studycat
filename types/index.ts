@@ -37,6 +37,7 @@ export interface Quiz {
     modules: string[] | null
     isActive: boolean
     shuffled: boolean
+    feedbackVisibility: string
     dueDate: string | null // Not in schema but kept for compatibility
     createdAt: string
     updatedAt: string
@@ -88,7 +89,8 @@ export interface InitAttemptResponse {
     nextItem?: QuizItem
     nextAction: string
     startedAt: string,
-    shuffled: boolean
+    shuffled: boolean,
+    feedbackVisibility: string
 }
 
 export interface StepAttemptRequest {
@@ -191,6 +193,7 @@ export interface FeedbackData {
     startedAt: string
     finishedAt: string | null
     totalTimeMs: number
+    feedbackVisibility: string
     
     // Performance summary
     questionsAttempted: number
