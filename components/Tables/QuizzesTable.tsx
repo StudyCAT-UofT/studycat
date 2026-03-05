@@ -161,7 +161,7 @@ export const QuizzesTable = ({
                         variant="light"
                         color={quiz.feedbackVisibility === 'full' ? 'blue' : 'gray'}
                     >
-                        {quiz.feedbackVisibility === 'full' ? 'Full' : 'None'}
+                        {quiz.feedbackVisibility === 'full' ? 'Full' : quiz.feedbackVisibility === 'no-just' ? 'No Justifications' : 'None'}
                     </Badge>
                 )
             }

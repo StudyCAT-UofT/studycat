@@ -53,7 +53,7 @@ export default function QuizFeedback({ feedbackData, onContinue, onReturnToDashb
     }
 
     // Render question option with styling
-    const renderOption = (question: DetailedQuestionReview, optionIndex: number) => {
+    const renderOption = (question: DetailedQuestionReview, optionIndex: number, justificationVisible: boolean) => {
         const option = question.options[optionIndex]
         const isSelected = optionIndex === question.selectedAnswerIndex
         const isCorrect = option.isCorrect
@@ -93,7 +93,7 @@ export default function QuizFeedback({ feedbackData, onContinue, onReturnToDashb
                             <Text fw={600}>{option.label}.</Text>
                             <Text>{option.text}</Text>
                         </Group>
-                        {option.justification && (
+                        {justificationVisible && option.justification && (
                             <Text size="sm" c="dimmed" style={{ fontStyle: 'italic' }}>
                                 {option.justification}
                             </Text>
@@ -405,7 +405,7 @@ export default function QuizFeedback({ feedbackData, onContinue, onReturnToDashb
                                                     </Text>
                                                     <Stack gap="xs">
                                                         {[0, 1, 2, 3].map(optionIndex =>
-                                                            renderOption(question, optionIndex)
+                                                            renderOption(question, optionIndex, feedbackData.feedbackVisibility === 'full')
                                                         )}
                                                     </Stack>
                                                 </Box>

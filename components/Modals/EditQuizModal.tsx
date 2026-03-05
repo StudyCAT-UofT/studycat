@@ -375,6 +375,7 @@ const EditQuizModal = ({
                         }
                         data={[
                             { label: 'Full', value: 'full' },
+                            { label: 'No Justifications', value: 'no-just'},
                             { label: 'None', value: 'none' },
                         ]}
                     />
@@ -384,6 +385,13 @@ const EditQuizModal = ({
                             <Text size="xs" c="dimmed">
                                 <strong>Full:</strong> Students see whether each answer is correct or incorrect during the quiz,
                                 see answer justifications, and receive a complete performance summary after finishing.
+                            </Text>
+                        )}
+
+                        {formData.feedbackVisibility === 'none' && (
+                            <Text size="xs" c="dimmed">
+                                <strong>No Justifications:</strong> Students see whether answers are correct or incorrect,
+                                but do not see justifications. Similar to full, but slightly less detailed. 
                             </Text>
                         )}
 

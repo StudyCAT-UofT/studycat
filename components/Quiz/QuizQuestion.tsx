@@ -133,7 +133,7 @@ const QuizQuestion = ({ item, onAnswer, onNext, feedback, shuffled, feedbackVisi
                 {isFeedbackMode && (feedback.justification || reference) && feedbackVisibility !== 'none' && (
                     <Paper p="md" radius="md" bg="gray.0" mt="md">
                         <Stack gap="md">
-                            {feedback.justification && (
+                            {feedbackVisibility !== 'no-just' && feedback.justification && (
                                 <>
                                     <Text size="sm" fw={500}>
                                         Feedback:
@@ -141,7 +141,7 @@ const QuizQuestion = ({ item, onAnswer, onNext, feedback, shuffled, feedbackVisi
                                     <Text size="sm">{feedback.justification}</Text>
                                 </>
                             )}
-                            {reference && (
+                            {feedbackVisibility !== 'no-just' && reference && (
                                 <>
                                     <Text size="sm" fw={500}>
                                         Reference:
