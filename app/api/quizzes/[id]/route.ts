@@ -14,6 +14,8 @@ export const runtime = 'nodejs'
  * - includedModuleIds (optional): Array of module IDs to include
  * - active (optional): Whether the quiz is active
  * - fixedLength (optional): Number of questions in the quiz
+ * - shuffled (optional): Whether the quiz answers should be shuffled or not
+ * - feedbackVisibility (optional): The level of feedback that should be provided to a student during and after the quiz
  * 
  * Returns:
  * - 200: Updated quiz
@@ -31,7 +33,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 
     const { id } = await params
     const body = await request.json()
-    const { title, includedModuleIds, masteryThresholds, active, shuffled, fixedLength } = body
+    const { title, includedModuleIds, masteryThresholds, active, shuffled, feedbackVisibility, fixedLength } = body
 
     // Check if quiz exists
     const existingQuiz = await prisma.quiz.findUnique({
@@ -75,6 +77,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
         ...(title !== undefined && { title }),
         ...(active !== undefined && { active }),
         ...(shuffled !== undefined && {shuffled}),
+        ...(feedbackVisibility !== undefined && {feedbackVisibility}),
         ...(fixedLength !== undefined && { fixedLength }),
         ...(validModuleIds !== undefined && {
           quizModules: {

@@ -136,6 +136,7 @@ export async function GET(request: Request) {
         maxAttempts: null, // Not in current schema, but kept for API compatibility
         isActive: quiz.active,
         shuffled: quiz.shuffled,
+        feedbackVisibility: quiz.feedbackVisibility,
         dueDate: null, // Not in current schema, but kept for API compatibility
         createdAt: quiz.createdAt.toISOString(),
         updatedAt: quiz.updatedAt.toISOString(),
@@ -171,6 +172,7 @@ export async function GET(request: Request) {
  * - masteryThresholds (required): Array of mastery thresholds (same order as modules)
  * - active (optional): Whether the quiz is active (default: true)
  * - shuffled (optional): Whether answers to each question should be shuffled (default: false)
+ * - feedbackVisibility (optional): Whether feedback should be available to students after questions and after the quiz (default: full)
  * - fixedLength (required): Number of questions in the quiz
  * 
  * Returns:
@@ -187,7 +189,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json()
-    const { courseOfferingId, title, includedModuleIds, masteryThresholds, active = true, shuffled = false, fixedLength } = body
+    const { courseOfferingId, title, includedModuleIds, masteryThresholds, active = true, shuffled = false, feedbackVisibility = "full", fixedLength } = body
 
     // Validate required fields
     if (!courseOfferingId || !title || !includedModuleIds || !Array.isArray(includedModuleIds) || includedModuleIds.length === 0) {
@@ -237,6 +239,7 @@ export async function POST(request: Request) {
         offeringId: courseOfferingId,
         active,
         shuffled,
+        feedbackVisibility,
         fixedLength,
         createdById: session.userId
       }
