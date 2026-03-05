@@ -9,10 +9,11 @@ interface QuizQuestionProps {
     onAnswer: (answerIndex: number) => void
     onNext?: () => void
     feedback?: Feedback | null,
-    shuffled: boolean
+    shuffled: boolean,
+    feedbackVisibility: string
 }
 
-const QuizQuestion = ({ item, onAnswer, onNext, feedback, shuffled }: QuizQuestionProps) => {
+const QuizQuestion = ({ item, onAnswer, onNext, feedback, shuffled, feedbackVisibility }: QuizQuestionProps) => {
     const [userSelectedIndex, setUserSelectedIndex] = useState<number | null>(null)
     const [submittedDisplayIndex, setSubmittedDisplayIndex] = useState<number | null>(null)
     const isFeedbackMode = feedback !== null && feedback !== undefined
@@ -66,6 +67,9 @@ const QuizQuestion = ({ item, onAnswer, onNext, feedback, shuffled }: QuizQuesti
     const getOptionColor = (index: number) => {
         if (!isFeedbackMode) return undefined
 
+        // Hide correctness if feedbackVisibility is 'none'
+        if (feedbackVisibility === 'none') return undefined
+
         const actualIndex = shuffledIndices[index]
 
         if (actualIndex === feedback.correctAnswerIndex) return 'green'
@@ -96,32 +100,37 @@ const QuizQuestion = ({ item, onAnswer, onNext, feedback, shuffled }: QuizQuesti
                 >
                     <Stack gap="md" mt="md">
                         {shuffledIndices.map((shuffledIndex, displayIndex) => {
-                            const option = item.options[shuffledIndex]
-                            const color = getOptionColor(displayIndex)
+                    const option = item.options[shuffledIndex]
+                    const color = getOptionColor(displayIndex)
 
-                            return (
-                                <Paper
-                                    key={displayIndex}
-                                    p="sm"
-                                    radius="md"
-                                    style={{
-                                        backgroundColor:
-                                            color === 'green'
-                                                ? 'rgba(34, 197, 94, 0.1)'
-                                                : color === 'red'
-                                                ? 'rgba(239, 68, 68, 0.1)'
-                                                : 'transparent',
-                                        border: color ? `2px solid ${color === 'green' ? '#22c55e' : '#ef4444'}` : 'none'
-                                    }}
-                                >
-                                    <Radio value={displayIndex.toString()} label={option} size="md" disabled={isFeedbackMode} />
-                                </Paper>
-                            )
-                        })}
+                    return (
+                        <Paper
+                            key={displayIndex}
+                            p="sm"
+                            radius="md"
+                            style={{
+                                backgroundColor:
+                                    color === 'green'
+                                        ? 'rgba(34, 197, 94, 0.1)'
+                                        : color === 'red'
+                                        ? 'rgba(239, 68, 68, 0.1)'
+                                        : 'transparent',
+                                border: color ? `2px solid ${color === 'green' ? '#22c55e' : '#ef4444'}` : 'none'
+                            }}
+                        >
+                            <Radio
+                                value={displayIndex.toString()}
+                                label={option}
+                                size="md"
+                                disabled={isFeedbackMode}
+                            />
+                        </Paper>
+                    )
+                })}
                     </Stack>
                 </Radio.Group>
 
-                {isFeedbackMode && (feedback.justification || reference) && (
+                {isFeedbackMode && (feedback.justification || reference) && feedbackVisibility !== 'none' && (
                     <Paper p="md" radius="md" bg="gray.0" mt="md">
                         <Stack gap="md">
                             {feedback.justification && (
