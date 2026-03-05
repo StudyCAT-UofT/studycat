@@ -149,6 +149,24 @@ export const QuizzesTable = ({
             )
         },
         {
+            accessor: 'feedbackVisibility',
+            title: 'Feedback',
+            sortable: true,
+            width: 140,
+            render: (quiz: Quiz) => {
+
+                return (
+                    <Badge
+                        size="sm"
+                        variant="light"
+                        color={quiz.feedbackVisibility === 'full' ? 'blue' : 'gray'}
+                    >
+                        {quiz.feedbackVisibility === 'full' ? 'Full' : 'None'}
+                    </Badge>
+                )
+            }
+        },
+        {
             accessor: 'fixedLength',
             title: 'Questions',
             sortable: true,

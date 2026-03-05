@@ -3,7 +3,7 @@ import { Quiz } from "@/types"
 import { useState, useEffect, useCallback } from "react"
 import { IconAlertCircle, IconCheck } from "@tabler/icons-react"
 import { useCourse } from "@/lib/course-context"
-import { MultiSelect } from "@mantine/core"
+import { MultiSelect, SegmentedControl } from "@mantine/core"
 
 const EditQuizModal = ({
     quiz,
@@ -24,6 +24,7 @@ const EditQuizModal = ({
         masteryThresholds: {} as Record<string, number | undefined>,
         isActive: true,
         shuffled: false,
+        feedbackVisibility: 'full' as string,
         fixedLength: 10
     })
     const [loading, setLoading] = useState(false)
@@ -75,6 +76,7 @@ const EditQuizModal = ({
                     masteryThresholds: {},
                     isActive: true,
                     shuffled: false,
+                    feedbackVisibility: 'full',
                     fixedLength: 10
                 })
             } else if (quiz) {
@@ -84,6 +86,7 @@ const EditQuizModal = ({
                     masteryThresholds: {},
                     isActive: quiz.isActive,
                     shuffled: quiz.shuffled,
+                    feedbackVisibility: quiz.feedbackVisibility,
                     fixedLength: quiz.fixedLength
                 })
             }
@@ -184,6 +187,7 @@ const EditQuizModal = ({
                         masteryThresholds: masteryThresholdsArray,
                         active: formData.isActive,
                         shuffled: formData.shuffled,
+                        feedbackVisibility: formData.feedbackVisibility,
                         fixedLength: formData.fixedLength
                     }),
                 })
@@ -201,6 +205,7 @@ const EditQuizModal = ({
                         masteryThresholds: masteryThresholdsArray,
                         active: formData.isActive,
                         shuffled: formData.shuffled,
+                        feedbackVisibility: formData.feedbackVisibility,
                         fixedLength: formData.fixedLength
                     }),
                 })
@@ -352,6 +357,43 @@ const EditQuizModal = ({
                         checked={formData.shuffled}
                         onChange={(e) => setFormData({ ...formData, shuffled: e.currentTarget.checked })}
                     />
+                </Box>
+
+                <Box>
+                    <Text size="sm" fw={500} mb="xs">
+                        Feedback Visibility
+                    </Text>
+
+                    <SegmentedControl
+                        fullWidth
+                        value={formData.feedbackVisibility}
+                        onChange={(value) =>
+                            setFormData(prev => ({
+                                ...prev,
+                                feedbackVisibility: value
+                            }))
+                        }
+                        data={[
+                            { label: 'Full', value: 'full' },
+                            { label: 'None', value: 'none' },
+                        ]}
+                    />
+
+                    <Box mt="sm">
+                        {formData.feedbackVisibility === 'full' && (
+                            <Text size="xs" c="dimmed">
+                                <strong>Full:</strong> Students see whether each answer is correct or incorrect during the quiz,
+                                see answer justifications, and receive a complete performance summary after finishing.
+                            </Text>
+                        )}
+
+                        {formData.feedbackVisibility === 'none' && (
+                            <Text size="xs" c="dimmed">
+                                <strong>None:</strong> Students do not see whether answers are correct or incorrect,
+                                do not see justifications, and only see their overall score at the end of the quiz.
+                            </Text>
+                        )}
+                    </Box>
                 </Box>
 
                 <Group justify="flex-end" mt="md">
