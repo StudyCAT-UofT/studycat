@@ -1,6 +1,7 @@
 import { ReactNode } from 'react'
 import { redirect } from 'next/navigation'
 import { getSession, requireAdmin } from '@/lib/auth'
+import { AdminShell } from '@/components/Admin/AdminShell'
 
 export default async function AdminLayout({
   children,
@@ -29,29 +30,8 @@ export default async function AdminLayout({
   ]
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      {/* Full-Width Sticky Navbar */}
-      <header className="w-full bg-blue-600 text-white shadow-md sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="text-2xl font-bold">Admin Panel</div>
-          <nav className="flex space-x-6">
-            {links.map((link) => (
-              <a
-                key={link.href}
-                href={link.href}
-                className="hover:text-gray-200 transition font-medium"
-              >
-                {link.label}
-              </a>
-            ))}
-          </nav>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-6 py-10">
-        {children}
-      </main>
-    </div>
+    <AdminShell links={links}>
+      {children}
+    </AdminShell>
   )
 }

@@ -1,12 +1,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { Title, TextInput, Button, Paper, Stack, Group, Text } from '@mantine/core'
+import { notifications } from '@mantine/notifications'
 
-type Course = {
-  id: string
-  code: string
-  title: string
-}
+type Course = { id: string; code: string; title: string }
 
 export default function CoursesPage() {
   const [courses, setCourses] = useState<Course[]>([])
@@ -20,53 +18,63 @@ export default function CoursesPage() {
   }
 
   async function createCourse() {
-    await fetch('/api/admin/courses', {
+    const res = await fetch('/api/admin/courses', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ code, title }),
     })
-
-    setCode('')
-    setTitle('')
-    fetchCourses()
+    if (res.ok) {
+      notifications.show({
+        title: 'Course created',
+        message: `${code} — ${title} was added successfully.`,
+        color: 'green',
+      })
+      setCode('')
+      setTitle('')
+      fetchCourses()
+    } else {
+      const data = await res.json()
+      notifications.show({
+        title: 'Failed to create course',
+        message: data.error || 'Something went wrong.',
+        color: 'red',
+      })
+    }
   }
 
-  useEffect(() => {
-    fetchCourses()
-  }, [])
+  useEffect(() => { fetchCourses() }, [])
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-6">Courses</h1>
+      <Title order={2} mb="lg">Courses</Title>
 
-      <div className="bg-white p-6 rounded-xl shadow mb-8 space-y-3">
-        <input
-          className="border p-2 rounded w-full"
-          placeholder="Course Code (CSC309)"
-          value={code}
-          onChange={(e) => setCode(e.target.value)}
-        />
-        <input
-          className="border p-2 rounded w-full"
-          placeholder="Course Title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-        />
-        <button
-          onClick={createCourse}
-          className="bg-blue-600 text-white px-4 py-2 rounded"
-        >
-          Create Course
-        </button>
-      </div>
+      <Paper withBorder p="lg" radius="md" mb="xl">
+        <Stack>
+          <TextInput
+            placeholder="Course Code (e.g. CSC309)"
+            value={code}
+            onChange={(e) => setCode(e.target.value)}
+          />
+          <TextInput
+            placeholder="Course Title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+          />
+          <Button onClick={createCourse} w="fit-content">Create Course</Button>
+        </Stack>
+      </Paper>
 
-      <ul className="space-y-2">
+      <Stack gap="sm">
         {courses.map((course) => (
-          <li key={course.id} className="border p-3 rounded">
-            {course.code} — {course.title}
-          </li>
+          <Paper key={course.id} withBorder p="sm" radius="md">
+            <Group>
+              <Text fw={600}>{course.code}</Text>
+              <Text c="dimmed">—</Text>
+              <Text>{course.title}</Text>
+            </Group>
+          </Paper>
         ))}
-      </ul>
+      </Stack>
     </div>
   )
 }

@@ -1,6 +1,9 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import {
+  Title, Select, TextInput, Button, Paper, Stack, Group, Text
+} from '@mantine/core'
 
 type Course = { id: string; code: string }
 type Term = { id: string; name: string }
@@ -15,9 +18,8 @@ export default function OfferingsPage() {
   const [courses, setCourses] = useState<Course[]>([])
   const [terms, setTerms] = useState<Term[]>([])
   const [offerings, setOfferings] = useState<Offering[]>([])
-
-  const [courseId, setCourseId] = useState('')
-  const [termId, setTermId] = useState('')
+  const [courseId, setCourseId] = useState<string | null>(null)
+  const [termId, setTermId] = useState<string | null>(null)
   const [display, setDisplay] = useState('')
 
   async function fetchAll() {
@@ -26,7 +28,6 @@ export default function OfferingsPage() {
       fetch('/api/admin/terms'),
       fetch('/api/admin/offerings'),
     ])
-
     setCourses((await coursesRes.json()).courses)
     setTerms((await termsRes.json()).terms)
     setOfferings((await offeringsRes.json()).offerings)
@@ -38,68 +39,53 @@ export default function OfferingsPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ courseId, termId, display }),
     })
-
     setDisplay('')
     fetchAll()
   }
 
-  useEffect(() => {
-    fetchAll()
-  }, [])
+  useEffect(() => { fetchAll() }, [])
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-6">Course Offerings</h1>
+      <Title order={2} mb="lg">Course Offerings</Title>
 
-      <div className="bg-white p-6 rounded-xl shadow mb-8 space-y-3">
-        <select
-          className="border p-2 rounded w-full"
-          value={courseId}
-          onChange={(e) => setCourseId(e.target.value)}
-        >
-          <option value="">Select Course</option>
-          {courses.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.code}
-            </option>
-          ))}
-        </select>
+      <Paper withBorder p="lg" radius="md" mb="xl">
+        <Stack>
+          <Select
+            placeholder="Select Course"
+            value={courseId}
+            onChange={setCourseId}
+            data={courses.map((c) => ({ value: c.id, label: c.code }))}
+          />
+          <Select
+            placeholder="Select Term"
+            value={termId}
+            onChange={setTermId}
+            data={terms.map((t) => ({ value: t.id, label: t.name }))}
+          />
+          <TextInput
+            placeholder="Display Name"
+            value={display}
+            onChange={(e) => setDisplay(e.target.value)}
+          />
+          <Button onClick={createOffering} w="fit-content">
+            Create Offering
+          </Button>
+        </Stack>
+      </Paper>
 
-        <select
-          className="border p-2 rounded w-full"
-          value={termId}
-          onChange={(e) => setTermId(e.target.value)}
-        >
-          <option value="">Select Term</option>
-          {terms.map((t) => (
-            <option key={t.id} value={t.id}>
-              {t.name}
-            </option>
-          ))}
-        </select>
-
-        <input
-          className="border p-2 rounded w-full"
-          placeholder="Display Name"
-          value={display}
-          onChange={(e) => setDisplay(e.target.value)}
-        />
-
-        <button
-          onClick={createOffering}
-          className="bg-blue-600 text-white px-4 py-2 rounded"
-        >
-          Create Offering
-        </button>
-      </div>
-
-      <ul className="space-y-2">
+      <Stack gap="sm">
         {offerings.map((o) => (
-          <li key={o.id} className="border p-3 rounded">
-            {o.display} — {o.course.code} ({o.term.name})
-          </li>
+          <Paper key={o.id} withBorder p="sm" radius="md">
+            <Group>
+              <Text fw={600}>{o.display}</Text>
+              <Text c="dimmed">—</Text>
+              <Text>{o.course.code}</Text>
+              <Text c="dimmed">({o.term.name})</Text>
+            </Group>
+          </Paper>
         ))}
-      </ul>
+      </Stack>
     </div>
   )
 }

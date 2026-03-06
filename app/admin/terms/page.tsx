@@ -1,11 +1,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { Title, TextInput, Button, Paper, Stack, Text } from '@mantine/core'
+import { notifications } from '@mantine/notifications'
 
-type Term = {
-  id: string
-  name: string
-}
+type Term = { id: string; name: string }
 
 export default function TermsPage() {
   const [terms, setTerms] = useState<Term[]>([])
@@ -18,45 +17,53 @@ export default function TermsPage() {
   }
 
   async function createTerm() {
-    await fetch('/api/admin/terms', {
+    const res = await fetch('/api/admin/terms', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name }),
     })
-    setName('')
-    fetchTerms()
+    if (res.ok) {
+      notifications.show({
+        title: 'Term created',
+        message: `${name} was added successfully.`,
+        color: 'green',
+      })
+      setName('')
+      fetchTerms()
+    } else {
+      const data = await res.json()
+      notifications.show({
+        title: 'Failed to create term',
+        message: data.error || 'Something went wrong.',
+        color: 'red',
+      })
+    }
   }
 
-  useEffect(() => {
-    fetchTerms()
-  }, [])
+  useEffect(() => { fetchTerms() }, [])
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-6">Terms</h1>
+      <Title order={2} mb="lg">Terms</Title>
 
-      <div className="bg-white p-6 rounded-xl shadow mb-8">
-        <input
-          className="border p-2 rounded w-full mb-3"
-          placeholder="Term Name (e.g. Fall 2026)"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
-        <button
-          onClick={createTerm}
-          className="bg-blue-600 text-white px-4 py-2 rounded"
-        >
-          Create Term
-        </button>
-      </div>
+      <Paper withBorder p="lg" radius="md" mb="xl">
+        <Stack>
+          <TextInput
+            placeholder="Term Name (e.g. Fall 2026)"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+          />
+          <Button onClick={createTerm} w="fit-content">Create Term</Button>
+        </Stack>
+      </Paper>
 
-      <ul className="space-y-2">
+      <Stack gap="sm">
         {terms.map((term) => (
-          <li key={term.id} className="border p-3 rounded">
-            {term.name}
-          </li>
+          <Paper key={term.id} withBorder p="sm" radius="md">
+            <Text>{term.name}</Text>
+          </Paper>
         ))}
-      </ul>
+      </Stack>
     </div>
   )
 }

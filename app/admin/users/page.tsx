@@ -1,6 +1,8 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { Title, TextInput, Button, Paper, Stack, Group, Text } from '@mantine/core'
+import { notifications } from '@mantine/notifications'
 
 type User = {
   id: string
@@ -22,74 +24,73 @@ export default function UsersPage() {
   }
 
   async function createUser() {
-    await fetch('/api/admin/users', {
+    const res = await fetch('/api/admin/users', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, givenName, familyName }),
     })
-
-    setUsername('')
-    setGivenName('')
-    setFamilyName('')
-    fetchUsers()
+    if (res.ok) {
+      notifications.show({
+        title: 'User created',
+        message: `${username} was added successfully.`,
+        color: 'green',
+      })
+      setUsername('')
+      setGivenName('')
+      setFamilyName('')
+      fetchUsers()
+    } else {
+      const data = await res.json()
+      notifications.show({
+        title: 'Failed to create user',
+        message: data.error || 'Something went wrong.',
+        color: 'red',
+      })
+    }
   }
 
-  useEffect(() => {
-    fetchUsers()
-  }, [])
+  useEffect(() => { fetchUsers() }, [])
 
   return (
     <div>
-      <h1 className="text-2xl font-bold mb-6">Manage Users</h1>
+      <Title order={2} mb="lg">Manage Users</Title>
 
-      <div className="bg-white p-6 rounded-xl shadow mb-8">
-        <h2 className="font-semibold mb-4">Create User</h2>
-
-        <div className="space-y-3">
-          <input
-            className="border p-2 rounded w-full"
+      <Paper withBorder p="lg" radius="md" mb="xl">
+        <Title order={5} mb="md">Create User</Title>
+        <Stack>
+          <TextInput
             placeholder="Username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
           />
-          <input
-            className="border p-2 rounded w-full"
+          <TextInput
             placeholder="Given Name"
             value={givenName}
             onChange={(e) => setGivenName(e.target.value)}
           />
-          <input
-            className="border p-2 rounded w-full"
+          <TextInput
             placeholder="Family Name"
             value={familyName}
             onChange={(e) => setFamilyName(e.target.value)}
           />
+          <Button onClick={createUser} w="fit-content">Create</Button>
+        </Stack>
+      </Paper>
 
-          <button
-            onClick={createUser}
-            className="bg-blue-600 text-white px-4 py-2 rounded"
-          >
-            Create
-          </button>
-        </div>
-      </div>
-
-      <div className="bg-white p-6 rounded-xl shadow">
-        <h2 className="font-semibold mb-4">All Users</h2>
-
-        <ul className="space-y-2">
+      <Paper withBorder p="lg" radius="md">
+        <Title order={5} mb="md">All Users</Title>
+        <Stack gap="sm">
           {users.map((user) => (
-            <li
-              key={user.id}
-              className="border p-3 rounded flex justify-between"
-            >
-              <span>
-                {user.username} — {user.givenName} {user.familyName}
-              </span>
-            </li>
+            <Paper key={user.id} withBorder p="sm" radius="md">
+              <Group>
+                <Text fw={600}>{user.username}</Text>
+                <Text c="dimmed">—</Text>
+                <Text>{user.givenName} {user.familyName}</Text>
+              </Group>
+            </Paper>
           ))}
-        </ul>
-      </div>
+        </Stack>
+      </Paper>
     </div>
   )
 }

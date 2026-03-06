@@ -1,4 +1,5 @@
 import { prisma } from '@/lib/prisma'
+import { Title, SimpleGrid, Paper, Text } from '@mantine/core'
 
 export default async function AdminDashboard() {
   const [userCount, offeringCount] = await Promise.all([
@@ -8,19 +9,19 @@ export default async function AdminDashboard() {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold mb-8">Admin Dashboard</h1>
+      <Title order={2} mb="xl">Admin Dashboard</Title>
 
-      <div className="grid grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-xl shadow">
-          <h2 className="text-lg font-semibold">Total Users</h2>
-          <p className="text-3xl mt-4">{userCount}</p>
-        </div>
+      <SimpleGrid cols={2}>
+        <Paper withBorder p="xl" radius="md">
+          <Text fw={600} size="lg">Total Users</Text>
+          <Text size="3rem" fw={700} mt="md">{userCount}</Text>
+        </Paper>
 
-        <div className="bg-white p-6 rounded-xl shadow">
-          <h2 className="text-lg font-semibold">Course Offerings</h2>
-          <p className="text-3xl mt-4">{offeringCount}</p>
-        </div>
-      </div>
+        <Paper withBorder p="xl" radius="md">
+          <Text fw={600} size="lg">Course Offerings</Text>
+          <Text size="3rem" fw={700} mt="md">{offeringCount}</Text>
+        </Paper>
+      </SimpleGrid>
     </div>
   )
 }
