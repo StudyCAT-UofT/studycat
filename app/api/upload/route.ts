@@ -15,11 +15,15 @@ export const runtime = "nodejs";
  *   answer_a/b/c/... (flexible count), answer_justification_a/b/c/...,
  *   question_figure, biserial, average, attempts,
  *   irt_a, irt_b, irt_c (optional, defaults: 1.0 / 0.0 / 1/n_options),
- *   reference (optional)
+ *   reference (optional),
+ *   status (optional: "active" | "inactive", defaults to "active")
  *   (answer_figure is not yet stored — see GitHub issue #68)
  * - courseId: Prisma Course.id (string)
  * - offeringId: Prisma CourseOffering.id (string)
  * - deactivateMissing: "true" to deactivate items not present in the file
+ * - dryRun: "true" to preview changes without writing to the DB
+ * - approvedQuestionIds: JSON array of externalQuestionIds to create/update (commit step)
+ * - deactivateIds: JSON array of DB item IDs to deactivate (commit step)
  *
  * Returns:
  * - 200: { importedCount, details: [...] }
@@ -39,6 +43,23 @@ export async function POST(request: Request) {
         const offeringIdRaw = formData.get("offeringId");
         const file = formData.get("file") as File | null;
         const deactivateMissing = formData.get("deactivateMissing") === "true";
+        const dryRun = formData.get("dryRun") === "true";
+
+        // Parse approved lists for the commit step
+        let approvedQuestionIds: string[] | null = null;
+        let deactivateIds: string[] | null = null;
+        const approvedQuestionIdsRaw = formData.get("approvedQuestionIds");
+        const deactivateIdsRaw = formData.get("deactivateIds");
+        try {
+            if (approvedQuestionIdsRaw != null) {
+                approvedQuestionIds = JSON.parse(String(approvedQuestionIdsRaw)) as string[];
+            }
+            if (deactivateIdsRaw != null) {
+                deactivateIds = JSON.parse(String(deactivateIdsRaw)) as string[];
+            }
+        } catch {
+            return NextResponse.json({ error: "Invalid JSON in approvedQuestionIds or deactivateIds" }, { status: 400 });
+        }
 
         if (!courseIdRaw || !offeringIdRaw) {
             return NextResponse.json({ error: "courseId and offeringId are required" }, { status: 400 });
@@ -91,7 +112,8 @@ export async function POST(request: Request) {
 
         type DetailResult =
             | { externalQuestionId: string | null; status: string }
-            | { externalQuestionId: string; status: string; itemId: string; optionsCreated: number }
+            | { externalQuestionId: string; status: string; itemId: string; optionsCreated: number; moduleName?: string; bloom?: string; stem?: string; diff?: Record<string, { old: unknown; new: unknown }> }
+            | { externalQuestionId: string; status: "deactivated"; itemId: string; moduleName?: string; bloom?: string; stem?: string }
             | { status: string; error: string };
         const details: DetailResult[] = [];
 
@@ -116,6 +138,10 @@ export async function POST(request: Request) {
                 const irtCRaw = row["irt_c"] != null ? Number(row["irt_c"]) : null;
                 const correctRaw = row["correct_answer"];
 
+                // Parse optional status column: absent or blank → active; "inactive" → false
+                const statusRaw = row["status"];
+                const itemActive = statusRaw == null || String(statusRaw).trim().toLowerCase() !== "inactive";
+
                 const externalQuestionId = externalQuestionIdRaw ? String(externalQuestionIdRaw) : null;
                 const moduleNameStr = moduleName ? String(moduleName) : null;
 
@@ -124,7 +150,14 @@ export async function POST(request: Request) {
                     continue;
                 }
 
+                // Always track seen IDs (even if not approved) so deactivation logic is correct
                 seenQuestionIds.push(externalQuestionId);
+
+                // If approvedQuestionIds is provided, skip rows not in the approved list
+                if (approvedQuestionIds !== null && !approvedQuestionIds.includes(externalQuestionId)) {
+                    details.push({ externalQuestionId, status: "skipped: not approved" });
+                    continue;
+                }
 
                 const bloom = mapBloom(bloomRaw);
                 if (!bloom) {
@@ -186,15 +219,20 @@ export async function POST(request: Request) {
                     where: { offeringId: offeringId, name: moduleNameStr },
                 });
                 if (!moduleRecord) {
-                    moduleRecord = await prisma.module.create({
-                        data: { offeringId: offeringId, name: moduleNameStr },
-                    });
+                    if (!dryRun) {
+                        moduleRecord = await prisma.module.create({
+                            data: { offeringId: offeringId, name: moduleNameStr },
+                        });
+                    } else {
+                        // Synthesize a placeholder so the rest of the row logic runs
+                        moduleRecord = { id: "__dryrun__", offeringId, name: moduleNameStr, createdAt: new Date() };
+                    }
                 }
 
                 // Check if item already exists for (courseId, externalQuestionId)
                 const existing = await prisma.item.findFirst({
                     where: { courseId: courseId, externalQuestionId },
-                    include: { options: true },
+                    include: { options: true, module: { select: { name: true } } },
                 });
 
                 if (existing) {
@@ -212,7 +250,7 @@ export async function POST(request: Request) {
                         existing.irtA !== irtA ||
                         existing.irtB !== irtB ||
                         existing.irtC !== irtC ||
-                        !existing.active;
+                        existing.active !== itemActive;
 
                     // Check if options changed
                     const existingLabels = new Set(existing.options.map((o) => o.label));
@@ -244,6 +282,67 @@ export async function POST(request: Request) {
                         continue;
                     }
 
+                    if (dryRun) {
+                        const newFigureUrlDryRun = figure ? String(figure) : null;
+                        const diff: Record<string, { old: unknown; new: unknown }> = {};
+                        if (existing.module.name !== moduleNameStr)
+                            diff["module"] = { old: existing.module.name, new: moduleNameStr };
+                        if (existing.bloom !== bloom)
+                            diff["bloom"] = { old: existing.bloom, new: bloom };
+                        if (existing.stem !== String(stem))
+                            diff["stem"] = { old: existing.stem, new: String(stem) };
+                        if (existing.reference !== reference)
+                            diff["reference"] = { old: existing.reference, new: reference };
+                        if (existing.figureUrl !== newFigureUrlDryRun)
+                            diff["figureUrl"] = { old: existing.figureUrl, new: newFigureUrlDryRun };
+                        if (existing.ptBi !== ptBi)
+                            diff["biserial"] = { old: existing.ptBi, new: ptBi };
+                        if (existing.average !== average)
+                            diff["average"] = { old: existing.average, new: average };
+                        if (existing.attemptsCount !== attemptsCount)
+                            diff["attempts"] = { old: existing.attemptsCount, new: attemptsCount };
+                        if (existing.irtA !== irtA)
+                            diff["irt_a"] = { old: existing.irtA, new: irtA };
+                        if (existing.irtB !== irtB)
+                            diff["irt_b"] = { old: existing.irtB, new: irtB };
+                        if (existing.irtC !== irtC)
+                            diff["irt_c"] = { old: existing.irtC, new: irtC };
+                        if (existing.active !== itemActive)
+                            diff["status"] = { old: existing.active ? "active" : "inactive", new: itemActive ? "active" : "inactive" };
+                        if (optionsChanged) {
+                            // Removed options
+                            for (const existingOpt of existing.options) {
+                                if (!optionsToCreate.find(o => o.label === existingOpt.label)) {
+                                    diff[`opt_${existingOpt.label}`] = { old: existingOpt.text, new: "(removed)" };
+                                }
+                            }
+                            // Added or changed options
+                            for (const opt of optionsToCreate) {
+                                const existingOpt = existing.options.find(o => o.label === opt.label);
+                                if (!existingOpt) {
+                                    diff[`opt_${opt.label}`] = { old: "(added)", new: opt.text };
+                                } else if (existingOpt.text !== opt.text) {
+                                    diff[`opt_${opt.label}`] = { old: existingOpt.text, new: opt.text };
+                                } else if (existingOpt.isCorrect !== opt.isCorrect) {
+                                    diff[`opt_${opt.label}`] = { old: existingOpt.isCorrect ? "correct" : "incorrect", new: opt.isCorrect ? "correct" : "incorrect" };
+                                } else if ((existingOpt.justification ?? null) !== opt.justification) {
+                                    diff[`opt_${opt.label} justif`] = { old: existingOpt.justification ?? "(none)", new: opt.justification ?? "(none)" };
+                                }
+                            }
+                        }
+                        details.push({
+                            externalQuestionId,
+                            status: "updated",
+                            itemId: existing.id,
+                            optionsCreated: optionsToCreate.length,
+                            moduleName: moduleNameStr,
+                            bloom,
+                            stem: String(stem),
+                            diff,
+                        });
+                        continue;
+                    }
+
                     // Update existing item in-place (preserves id and FK references)
                     const updatedItem = await prisma.$transaction(async (tx) => {
                         const item = await tx.item.update({
@@ -260,7 +359,7 @@ export async function POST(request: Request) {
                                 irtA,
                                 irtB,
                                 irtC,
-                                active: true, // re-activate if it was deactivated
+                                active: itemActive,
                             },
                         });
 
@@ -314,6 +413,20 @@ export async function POST(request: Request) {
                     continue;
                 }
 
+                // New item
+                if (dryRun) {
+                    details.push({
+                        externalQuestionId,
+                        status: "created",
+                        itemId: "__new__",
+                        optionsCreated: optionsToCreate.length,
+                        moduleName: moduleNameStr,
+                        bloom,
+                        stem: String(stem),
+                    });
+                    continue;
+                }
+
                 // create item and options
                 const createdItem = await prisma.item.create({
                     data: {
@@ -330,7 +443,7 @@ export async function POST(request: Request) {
                         irtA,
                         irtB,
                         irtC,
-                        active: true,
+                        active: itemActive,
                         options: {
                             create: optionsToCreate,
                         },
@@ -351,29 +464,50 @@ export async function POST(request: Request) {
             }
         } // end rows loop
 
-        // Deactivate items not present in the spreadsheet (opt-in)
-        if (deactivateMissing && seenQuestionIds.length > 0) {
+        if (deactivateIds !== null) {
+            // Commit path: deactivate only the explicitly approved item IDs
+            if (deactivateIds.length > 0 && !dryRun) {
+                await prisma.item.updateMany({
+                    where: { id: { in: deactivateIds } },
+                    data: { active: false },
+                });
+                const deactivated = await prisma.item.findMany({
+                    where: { id: { in: deactivateIds } },
+                    select: { id: true, externalQuestionId: true, bloom: true, stem: true, module: { select: { name: true } } },
+                });
+                for (const item of deactivated) {
+                    details.push({ externalQuestionId: item.externalQuestionId, status: "deactivated", itemId: item.id, moduleName: item.module.name, bloom: item.bloom, stem: item.stem });
+                }
+            }
+        } else if (deactivateMissing && seenQuestionIds.length > 0) {
+            // Dry-run preview or direct-commit (no approvedQuestionIds provided)
             const itemsToDeactivate = await prisma.item.findMany({
                 where: {
                     courseId,
                     active: true,
                     externalQuestionId: { notIn: seenQuestionIds },
                 },
-                select: { id: true, externalQuestionId: true },
+                select: { id: true, externalQuestionId: true, bloom: true, stem: true, module: { select: { name: true } } },
             });
 
             if (itemsToDeactivate.length > 0) {
-                await prisma.item.updateMany({
-                    where: {
-                        id: { in: itemsToDeactivate.map((i) => i.id) },
-                    },
-                    data: { active: false },
-                });
+                if (!dryRun) {
+                    await prisma.item.updateMany({
+                        where: {
+                            id: { in: itemsToDeactivate.map((i) => i.id) },
+                        },
+                        data: { active: false },
+                    });
+                }
 
                 for (const item of itemsToDeactivate) {
                     details.push({
                         externalQuestionId: item.externalQuestionId,
                         status: "deactivated",
+                        itemId: item.id,
+                        moduleName: item.module.name,
+                        bloom: item.bloom,
+                        stem: item.stem,
                     });
                 }
             }
