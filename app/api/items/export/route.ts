@@ -5,22 +5,25 @@ import * as xlsx from "xlsx";
 export const runtime = "nodejs";
 
 /**
- * GET /api/items/export?courseId=<id>&format=xlsx|csv
+ * GET /api/items/export?courseId=<id>&format=xlsx|csv&includeInactive=true
  *
- * Exports all active questions for a course as an .xlsx or .csv file.
+ * Exports questions for a course as an .xlsx or .csv file.
+ * By default only active questions are included; pass includeInactive=true to
+ * include inactive ones as well (they appear with status: inactive).
  * The column format matches the Quizzical/upload format for roundtrip compatibility.
  *
  * Column order:
  * index, lecture, question_id, category, submission_date, attempts, average,
  * biserial, rating, author_name, question, question_figure, answer_figure,
  * answer_a, answer_justification_a, answer_b, answer_justification_b, ...,
- * correct_answer, irt_a, irt_b, irt_c, reference
+ * correct_answer, reference, status, irt_a, irt_b, irt_c
  */
 export async function GET(request: Request) {
     try {
         const { searchParams } = new URL(request.url);
         const courseId = searchParams.get("courseId");
         const format = searchParams.get("format") === "csv" ? "csv" : "xlsx";
+        const includeInactive = searchParams.get("includeInactive") === "true";
 
         if (!courseId) {
             return NextResponse.json(
@@ -30,7 +33,7 @@ export async function GET(request: Request) {
         }
 
         const items = await prisma.item.findMany({
-            where: { courseId, active: true },
+            where: { courseId, ...(includeInactive ? {} : { active: true }) },
             include: {
                 options: { orderBy: { label: "asc" } },
                 module: { select: { name: true } },
@@ -69,7 +72,7 @@ export async function GET(request: Request) {
             headers.push(`answer_${letter}`);
             headers.push(`answer_justification_${letter}`);
         }
-        headers.push("correct_answer", "irt_a", "irt_b", "irt_c", "reference");
+        headers.push("correct_answer", "reference", "status", "irt_a", "irt_b", "irt_c");
 
         // Build rows
         const rows: Record<string, unknown>[] = items.map((item, idx) => {
@@ -111,10 +114,11 @@ export async function GET(request: Request) {
                     ? correctLabels[0]
                     : correctLabels.join(",");
 
+            row["reference"] = item.reference ?? null;
+            row["status"] = item.active ? "active" : "inactive";
             row["irt_a"] = item.irtA;
             row["irt_b"] = item.irtB;
             row["irt_c"] = item.irtC;
-            row["reference"] = item.reference ?? null;
 
             return row;
         });

@@ -35,6 +35,7 @@ const QuestionBankContent = () => {
     const [deletingItems, setDeletingItems] = useState<Item[]>([])
     const [isDeleting, setIsDeleting] = useState(false)
     const [downloading, setDownloading] = useState(false)
+    const [includeInactiveDownload, setIncludeInactiveDownload] = useState(false)
 
     const fetchItems = useCallback(async () => {
         if (!selectedCourseOffering?.course?.id) {
@@ -157,8 +158,13 @@ const QuestionBankContent = () => {
 
         setDownloading(true)
         try {
+            const params = new URLSearchParams({
+                courseId: selectedCourseOffering.course.id,
+                format,
+            })
+            if (includeInactiveDownload) params.set('includeInactive', 'true')
             const response = await fetch(
-                `/api/items/export?courseId=${selectedCourseOffering.course.id}&format=${format}`,
+                `/api/items/export?${params.toString()}`,
                 { credentials: 'include' }
             )
 
@@ -264,7 +270,7 @@ const QuestionBankContent = () => {
                                 </Button>
                             </>
                         )}
-                        <Menu shadow="md" width={200}>
+                        <Menu shadow="md" width={240}>
                             <Menu.Target>
                                 <Button
                                     variant="outline"
@@ -276,6 +282,15 @@ const QuestionBankContent = () => {
                                 </Button>
                             </Menu.Target>
                             <Menu.Dropdown>
+                                <Menu.Item component="div" closeMenuOnClick={false} style={{ cursor: 'default' }}>
+                                    <Switch
+                                        label="Include inactive questions"
+                                        checked={includeInactiveDownload}
+                                        onChange={(e) => setIncludeInactiveDownload(e.currentTarget.checked)}
+                                        size="sm"
+                                    />
+                                </Menu.Item>
+                                <Menu.Divider />
                                 <Menu.Item
                                     leftSection={<IconFileSpreadsheet size={16} />}
                                     onClick={() => handleDownload('xlsx')}
