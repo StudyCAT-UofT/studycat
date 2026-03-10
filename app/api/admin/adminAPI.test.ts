@@ -135,8 +135,8 @@ describe('GET /api/admin/offerings', () => {
     it('returns 200 with offerings for admin', async () => {
         asAdmin()
         vi.mocked(prisma.courseOffering.findMany).mockResolvedValue([
-            { id: '1', courseId: 'c1', termId: 't1', display: 'CSC309 F24', createdAt: new Date(), course: { code: 'CSC309' }, term: { name: 'Fall 2024' } },
-        ] as any)
+            { id: '1', courseId: 'c1', termId: 't1', display: 'CSC309 F24', createdAt: new Date() },
+        ])
         const data = await (await getOfferingsRoute()).json()
         expect(data.offerings).toHaveLength(1)
         expect(data.offerings[0].display).toBe('CSC309 F24')
