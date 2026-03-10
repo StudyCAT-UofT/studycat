@@ -1,8 +1,9 @@
-import { Box, Text, Button, Checkbox, Divider, Group, Modal, Select, Stack, Textarea, TextInput, Alert } from "@mantine/core"
+import { Box, Text, Button, Checkbox, Divider, Group, Modal, Select, Stack, Textarea, TextInput, Alert, Badge } from "@mantine/core"
 import { Item } from "@/types"
 import { useState, useEffect, useCallback } from "react"
 import { IconAlertCircle, IconCheck } from "@tabler/icons-react"
 import { useCourse } from "@/lib/course-context"
+import { notifications } from "@mantine/notifications"
 
 const EditQuestionModal = ({
     item,
@@ -206,6 +207,38 @@ const EditQuestionModal = ({
         setFormData({ ...formData, options: newOptions })
     }
 
+    const [togglingActive, setTogglingActive] = useState(false)
+
+    const handleToggleActive = async () => {
+        if (!item) return
+        setTogglingActive(true)
+        try {
+            const response = await fetch(`/api/items/${item.id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ active: !item.active })
+            })
+
+            if (!response.ok) {
+                const errorData = await response.json()
+                throw new Error(errorData.error || 'Failed to update item')
+            }
+
+            notifications.show({
+                title: item.active ? 'Question Deactivated' : 'Question Activated',
+                message: `${item.externalQuestionId} has been ${item.active ? 'deactivated' : 'activated'}.`,
+                color: item.active ? 'orange' : 'green',
+            })
+
+            if (onSave) onSave()
+            onClose()
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to update item')
+        } finally {
+            setTogglingActive(false)
+        }
+    }
+
     if (!isCreating && !item) return null
 
     return (
@@ -216,6 +249,27 @@ const EditQuestionModal = ({
             size="lg"
         >
             <Stack gap="md">
+                {/* Active status toggle for existing questions */}
+                {!isCreating && item && (
+                    <Group justify="space-between" p="sm" style={{ border: '1px solid #e9ecef', borderRadius: '8px', backgroundColor: item.active ? undefined : '#fff5f5' }}>
+                        <Group gap="sm">
+                            <Text size="sm" fw={500}>Status:</Text>
+                            <Badge color={item.active ? 'green' : 'gray'} variant="filled">
+                                {item.active ? 'Active' : 'Inactive'}
+                            </Badge>
+                        </Group>
+                        <Button
+                            size="xs"
+                            variant="light"
+                            color={item.active ? 'orange' : 'green'}
+                            onClick={handleToggleActive}
+                            loading={togglingActive}
+                        >
+                            {item.active ? 'Deactivate' : 'Reactivate'}
+                        </Button>
+                    </Group>
+                )}
+
                 {error && (
                     <Alert
                         icon={<IconAlertCircle size={16} />}
