@@ -8,6 +8,7 @@ interface AuthContextType {
     user: User | null
     loading: boolean
     isAuthenticated: boolean
+    isAdmin: boolean | null // null while loading
     refreshUser: () => Promise<void>
 }
 
@@ -20,22 +21,38 @@ interface AuthProviderProps {
 
 export const AuthProvider = ({ children, requireAuth = false }: AuthProviderProps) => {
     const [user, setUser] = useState<User | null>(null)
+    const [isAdmin, setIsAdmin] = useState<boolean | null>(null) // null = loading
     const [loading, setLoading] = useState(true)
     const router = useRouter()
 
     const refreshUser = useCallback(async () => {
+        setLoading(true)
         try {
             const currentUser = await getCurrentUser()
             setUser(currentUser)
 
-            // If authentication is required and no user is found, redirect to login
+            // Fetch admin status
+            let admin = false
+            if (currentUser) {
+                try {
+                    const res = await fetch('/api/admin/status')
+                    if (!res.ok) throw new Error('Failed to fetch admin status')
+                    const data = await res.json()
+                    admin = !!data.admin
+                } catch (err) {
+                    console.error('Failed to get admin status:', err)
+                }
+            }
+            setIsAdmin(admin)
+
+            // Redirect if auth is required
             if (requireAuth && !currentUser) {
                 router.push('/login')
             }
         } catch (error) {
             console.error('Error refreshing user:', error)
             setUser(null)
-
+            setIsAdmin(false)
             if (requireAuth) {
                 router.push('/login')
             }
@@ -52,6 +69,7 @@ export const AuthProvider = ({ children, requireAuth = false }: AuthProviderProp
         user,
         loading,
         isAuthenticated: !!user,
+        isAdmin,
         refreshUser,
     }
 

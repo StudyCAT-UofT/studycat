@@ -10,10 +10,12 @@ import {
     Avatar,
     Select,
     Skeleton,
+    Button,
 } from '@mantine/core'
 import { logout } from '@/lib/client-auth'
 import { useCourse } from '@/lib/course-context'
 import { useAuth } from '@/lib/auth-context'
+import { useState, useEffect } from 'react'
 
 export const Navbar = () => {
     const router = useRouter()
@@ -22,7 +24,26 @@ export const Navbar = () => {
     const { selectedCourseOffering, setSelectedCourseOffering, courseOfferings, loading } = useCourse()
 
     // Hide course picker on dashboard (course selection page)
-    const showCoursePicker = pathname !== '/'
+    const showCoursePicker = pathname !== '/' && !pathname.startsWith('/admin')
+
+    // Admin status state
+    const [isAdmin, setIsAdmin] = useState<boolean | null>(null)
+
+    // Fetch admin status on mount
+    useEffect(() => {
+        async function fetchAdminStatus() {
+            try {
+                const res = await fetch('/api/admin/status')
+                if (!res.ok) throw new Error('Failed to fetch admin status')
+                const data = await res.json()
+                setIsAdmin(data.admin)
+            } catch (err) {
+                console.error('Failed to fetch admin status:', err)
+                setIsAdmin(false)
+            }
+        }
+        fetchAdminStatus()
+    }, [])
 
     const handleLogout = async () => {
         const result = await logout()
@@ -47,7 +68,7 @@ export const Navbar = () => {
                     </Text>
                 </Group>
 
-                {/* Right side - Course offering selector and User menu */}
+                {/* Right side - Course offering selector, Admin button, User menu */}
                 <Group gap="md">
                     {/* Course offering selector (hidden on dashboard) */}
                     {showCoursePicker && (
@@ -74,6 +95,17 @@ export const Navbar = () => {
                                 No courses available
                             </Text>
                         )
+                    )}
+
+                    {/* Admin button */}
+                    {isAdmin && (
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => router.push('/admin')}
+                        >
+                            Admin Dashboard
+                        </Button>
                     )}
 
                     {/* User menu */}
