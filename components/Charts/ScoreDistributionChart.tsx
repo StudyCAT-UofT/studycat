@@ -50,7 +50,7 @@ export const ScoreDistributionChart = ({ attempts }: ScoreDistributionChartProps
 
     return (
         <Paper withBorder p="md" radius="md">
-            <Title order={4} mb="md">Score Distribution</Title>
+            <Title order={2} mb="md">Score Distribution</Title>
             {scoreDistributionData.length > 0 ? (
                 <BarChart
                     h={300}

@@ -49,7 +49,7 @@ export const ModulePerformanceRadarChart = ({ questions }: ModulePerformanceRada
 
     return (
         <Paper withBorder p="md" radius="md">
-            <Title order={4} mb="md">Performance by Module</Title>
+            <Title order={2} mb="md">Performance by Module</Title>
             {chartData.length > 0 ? (
                 <ResponsiveContainer width="100%" height={400}>
                     <RadarChart data={chartData}>
@@ -72,15 +72,15 @@ export const ModulePerformanceRadarChart = ({ questions }: ModulePerformanceRada
                         <Radar
                             name="% Correct"
                             dataKey="% Correct"
-                            stroke="#228be6"
-                            fill="#228be6"
+                            stroke="#1971c2"
+                            fill="#1971c2"
                             fillOpacity={0.6}
                         />
                         <Legend />
                     </RadarChart>
                 </ResponsiveContainer>
             ) : (
-                <Text c="dimmed" ta="center" py="xl">No module data available</Text>
+                <Text ta="center" py="xl">No module data available</Text>
             )}
         </Paper>
     )
