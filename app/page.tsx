@@ -40,7 +40,7 @@ const CourseSelectionContent = () => {
         return (
             <Container size="md" py="xl">
                 <Stack gap="lg">
-                    <Title order={2}>Courses</Title>
+                    <Title order={1}>Courses</Title>
                     <Card withBorder padding="xl" radius="md">
                         <Center>
                             <Stack align="center" gap="md">
@@ -63,8 +63,8 @@ const CourseSelectionContent = () => {
             <Stack gap="xl">
                 {/* Header */}
                 <Stack gap="xs">
-                    <Title order={2}>Courses</Title>
-                    <Text c="dimmed">
+                    <Title order={1}>Courses</Title>
+                    <Text>
                         Select a course to view quizzes and activities
                     </Text>
                 </Stack>
