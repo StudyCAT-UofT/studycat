@@ -306,15 +306,15 @@ const AddStudentsModal = ({
 
                 <Box
                     style={{
-                        border: '2px dashed #228be6',
+                        border: '2px dashed black',
                         borderRadius: '8px',
                         padding: '2rem',
-                        backgroundColor: '#f1f8ff',
+                        backgroundColor: 'white',
                         textAlign: 'center'
                     }}
                 >
                     <Stack gap="md" align="center">
-                        <IconUpload size={40} stroke={1.5} color="#228be6" />
+                        <IconUpload size={40} stroke={1.5} color="black" />
                         <FileInput
                             placeholder="Click to choose CSV file"
                             accept=".csv"
@@ -328,14 +328,17 @@ const AddStudentsModal = ({
                                     fontSize: '14px',
                                     textAlign: 'center',
                                     cursor: 'pointer',
-                                    fontWeight: 500
+                                    fontWeight: 500,
+                                },
+                                placeholder: {
+                                    color: 'black'
                                 },
                                 root: {
                                     width: '100%'
                                 }
                             }}
                         />
-                        <Text size="xs" c="dimmed">
+                        <Text size="xs">
                             Upload a CSV file with student information
                         </Text>
                     </Stack>
@@ -379,7 +382,7 @@ const AddStudentsModal = ({
                 </Alert>
 
                 <Group justify="flex-end" mt="md">
-                    <Button variant="outline" onClick={onClose} disabled={loading}>
+                    <Button variant="outline" onClick={onClose} disabled={loading} color="dark">
                         Cancel
                     </Button>
                     <Button 
@@ -387,6 +390,7 @@ const AddStudentsModal = ({
                         loading={loading} 
                         disabled={!file || !validationStatus?.isValid}
                         leftSection={<IconUpload size={16} />}
+                        color="dark"
                     >
                         Upload & Add Students
                     </Button>
