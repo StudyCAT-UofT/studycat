@@ -8,7 +8,8 @@ import {
     Group,
     ActionIcon,
     Box,
-    Flex
+    Flex,
+    VisuallyHidden
 } from '@mantine/core'
 import { DataTable, DataTableSortStatus } from 'mantine-datatable'
 import { IconEdit } from '@tabler/icons-react'
@@ -110,7 +111,7 @@ export const QuestionBankTable = ({ items, loading, error, onRefresh, selectedRe
             sortable: true,
             width: 120,
             render: (item: Item) => (
-                <Badge color={getBloomColor(item.bloom)} size="sm">
+                <Badge color={getBloomColor(item.bloom)} variant='light' size="md">
                     {item.bloom}
                 </Badge>
             )
@@ -164,6 +165,7 @@ export const QuestionBankTable = ({ items, loading, error, onRefresh, selectedRe
                             handleEdit(item)
                         }}
                     >
+                        <VisuallyHidden>Edit quiz</VisuallyHidden>
                         <IconEdit size={16} />
                     </ActionIcon>
                 </Group>
@@ -191,7 +193,7 @@ export const QuestionBankTable = ({ items, loading, error, onRefresh, selectedRe
                                     Option {option.label}
                                 </Text>
                                 {option.isCorrect && (
-                                    <Badge size="xs" color="green">
+                                    <Badge size="sm" color="green" variant='light'>
                                         Correct
                                     </Badge>
                                 )}
@@ -199,7 +201,7 @@ export const QuestionBankTable = ({ items, loading, error, onRefresh, selectedRe
                         </Group>
                         <Text size="sm" mb="xs">{option.text}</Text>
                         {option.justification && (
-                            <Text size="xs" c="dimmed" fs="italic">
+                            <Text size="xs" fs="italic">
                                 Justification: {option.justification}
                             </Text>
                         )}
