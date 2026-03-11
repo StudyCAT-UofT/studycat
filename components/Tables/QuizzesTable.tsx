@@ -130,7 +130,7 @@ export const QuizzesTable = ({
             render: (quiz: Quiz) => (
                 <Stack gap={2}>
                 {quiz.quizModules?.map((module, index) => (
-                    <Badge key={index} size="sm" variant="light">
+                    <Badge key={index} size="md" variant="light">
                     {quiz.modules ? quiz.modules[index] : "NULL"} ({(module.masteryThreshold)})
                     </Badge>
                 ))}
@@ -143,7 +143,7 @@ export const QuizzesTable = ({
             sortable: true,
             width: 100,
             render: (quiz: Quiz) => (
-                <Badge color={getStatusColor(quiz.isActive)} size="sm">
+                <Badge color={getStatusColor(quiz.isActive)} size="md" variant='light'>
                     {quiz.isActive ? 'Active' : 'Inactive'}
                 </Badge>
             )
@@ -177,22 +177,22 @@ export const QuizzesTable = ({
                 <Stack gap={2}>
                     {quiz.stats.totalAttempts > 0 ? (
                         <>
-                            <Text size="xs" c="dimmed">
+                            <Text size="xs">
                                 Attempts: {quiz.stats.totalAttempts}
                             </Text>
                             {quiz.stats.averageScore && (
-                                <Text size="xs" c="dimmed">
+                                <Text size="xs">
                                     Avg: {quiz.stats.averageScore.toFixed(1)}%
                                 </Text>
                             )}
                             {quiz.stats.completionRate && (
-                                <Text size="xs" c="dimmed">
+                                <Text size="xs">
                                     Complete: {quiz.stats.completionRate.toFixed(1)}%
                                 </Text>
                             )}
                         </>
                     ) : (
-                        <Text size="xs" c="dimmed">
+                        <Text size="xs">
                             No attempts yet
                         </Text>
                     )}

@@ -124,7 +124,7 @@ const QuizzesContent = () => {
             <Stack gap="lg">
                 <Group gap="md" align="center" justify="space-between">
                     <Group gap="md" align="center">
-                        <Title order={2}>Quizzes</Title>
+                        <Title order={1}>Quizzes</Title>
                         {quizCountText && (
                             <Badge size="lg" variant="light">
                                 {quizCountText}
@@ -147,6 +147,7 @@ const QuizzesContent = () => {
                             leftSection={<IconPlus size={16} />}
                             onClick={() => setIsNewQuizModalOpen(true)}
                             disabled={!selectedCourseOffering?.id}
+                            color='dark'
                         >
                             New Quiz
                         </Button>
