@@ -78,9 +78,50 @@ export default function LoginPage() {
     // Shibboleth Mode: Redirect to SP
     if (authMode === 'shibboleth') {
         return (
+            <main>
+                <Container size="sm" py="xl">
+                    <Stack gap="lg">
+                        <Title order={1}>StudyCAT Login</Title>
+
+                        {error && (
+                            <Alert color="red" title="Error">
+                                {error}
+                            </Alert>
+                        )}
+
+                        <Card withBorder padding="lg" radius="md">
+                            <Stack gap="md">
+                                <Text size="sm">
+                                    This application uses UTORid single sign-on for authentication.
+                                </Text>
+                                <Button
+                                    onClick={() => {
+                                        // Use Shibboleth SessionInitiator with target parameter
+                                        // This will trigger SSO flow and return to the callback URL
+                                        const callbackUrl = encodeURIComponent('/api/auth/shibboleth/callback');
+                                        window.location.href = `https://sp.studycat.local/Shibboleth.sso/Login?target=${callbackUrl}`;
+                                    }}
+                                    fullWidth
+                                    size="lg"
+                                    variant='filled'
+                                    color='dark'
+                                >
+                                    Login with UTORid
+                                </Button>
+                            </Stack>
+                        </Card>
+                    </Stack>
+                </Container>
+            </main>
+        )
+    }
+
+    // Simple Mode: Username-only authentication
+    return (
+        <main>
             <Container size="sm" py="xl">
                 <Stack gap="lg">
-                    <Title order={2}>StudyCAT Login</Title>
+                    <Title order={1}>StudyCAT Login</Title>
 
                     {error && (
                         <Alert color="red" title="Error">
@@ -89,60 +130,27 @@ export default function LoginPage() {
                     )}
 
                     <Card withBorder padding="lg" radius="md">
-                        <Stack gap="md">
-                            <Text size="sm" c="dimmed">
-                                This application uses UTORid single sign-on for authentication.
-                            </Text>
+                        <Stack>
+                            <TextInput
+                                label="UTORid"
+                                placeholder="Enter your UTORid"
+                                value={username}
+                                onChange={(e) => setUsername(e.currentTarget.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
+                            />
                             <Button
-                                onClick={() => {
-                                    // Use Shibboleth SessionInitiator with target parameter
-                                    // This will trigger SSO flow and return to the callback URL
-                                    const callbackUrl = encodeURIComponent('/api/auth/shibboleth/callback');
-                                    window.location.href = `https://sp.studycat.local/Shibboleth.sso/Login?target=${callbackUrl}`;
-                                }}
+                                onClick={handleLogin}
+                                loading={loading}
                                 fullWidth
-                                size="lg"
+                                variant='filled'
+                                color='dark'
                             >
-                                Login with UTORid
+                                Login
                             </Button>
                         </Stack>
                     </Card>
                 </Stack>
             </Container>
-        )
-    }
-
-    // Simple Mode: Username-only authentication
-    return (
-        <Container size="sm" py="xl">
-            <Stack gap="lg">
-                <Title order={2}>StudyCAT Login</Title>
-
-                {error && (
-                    <Alert color="red" title="Error">
-                        {error}
-                    </Alert>
-                )}
-
-                <Card withBorder padding="lg" radius="md">
-                    <Stack>
-                        <TextInput
-                            label="UTORid"
-                            placeholder="Enter your UTORid"
-                            value={username}
-                            onChange={(e) => setUsername(e.currentTarget.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && handleLogin()}
-                        />
-                        <Button
-                            onClick={handleLogin}
-                            loading={loading}
-                            fullWidth
-                        >
-                            Login
-                        </Button>
-                    </Stack>
-                </Card>
-            </Stack>
-        </Container>
+        </main>
     )
 }
