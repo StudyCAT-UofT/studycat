@@ -23,7 +23,7 @@ export const AdminNavbar = ({ links }: AdminNavbarProps) => {
 
     return (
         <AppShell.Navbar p="md">
-            <Text size="xs" fw={700} tt="uppercase" c="dimmed" mb="xs">
+            <Text size="xs" fw={700} tt="uppercase" mb="xs">
                 Admin
             </Text>
             <Divider mb="sm" />
@@ -37,7 +37,7 @@ export const AdminNavbar = ({ links }: AdminNavbarProps) => {
                             href={link.href}
                             fw={isActive ? 600 : 400}
                             underline="never"
-                            c={isActive ? 'blue' : 'dark'}
+                            c={'dark'}
                             px="sm"
                             py={6}
                             style={{
