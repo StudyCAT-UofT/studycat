@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import {
     Card,
     Text,
@@ -91,6 +91,15 @@ export const QuestionBankTable = ({ items, loading, error, onRefresh, selectedRe
         const end = start + pageSize
         return sortedItems.slice(start, end)
     }, [sortedItems, page, pageSize])
+
+    // Fix empty th on checkbox column
+    useEffect(() => {
+        const selectorTh = document.querySelector('th[data-accessor="__selection__"]')
+        if (selectorTh) {
+            selectorTh.setAttribute('title', 'Select rows')
+            selectorTh.setAttribute('aria-label', 'Select rows')
+        }
+    }, [paginatedItems])
 
     const columns = [
         {
@@ -224,6 +233,9 @@ export const QuestionBankTable = ({ items, loading, error, onRefresh, selectedRe
     return (
         <>
             <DataTable
+                selectionCheckboxProps={{
+                    'aria-label': 'Select row',
+                }}
                 records={paginatedItems}
                 columns={columns}
                 sortStatus={sortStatus}
@@ -244,7 +256,6 @@ export const QuestionBankTable = ({ items, loading, error, onRefresh, selectedRe
                 onPageChange={setPage}
                 totalRecords={sortedItems.length}
                 recordsPerPage={pageSize}
-                paginationActiveBackgroundColor="blue"
                 idAccessor="id"
             />
 
@@ -264,4 +275,3 @@ export const QuestionBankTable = ({ items, loading, error, onRefresh, selectedRe
         </>
     )
 }
-

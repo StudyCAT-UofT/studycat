@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { Text, Badge, Group } from '@mantine/core'
 import { DataTable, DataTableSortStatus } from 'mantine-datatable'
 
@@ -108,6 +108,15 @@ export const StudentsTable = ({
         })
         return sorted
     }, [students, sortStatus])
+
+    // Fix empty th on checkbox column
+    useEffect(() => {
+        const selectorTh = document.querySelector('th[data-accessor="__selection__"]')
+        if (selectorTh) {
+            selectorTh.setAttribute('title', 'Select rows')
+            selectorTh.setAttribute('aria-label', 'Select rows')
+        }
+    }, [sortedStudents])
 
     const columns = [
         {
@@ -234,4 +243,3 @@ export const StudentsTable = ({
         />
     )
 }
-

@@ -1,13 +1,14 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import {
     Text,
     Badge,
     Group,
     ActionIcon,
     Box,
-    Stack
+    Stack,
+    VisuallyHidden
 } from '@mantine/core'
 import { DataTable, DataTableSortStatus } from 'mantine-datatable'
 import { IconEdit } from '@tabler/icons-react'
@@ -98,6 +99,16 @@ export const QuizzesTable = ({
         const end = start + pageSize
         return sortedQuizzes.slice(start, end)
     }, [sortedQuizzes, page, pageSize])
+
+    
+    // Fix empty th on checkbox column
+    useEffect(() => {
+        const selectorTh = document.querySelector('th[data-accessor="__selection__"]')
+        if (selectorTh) {
+            selectorTh.setAttribute('title', 'Select rows')
+            selectorTh.setAttribute('aria-label', 'Select rows')
+        }
+    }, [paginatedQuizzes])
 
     const getStatusColor = (isActive: boolean) => {
         return isActive ? 'green' : 'gray'
@@ -216,6 +227,7 @@ export const QuizzesTable = ({
                             }
                         }}
                     >
+                        <VisuallyHidden color='dark'>Edit Quiz</VisuallyHidden>
                         <IconEdit size={16} />
                     </ActionIcon>
                 </Group>
@@ -253,6 +265,9 @@ export const QuizzesTable = ({
 
     return (
         <DataTable
+            selectionCheckboxProps={{
+                'aria-label': 'Select row',
+            }}
             records={paginatedQuizzes}
             columns={columns}
             sortStatus={sortStatus}
