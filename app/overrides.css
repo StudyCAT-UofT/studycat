@@ -15,3 +15,8 @@
 .mantine-InputWrapper-required {
     color: #BF1722 !important;
 }
+
+[data-disabled] .mantine-Radio-label {
+    color: black !important;
+    opacity: 1 !important;
+}

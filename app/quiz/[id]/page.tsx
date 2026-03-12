@@ -268,8 +268,8 @@ const QuizContent = ({ quizId }: { quizId: string }) => {
         <Container size="md" py="xl">
             <Stack gap="lg">
                 <Group justify="space-between">
-                    <Title order={2}>Quiz</Title>
-                    <Button variant="outline" onClick={handleExit}>
+                    <Title order={1}>Quiz</Title>
+                    <Button variant="outline" color='dark' onClick={handleExit}>
                         Exit Quiz
                     </Button>
                 </Group>
