@@ -100,24 +100,24 @@ const QuizQuestion = ({ item, onAnswer, onNext, feedback, shuffled, feedbackVisi
                 >
                     <Stack gap="md" mt="md">
                         {shuffledIndices.map((shuffledIndex, displayIndex) => {
-                    const option = item.options[shuffledIndex]
-                    const color = getOptionColor(displayIndex)
+                        const option = item.options[shuffledIndex]
+                        const color = getOptionColor(displayIndex)
 
-                    return (
-                        <Paper
-                            key={displayIndex}
-                            p="sm"
-                            radius="md"
-                            style={{
-                                backgroundColor:
-                                    color === 'green'
-                                        ? 'rgba(34, 197, 94, 0.1)'
-                                        : color === 'red'
-                                        ? 'rgba(239, 68, 68, 0.1)'
-                                        : 'transparent',
-                                border: color ? `2px solid ${color === 'green' ? '#22c55e' : '#ef4444'}` : 'none'
-                            }}
-                        >
+                        return (
+                            <Paper
+                                key={displayIndex}
+                                p="sm"
+                                radius="md"
+                                style={{
+                                    backgroundColor:
+                                        color === 'green'
+                                            ? 'rgba(34, 197, 94, 0.1)'
+                                            : color === 'red'
+                                            ? 'rgba(239, 68, 68, 0.1)'
+                                            : 'transparent',
+                                    border: color ? `2px solid ${color === 'green' ? '#22c55e' : '#ef4444'}` : 'none'
+                                }}
+                            >
                             <Radio
                                 value={displayIndex.toString()}
                                 label={option}
