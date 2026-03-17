@@ -37,7 +37,7 @@ export interface Quiz {
     modules: string[] | null
     isActive: boolean
     shuffled: boolean
-    feedbackVisibility: string
+    feedbackVisibility: FeedbackLevel
     dueDate: string | null // Not in schema but kept for compatibility
     createdAt: string
     updatedAt: string
