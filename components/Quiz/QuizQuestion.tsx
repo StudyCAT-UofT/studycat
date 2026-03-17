@@ -133,7 +133,7 @@ const QuizQuestion = ({ item, onAnswer, onNext, feedback, shuffled, feedbackVisi
                 {isFeedbackMode && (
                     <Paper p="md" radius="md" bg="gray.0" mt="md">
                         <Stack gap="md">
-                            {feedbackVisibility === 'full' ? (
+                            {feedbackVisibility === feedbackLevels.FULL && (
                                 <>
                                     {feedback.justification && (
                                         <>
@@ -153,8 +153,10 @@ const QuizQuestion = ({ item, onAnswer, onNext, feedback, shuffled, feedbackVisi
                                         </>
                                     )}
                                 </>
-                            ) : (
-                                <Text size="sm">
+                            )}
+
+                            {(feedbackVisibility === feedbackLevels.NONE || feedbackVisibility === feedbackLevels.NO_JUST) && (
+                                <Text size="sm" c="dimmed">
                                     Response recorded.
                                 </Text>
                             )}

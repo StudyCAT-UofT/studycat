@@ -19,7 +19,7 @@ import {
 } from '@mantine/core'
 import { IconCheck, IconX, IconClock, IconInfoCircle } from '@tabler/icons-react'
 import { CompositeChart } from '@mantine/charts'
-import type { FeedbackData, DetailedQuestionReview } from '@/types'
+import { FeedbackData, DetailedQuestionReview, feedbackLevels } from '@/types'
 import { getBloomColor } from '@/utils/getBloomColor'
 
 interface QuizFeedbackProps {
@@ -329,7 +329,7 @@ export default function QuizFeedback({ feedbackData, onContinue, onReturnToDashb
                 )}
 
                 {/* Detailed Question Review */}
-                {feedbackData.feedbackVisibility !== 'none' && feedbackData.questions.length > 0 ? (
+                {(feedbackData.feedbackVisibility === feedbackLevels.FULL || feedbackData.feedbackVisibility === feedbackLevels.NO_JUST) && feedbackData.questions.length > 0 ? (
                     <Paper p="xl" radius="md" withBorder>
                         <Stack gap="lg">
                             <Title order={2}>Question-by-Question Review</Title>
@@ -405,7 +405,7 @@ export default function QuizFeedback({ feedbackData, onContinue, onReturnToDashb
                                                     </Text>
                                                     <Stack gap="xs">
                                                         {[0, 1, 2, 3].map(optionIndex =>
-                                                            renderOption(question, optionIndex, feedbackData.feedbackVisibility === 'full')
+                                                            renderOption(question, optionIndex, feedbackData.feedbackVisibility === feedbackLevels.FULL)
                                                         )}
                                                     </Stack>
                                                 </Box>
