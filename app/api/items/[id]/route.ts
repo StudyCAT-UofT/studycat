@@ -52,6 +52,69 @@ export async function DELETE(
 }
 
 /**
+ * PATCH /api/items/[id]
+ *
+ * Toggles the active status of a question item.
+ *
+ * Path Parameters:
+ * - id: The ID of the item to update
+ *
+ * Request Body:
+ * - active: boolean (required)
+ *
+ * Returns:
+ * - 200: Updated item
+ * - 400: Invalid request data
+ * - 404: Item not found
+ * - 500: Server error
+ */
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await params
+    const body = await request.json()
+    const { active } = body
+
+    if (typeof active !== 'boolean') {
+      return NextResponse.json(
+        { error: 'active must be a boolean' },
+        { status: 400 }
+      )
+    }
+
+    const existingItem = await prisma.item.findUnique({
+      where: { id }
+    })
+
+    if (!existingItem) {
+      return NextResponse.json(
+        { error: 'Item not found' },
+        { status: 404 }
+      )
+    }
+
+    const updatedItem = await prisma.item.update({
+      where: { id },
+      data: { active },
+      include: {
+        options: { orderBy: { label: 'asc' } },
+        module: { select: { id: true, name: true } }
+      }
+    })
+
+    return NextResponse.json({ item: updatedItem })
+  } catch (error) {
+    console.error('Failed to update item active status:', error)
+    return NextResponse.json(
+      { error: 'Failed to update item' },
+      { status: 500 }
+    )
+  }
+}
+
+/**
  * PUT /api/items/[id]
  * 
  * Updates an existing question item and its options.

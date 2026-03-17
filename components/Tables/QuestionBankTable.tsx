@@ -96,7 +96,15 @@ export const QuestionBankTable = ({ items, loading, error, onRefresh, selectedRe
             accessor: 'externalQuestionId',
             title: 'ID',
             sortable: true,
-            width: 100,
+            width: 130,
+            render: (item: Item) => (
+                <Group gap="xs">
+                    <Text size="sm" c={item.active ? undefined : 'dimmed'}>{item.externalQuestionId}</Text>
+                    {!item.active && (
+                        <Badge size="xs" color="gray" variant="filled">Inactive</Badge>
+                    )}
+                </Group>
+            ),
         },
         {
             accessor: 'module.name',
@@ -231,6 +239,9 @@ export const QuestionBankTable = ({ items, loading, error, onRefresh, selectedRe
                 rowExpansion={{
                     content: expandedRowContent
                 }}
+                rowStyle={(record: Item) =>
+                    !record.active ? { opacity: 0.5, backgroundColor: '#f5f5f5' } : undefined
+                }
                 fetching={loading}
                 minHeight={200}
                 striped

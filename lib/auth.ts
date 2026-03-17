@@ -1,4 +1,5 @@
 import { cookies } from 'next/headers'
+import { prisma } from './prisma'
 import { verifyToken as verifyJWT, signToken, JWTPayload } from './jwt'
 
 // Re-export JWTPayload as UserSession for backwards compatibility
@@ -36,3 +37,23 @@ export const clearSessionCookie = async () => {
   const cookieStore = await cookies()
   cookieStore.delete('session-token')
 }
+
+export const isAdmin = async (userId: string): Promise<boolean> => {
+  const user = await prisma.user.findFirst({
+    where: {
+      id: userId
+    }
+  })
+  if (!user) {
+    return false;
+  } else {
+    return user.isAdmin;
+  }
+};
+
+export const requireAdmin = async (userId: string) => {
+  const admin = await isAdmin(userId);
+  if (!admin) {
+    throw new Error('Unauthorized: Admin access required');
+  }
+};

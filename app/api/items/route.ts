@@ -6,13 +6,14 @@ export const runtime = 'nodejs'
 
 /**
  * GET /api/items
- * 
- * Fetches all active question items for a specific course.
+ *
+ * Fetches question items for a specific course.
  * Returns questions with their options, ordered by module and question ID.
- * 
+ *
  * Query Parameters:
  * - courseId (required): The ID of the course to fetch items for
- * 
+ * - includeInactive (optional): "true" to include inactive questions
+ *
  * Returns:
  * - 200: Array of question items with options
  * - 400: Missing course ID
@@ -22,17 +23,18 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
     const courseId = searchParams.get('courseId')
+    const includeInactive = searchParams.get('includeInactive') === 'true'
 
     // Validate required parameter
     if (!courseId) {
       return NextResponse.json({ error: 'Course ID is required' }, { status: 400 })
     }
 
-    // Fetch all active question items for the specified course
+    // Fetch question items for the specified course
     const items = await prisma.item.findMany({
       where: {
         courseId,
-        active: true // Only fetch active questions
+        ...(includeInactive ? {} : { active: true }) // Only filter by active unless includeInactive is true
       },
       include: {
         // Include all answer options for each question
@@ -248,8 +250,66 @@ export async function POST(request: Request) {
 }
 
 /**
+ * PATCH /api/items
+ *
+ * Bulk update the active status of multiple question items.
+ *
+ * Request Body:
+ * - ids: Array of item IDs to update (required)
+ * - active: boolean (required)
+ *
+ * Returns:
+ * - 200: Success message with count of updated items
+ * - 400: Invalid request data
+ * - 500: Server error
+ */
+export async function PATCH(request: Request) {
+  try {
+    const body = await request.json()
+    const { ids, active } = body
+
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return NextResponse.json(
+        { error: 'ids must be a non-empty array' },
+        { status: 400 }
+      )
+    }
+
+    if (typeof active !== 'boolean') {
+      return NextResponse.json(
+        { error: 'active must be a boolean' },
+        { status: 400 }
+      )
+    }
+
+    if (!ids.every((id: unknown) => typeof id === 'string')) {
+      return NextResponse.json(
+        { error: 'All ids must be strings' },
+        { status: 400 }
+      )
+    }
+
+    const result = await prisma.item.updateMany({
+      where: { id: { in: ids } },
+      data: { active }
+    })
+
+    return NextResponse.json({
+      message: `Successfully ${active ? 'activated' : 'deactivated'} ${result.count} item(s)`,
+      count: result.count
+    })
+  } catch (error) {
+    console.error('Failed to update items:', error)
+    return NextResponse.json(
+      { error: 'Failed to update items' },
+      { status: 500 }
+    )
+  }
+}
+
+/**
  * DELETE /api/items
- * 
+ *
  * Deletes multiple question items and all their associated options.
  * 
  * Request Body:
