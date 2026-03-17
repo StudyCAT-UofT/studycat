@@ -1,6 +1,6 @@
 'use client'
 
-import { QuizItem, Feedback } from '@/types'
+import { QuizItem, Feedback, FeedbackLevel, feedbackLevels } from '@/types'
 import { Card, Stack, Title, Button, Radio, Text, Paper, Image, Flex } from '@mantine/core'
 import { useState, useEffect } from 'react'
 
@@ -10,7 +10,7 @@ interface QuizQuestionProps {
     onNext?: () => void
     feedback?: Feedback | null,
     shuffled: boolean,
-    feedbackVisibility: string
+    feedbackVisibility: FeedbackLevel
 }
 
 const QuizQuestion = ({ item, onAnswer, onNext, feedback, shuffled, feedbackVisibility }: QuizQuestionProps) => {
@@ -68,7 +68,7 @@ const QuizQuestion = ({ item, onAnswer, onNext, feedback, shuffled, feedbackVisi
         if (!isFeedbackMode) return undefined
 
         // Hide correctness if feedbackVisibility is 'none'
-        if (feedbackVisibility === 'none') return undefined
+        if (feedbackVisibility === feedbackLevels.NONE) return undefined
 
         const actualIndex = shuffledIndices[index]
 
@@ -130,24 +130,33 @@ const QuizQuestion = ({ item, onAnswer, onNext, feedback, shuffled, feedbackVisi
                     </Stack>
                 </Radio.Group>
 
-                {isFeedbackMode && (feedback.justification || reference) && feedbackVisibility !== 'none' && (
+                {isFeedbackMode && (
                     <Paper p="md" radius="md" bg="gray.0" mt="md">
                         <Stack gap="md">
-                            {feedbackVisibility !== 'no-just' && feedback.justification && (
+                            {feedbackVisibility === 'full' ? (
                                 <>
-                                    <Text size="sm" fw={500}>
-                                        Feedback:
-                                    </Text>
-                                    <Text size="sm">{feedback.justification}</Text>
+                                    {feedback.justification && (
+                                        <>
+                                            <Text size="sm" fw={500}>
+                                                Feedback:
+                                            </Text>
+                                            <Text size="sm">{feedback.justification}</Text>
+                                        </>
+                                    )}
+
+                                    {reference && (
+                                        <>
+                                            <Text size="sm" fw={500}>
+                                                Reference:
+                                            </Text>
+                                            <Text size="sm">{reference}</Text>
+                                        </>
+                                    )}
                                 </>
-                            )}
-                            {feedbackVisibility !== 'no-just' && reference && (
-                                <>
-                                    <Text size="sm" fw={500}>
-                                        Reference:
-                                    </Text>
-                                    <Text size="sm">{reference}</Text>
-                                </>
+                            ) : (
+                                <Text size="sm">
+                                    Response recorded.
+                                </Text>
                             )}
                         </Stack>
                     </Paper>

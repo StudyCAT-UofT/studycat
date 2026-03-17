@@ -90,7 +90,7 @@ export interface InitAttemptResponse {
     nextAction: string
     startedAt: string,
     shuffled: boolean,
-    feedbackVisibility: string
+    feedbackVisibility: FeedbackLevel
 }
 
 export interface StepAttemptRequest {
@@ -220,3 +220,11 @@ export const optionLabels: OptionLabel[] = ['A', 'B', 'C', 'D'];
 export type BloomCategory = 'REMEMBER' | 'UNDERSTAND' | 'APPLY' | 'ANALYZE' | 'EVALUATE' | 'CREATE';
 
 export const bloomCategories: BloomCategory[] = ['REMEMBER', 'UNDERSTAND', 'APPLY', 'ANALYZE', 'EVALUATE', 'CREATE'];
+
+export type FeedbackLevel = "full" | "none" | "no-just"
+
+export const feedbackLevels = {
+  FULL: 'full',
+  NONE: 'none',
+  NO_JUST: 'no-just'
+} as const
