@@ -103,6 +103,7 @@ export async function GET(request: NextRequest) {
           givenName: ('givenName' in enrollment.user ? enrollment.user.givenName : '') || '',
           familyName: ('familyName' in enrollment.user ? enrollment.user.familyName : '') || '',
           enrolledAt: enrollment.createdAt.toISOString(),
+          hidden: enrollment.hidden,
           totalAttempts,
           averageScore,
           lastActivity

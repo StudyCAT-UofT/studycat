@@ -4,7 +4,7 @@ import { Container, Stack, Title, Badge, Group, Button, Modal, Text, Box } from 
 import { ProtectedRoute, RoleBasedRoute } from '@/components'
 import { useCourse } from '@/lib/course-context'
 import { useEffect, useState, useCallback, useMemo } from 'react'
-import { IconPlus, IconTrash } from '@tabler/icons-react'
+import { IconPlus, IconTrash, IconEyeOff, IconEye } from '@tabler/icons-react'
 import { AddStudentsModal } from '@/components/Modals'
 import { StudentsTable } from '@/components/Tables'
 
@@ -15,6 +15,7 @@ interface Student {
     givenName: string
     familyName: string
     enrolledAt: string
+    hidden: boolean
     totalAttempts: number
     averageScore: number | null
     lastActivity: string | null
@@ -38,6 +39,11 @@ const StudentsContent = () => {
     const [deleteModalOpened, setDeleteModalOpened] = useState(false)
     const [deletingStudents, setDeletingStudents] = useState<Student[]>([])
     const [isDeleting, setIsDeleting] = useState(false)
+
+    // Hide state
+    const [hideModalOpened, setHideModalOpened] = useState(false)
+    const [hidingStudents, setHidingStudents] = useState<Student[]>([])
+    const [isHiding, setIsHiding] = useState(false)
 
     /**
      * Fetches students for the selected course offering
@@ -75,12 +81,17 @@ const StudentsContent = () => {
     }, [fetchStudents])
 
     /**
-     * Memoized student count display text to prevent unnecessary re-renders
+     * Memoized student count display — shows visible count and hidden count when applicable
      */
     const studentCountText = useMemo(() => {
         if (loading || error) return null
+        const hiddenCount = students.filter(s => s.hidden).length
+        const visibleCount = students.length - hiddenCount
+        if (hiddenCount > 0) {
+            return `${visibleCount} student${visibleCount !== 1 ? 's' : ''} (${hiddenCount} hidden)`
+        }
         return `${students.length} student${students.length !== 1 ? 's' : ''}`
-    }, [students.length, loading, error])
+    }, [students, loading, error])
 
     const handleDeleteSelected = (students: Student[]) => {
         setDeletingStudents(students)
@@ -118,11 +129,108 @@ const StudentsContent = () => {
             fetchStudents()
         } catch (error) {
             console.error('Delete error:', error)
-            // You could add a notification here if needed
         } finally {
             setIsDeleting(false)
         }
     }
+
+    /**
+     * Opens the hide confirmation modal for selected visible students
+     */
+    const handleHideSelected = (students: Student[]) => {
+        setHidingStudents(students.filter(s => !s.hidden))
+        setHideModalOpened(true)
+    }
+
+    /**
+     * Confirms and executes the bulk hide action
+     */
+    const handleHideConfirm = async () => {
+        if (hidingStudents.length === 0) return
+
+        setIsHiding(true)
+        try {
+            const response = await fetch('/api/enrollments', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({
+                    enrollmentIds: hidingStudents.map(s => s.id),
+                    hidden: true,
+                }),
+            })
+
+            if (!response.ok) {
+                const errorData = await response.json()
+                throw new Error(errorData.error || 'Failed to hide students')
+            }
+
+            setSelectedRecords([])
+            setHidingStudents([])
+            setHideModalOpened(false)
+            fetchStudents()
+        } catch (error) {
+            console.error('Hide error:', error)
+        } finally {
+            setIsHiding(false)
+        }
+    }
+
+    /**
+     * Immediately unhides selected hidden students (no confirmation needed — reversible)
+     */
+    const handleUnhideSelected = async (students: Student[]) => {
+        const toUnhide = students.filter(s => s.hidden)
+        if (toUnhide.length === 0) return
+
+        try {
+            const response = await fetch('/api/enrollments', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({
+                    enrollmentIds: toUnhide.map(s => s.id),
+                    hidden: false,
+                }),
+            })
+
+            if (!response.ok) {
+                const errorData = await response.json()
+                throw new Error(errorData.error || 'Failed to unhide students')
+            }
+
+            setSelectedRecords([])
+            fetchStudents()
+        } catch (error) {
+            console.error('Unhide error:', error)
+        }
+    }
+
+    /**
+     * Per-row hide/unhide toggle (immediate, no confirmation)
+     */
+    const handleToggleHidden = async (enrollmentId: string, hidden: boolean) => {
+        try {
+            const response = await fetch('/api/enrollments', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ enrollmentIds: [enrollmentId], hidden }),
+            })
+
+            if (!response.ok) {
+                const errorData = await response.json()
+                throw new Error(errorData.error || 'Failed to update student visibility')
+            }
+
+            fetchStudents()
+        } catch (error) {
+            console.error('Toggle hidden error:', error)
+        }
+    }
+
+    const selectedVisibleCount = selectedRecords.filter(s => !s.hidden).length
+    const selectedHiddenCount = selectedRecords.filter(s => s.hidden).length
 
     return (
         <Container size="xl" py="xl">
@@ -137,6 +245,28 @@ const StudentsContent = () => {
                         )}
                     </Group>
                     <Group gap="sm">
+                        {selectedHiddenCount > 0 && (
+                            <Button
+                                color="blue"
+                                variant="light"
+                                leftSection={<IconEye size={16} />}
+                                onClick={() => handleUnhideSelected(selectedRecords)}
+                                disabled={loading}
+                            >
+                                Unhide Selected ({selectedHiddenCount})
+                            </Button>
+                        )}
+                        {selectedVisibleCount > 0 && (
+                            <Button
+                                color="gray"
+                                variant="light"
+                                leftSection={<IconEyeOff size={16} />}
+                                onClick={() => handleHideSelected(selectedRecords)}
+                                disabled={loading}
+                            >
+                                Hide Selected ({selectedVisibleCount})
+                            </Button>
+                        )}
                         {selectedRecords.length > 0 && (
                             <Button
                                 color="red"
@@ -164,6 +294,7 @@ const StudentsContent = () => {
                     error={error}
                     selectedRecords={selectedRecords}
                     onSelectedRecordsChange={setSelectedRecords}
+                    onToggleHidden={handleToggleHidden}
                 />
 
                 {/* Add Students Modal */}
@@ -213,6 +344,48 @@ const StudentsContent = () => {
                         </Button>
                     </Group>
                 </Modal>
+
+                {/* Hide Confirmation Modal */}
+                <Modal
+                    opened={hideModalOpened}
+                    onClose={() => setHideModalOpened(false)}
+                    title="Hide Students"
+                    centered
+                >
+                    <Text mb="md">
+                        Hide {hidingStudents.length} student{hidingStudents.length !== 1 ? 's' : ''} from this course?
+                        Hidden students will be excluded from analytics and reports, but their data is preserved and can be restored at any time.
+                    </Text>
+
+                    <Box mb="md">
+                        <Text size="sm" fw={500} mb="xs">Students to hide:</Text>
+                        <Box style={{ maxHeight: 200, overflowY: 'auto' }}>
+                            {hidingStudents.map((student, index) => (
+                                <Text key={student.id} size="sm" c="dimmed">
+                                    {index + 1}. {student.username}
+                                </Text>
+                            ))}
+                        </Box>
+                    </Box>
+
+                    <Group justify="flex-end">
+                        <Button
+                            variant="light"
+                            onClick={() => setHideModalOpened(false)}
+                            disabled={isHiding}
+                        >
+                            Cancel
+                        </Button>
+                        <Button
+                            color="gray"
+                            leftSection={<IconEyeOff size={16} />}
+                            onClick={handleHideConfirm}
+                            loading={isHiding}
+                        >
+                            Hide
+                        </Button>
+                    </Group>
+                </Modal>
             </Stack>
         </Container>
     )
@@ -220,10 +393,10 @@ const StudentsContent = () => {
 
 /**
  * Students page component
- * 
+ *
  * Displays a comprehensive list of students for the selected course offering.
- * Includes loading states, error handling, and the ability to add/remove students.
- * 
+ * Includes loading states, error handling, and the ability to add/remove/hide students.
+ *
  * Access Control:
  * - Requires authentication (ProtectedRoute)
  * - Restricted to instructors and TAs only (RoleBasedRoute)
@@ -242,4 +415,3 @@ export default function StudentsPage() {
         </ProtectedRoute>
     )
 }
-
