@@ -11,7 +11,7 @@ import {
 } from '@mantine/core'
 import { DataTable, DataTableSortStatus } from 'mantine-datatable'
 import { IconEdit } from '@tabler/icons-react'
-import { Quiz } from '@/types'
+import { Quiz, feedbackLevels } from '@/types'
 
 interface QuizzesTableProps {
     quizzes: Quiz[]
@@ -147,6 +147,24 @@ export const QuizzesTable = ({
                     {quiz.isActive ? 'Active' : 'Inactive'}
                 </Badge>
             )
+        },
+        {
+            accessor: 'feedbackVisibility',
+            title: 'Feedback',
+            sortable: true,
+            width: 140,
+            render: (quiz: Quiz) => {
+
+                return (
+                    <Badge
+                        size="sm"
+                        variant="light"
+                        color={quiz.feedbackVisibility === feedbackLevels.FULL ? 'blue' : 'gray'}
+                    >
+                        {quiz.feedbackVisibility}
+                    </Badge>
+                )
+            }
         },
         {
             accessor: 'fixedLength',

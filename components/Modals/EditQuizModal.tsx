@@ -1,9 +1,13 @@
 import { Box, Text, Button, Group, Modal, Stack, TextInput, Alert, NumberInput, Switch } from "@mantine/core"
-import { Quiz } from "@/types"
+import { Quiz, FeedbackLevel, feedbackLevels } from "@/types"
 import { useState, useEffect, useCallback } from "react"
 import { IconAlertCircle, IconCheck } from "@tabler/icons-react"
 import { useCourse } from "@/lib/course-context"
-import { MultiSelect } from "@mantine/core"
+import { MultiSelect, SegmentedControl } from "@mantine/core"
+
+const isFeedbackLevel = (value: string): value is FeedbackLevel => {
+    return Object.values(feedbackLevels).includes(value as FeedbackLevel)
+}
 
 const EditQuizModal = ({
     quiz,
@@ -24,6 +28,7 @@ const EditQuizModal = ({
         masteryThresholds: {} as Record<string, number | undefined>,
         isActive: true,
         shuffled: false,
+        feedbackVisibility: feedbackLevels.FULL as FeedbackLevel,
         fixedLength: 10
     })
     const [loading, setLoading] = useState(false)
@@ -75,6 +80,7 @@ const EditQuizModal = ({
                     masteryThresholds: {},
                     isActive: true,
                     shuffled: false,
+                    feedbackVisibility: feedbackLevels.FULL,
                     fixedLength: 10
                 })
             } else if (quiz) {
@@ -84,6 +90,7 @@ const EditQuizModal = ({
                     masteryThresholds: {},
                     isActive: quiz.isActive,
                     shuffled: quiz.shuffled,
+                    feedbackVisibility: quiz.feedbackVisibility,
                     fixedLength: quiz.fixedLength
                 })
             }
@@ -184,6 +191,7 @@ const EditQuizModal = ({
                         masteryThresholds: masteryThresholdsArray,
                         active: formData.isActive,
                         shuffled: formData.shuffled,
+                        feedbackVisibility: formData.feedbackVisibility,
                         fixedLength: formData.fixedLength
                     }),
                 })
@@ -201,6 +209,7 @@ const EditQuizModal = ({
                         masteryThresholds: masteryThresholdsArray,
                         active: formData.isActive,
                         shuffled: formData.shuffled,
+                        feedbackVisibility: formData.feedbackVisibility,
                         fixedLength: formData.fixedLength
                     }),
                 })
@@ -352,6 +361,53 @@ const EditQuizModal = ({
                         checked={formData.shuffled}
                         onChange={(e) => setFormData({ ...formData, shuffled: e.currentTarget.checked })}
                     />
+                </Box>
+
+                <Box>
+                    <Text size="sm" fw={500} mb="xs">
+                        Feedback Visibility
+                    </Text>
+
+                    <SegmentedControl
+                        fullWidth
+                        value={formData.feedbackVisibility}
+                        onChange={(value) => {
+                            if (isFeedbackLevel(value)) {
+                                setFormData(prev => ({
+                                    ...prev,
+                                    feedbackVisibility: value
+                                }))
+                            }
+                        }}
+                        data={[
+                            { label: 'Full', value: feedbackLevels.FULL },
+                            { label: 'No Justifications', value: feedbackLevels.NO_JUST },
+                            { label: 'None', value: feedbackLevels.NONE },
+                        ]}
+                    />
+
+                    <Box mt="sm">
+                        {formData.feedbackVisibility === feedbackLevels.FULL && (
+                            <Text size="xs" c="dimmed">
+                                <strong>Full:</strong> Students see whether each answer is correct and see answer justifications
+                                during the quiz and after finishing, and receive a complete performance summary after finishing.
+                            </Text>
+                        )}
+
+                        {formData.feedbackVisibility === feedbackLevels.NO_JUST && (
+                            <Text size="xs" c="dimmed">
+                                <strong>No Justifications:</strong> Students see whether answers are correct but see no justifications 
+                                during the quiz and after finishing.  
+                            </Text>
+                        )}
+
+                        {formData.feedbackVisibility === feedbackLevels.NONE && (
+                            <Text size="xs" c="dimmed">
+                                <strong>None:</strong> Students do not see whether answers are correct and do not see justifications 
+                                during or after the quiz. They only see their overall score at the end of the quiz.
+                            </Text>
+                        )}
+                    </Box>
                 </Box>
 
                 <Group justify="flex-end" mt="md">

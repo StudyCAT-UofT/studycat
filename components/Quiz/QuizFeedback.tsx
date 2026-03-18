@@ -19,7 +19,7 @@ import {
 } from '@mantine/core'
 import { IconCheck, IconX, IconClock, IconInfoCircle } from '@tabler/icons-react'
 import { CompositeChart } from '@mantine/charts'
-import type { FeedbackData, DetailedQuestionReview } from '@/types'
+import { FeedbackData, DetailedQuestionReview, feedbackLevels } from '@/types'
 import { getBloomColor } from '@/utils/getBloomColor'
 
 interface QuizFeedbackProps {
@@ -53,7 +53,7 @@ export default function QuizFeedback({ feedbackData, onContinue, onReturnToDashb
     }
 
     // Render question option with styling
-    const renderOption = (question: DetailedQuestionReview, optionIndex: number) => {
+    const renderOption = (question: DetailedQuestionReview, optionIndex: number, justificationVisible: boolean) => {
         const option = question.options[optionIndex]
         const isSelected = optionIndex === question.selectedAnswerIndex
         const isCorrect = option.isCorrect
@@ -93,7 +93,7 @@ export default function QuizFeedback({ feedbackData, onContinue, onReturnToDashb
                             <Text fw={600}>{option.label}.</Text>
                             <Text>{option.text}</Text>
                         </Group>
-                        {option.justification && (
+                        {justificationVisible && option.justification && (
                             <Text size="sm" c="dimmed" style={{ fontStyle: 'italic' }}>
                                 {option.justification}
                             </Text>
@@ -329,7 +329,7 @@ export default function QuizFeedback({ feedbackData, onContinue, onReturnToDashb
                 )}
 
                 {/* Detailed Question Review */}
-                {feedbackData.questions.length > 0 && (
+                {(feedbackData.feedbackVisibility === feedbackLevels.FULL || feedbackData.feedbackVisibility === feedbackLevels.NO_JUST) && feedbackData.questions.length > 0 ? (
                     <Paper p="xl" radius="md" withBorder>
                         <Stack gap="lg">
                             <Title order={2}>Question-by-Question Review</Title>
@@ -348,11 +348,7 @@ export default function QuizFeedback({ feedbackData, onContinue, onReturnToDashb
                                                         variant="light"
                                                         size="lg"
                                                     >
-                                                        {question.isCorrect ? (
-                                                            <IconCheck size={20} />
-                                                        ) : (
-                                                            <IconX size={20} />
-                                                        )}
+                                                        {question.isCorrect ? <IconCheck size={20} /> : <IconX size={20} />}
                                                     </ThemeIcon>
                                                     <Stack gap={4}>
                                                         <Text fw={600}>Question {question.questionNumber}</Text>
@@ -366,10 +362,7 @@ export default function QuizFeedback({ feedbackData, onContinue, onReturnToDashb
                                                         </Group>
                                                     </Stack>
                                                 </Group>
-                                                <Badge
-                                                    size="lg"
-                                                    color={question.isCorrect ? 'green' : 'red'}
-                                                >
+                                                <Badge size="lg" color={question.isCorrect ? 'green' : 'red'}>
                                                     {question.isCorrect ? 'Correct' : 'Incorrect'}
                                                 </Badge>
                                             </Group>
@@ -411,7 +404,9 @@ export default function QuizFeedback({ feedbackData, onContinue, onReturnToDashb
                                                         Answer Options:
                                                     </Text>
                                                     <Stack gap="xs">
-                                                        {[0, 1, 2, 3].map(optionIndex => renderOption(question, optionIndex))}
+                                                        {[0, 1, 2, 3].map(optionIndex =>
+                                                            renderOption(question, optionIndex, feedbackData.feedbackVisibility === feedbackLevels.FULL)
+                                                        )}
                                                     </Stack>
                                                 </Box>
 
@@ -428,7 +423,13 @@ export default function QuizFeedback({ feedbackData, onContinue, onReturnToDashb
                             </Accordion>
                         </Stack>
                     </Paper>
-                )}
+                ) : feedbackData.feedbackVisibility === 'none' ? (
+                    <Alert icon={<IconInfoCircle size={20} />} color="blue" variant="light">
+                        <Text size="sm">
+                            Detailed feedback is not available for this quiz.
+                        </Text>
+                    </Alert>
+                ) : null}
             </Stack>
         </Container>
     )
