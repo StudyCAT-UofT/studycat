@@ -3,6 +3,7 @@
   "plugins": ["./scripts/stylelint-eol-plugin.mjs"],
   "ignoreFiles": ["shibboleth/**", "node_modules/**", ".next/**"],
   "rules": {
-    "studycat/eol-last": true
+    "studycat/eol-last": true,
+    "selector-class-pattern": "^([a-z][a-z0-9]*)(-[A-Za-z0-9]+)*$"
   }
 }
