@@ -1,13 +1,14 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import {
     Text,
     Badge,
     Group,
     ActionIcon,
     Box,
-    Stack
+    Stack,
+    VisuallyHidden
 } from '@mantine/core'
 import { DataTable, DataTableSortStatus } from 'mantine-datatable'
 import { IconEdit } from '@tabler/icons-react'
@@ -99,6 +100,16 @@ export const QuizzesTable = ({
         return sortedQuizzes.slice(start, end)
     }, [sortedQuizzes, page, pageSize])
 
+    
+    // Fix empty th on checkbox column
+    useEffect(() => {
+        const selectorTh = document.querySelector('th[data-accessor="__selection__"]')
+        if (selectorTh) {
+            selectorTh.setAttribute('title', 'Select rows')
+            selectorTh.setAttribute('aria-label', 'Select rows')
+        }
+    }, [paginatedQuizzes])
+
     const getStatusColor = (isActive: boolean) => {
         return isActive ? 'green' : 'gray'
     }
@@ -130,7 +141,7 @@ export const QuizzesTable = ({
             render: (quiz: Quiz) => (
                 <Stack gap={2}>
                 {quiz.quizModules?.map((module, index) => (
-                    <Badge key={index} size="sm" variant="light">
+                    <Badge key={index} size="md" variant="light">
                     {quiz.modules ? quiz.modules[index] : "NULL"} ({(module.masteryThreshold)})
                     </Badge>
                 ))}
@@ -143,7 +154,7 @@ export const QuizzesTable = ({
             sortable: true,
             width: 100,
             render: (quiz: Quiz) => (
-                <Badge color={getStatusColor(quiz.isActive)} size="sm">
+                <Badge color={getStatusColor(quiz.isActive)} size="md" variant='light'>
                     {quiz.isActive ? 'Active' : 'Inactive'}
                 </Badge>
             )
@@ -195,22 +206,22 @@ export const QuizzesTable = ({
                 <Stack gap={2}>
                     {quiz.stats.totalAttempts > 0 ? (
                         <>
-                            <Text size="xs" c="dimmed">
+                            <Text size="xs">
                                 Attempts: {quiz.stats.totalAttempts}
                             </Text>
                             {quiz.stats.averageScore && (
-                                <Text size="xs" c="dimmed">
+                                <Text size="xs">
                                     Avg: {quiz.stats.averageScore.toFixed(1)}%
                                 </Text>
                             )}
                             {quiz.stats.completionRate && (
-                                <Text size="xs" c="dimmed">
+                                <Text size="xs">
                                     Complete: {quiz.stats.completionRate.toFixed(1)}%
                                 </Text>
                             )}
                         </>
                     ) : (
-                        <Text size="xs" c="dimmed">
+                        <Text size="xs">
                             No attempts yet
                         </Text>
                     )}
@@ -234,6 +245,7 @@ export const QuizzesTable = ({
                             }
                         }}
                     >
+                        <VisuallyHidden color='dark'>Edit Quiz</VisuallyHidden>
                         <IconEdit size={16} />
                     </ActionIcon>
                 </Group>
@@ -271,6 +283,9 @@ export const QuizzesTable = ({
 
     return (
         <DataTable
+            selectionCheckboxProps={{
+                'aria-label': 'Select row',
+            }}
             records={paginatedQuizzes}
             columns={columns}
             sortStatus={sortStatus}

@@ -74,7 +74,7 @@ export const AttemptsOverTimeChart = ({ attempts }: AttemptsOverTimeChartProps) 
 
     return (
         <Paper withBorder p="md" radius="md">
-            <Title order={4} mb="md">Attempts Over Time</Title>
+            <Title order={2} mb="md">Attempts Over Time</Title>
             {attemptsOverTimeData.length > 0 ? (
                 <BarChart
                     h={300}

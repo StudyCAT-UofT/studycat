@@ -117,7 +117,7 @@ const InstructorDashboard = () => {
         <Container size="lg" py="xl">
             <Stack gap="lg">
                 <Group align="center">
-                    <Title order={2}>Dashboard</Title>
+                    <Title order={1}>Dashboard</Title>
                 </Group>
 
                 {/* Attempts Over Time Chart */}

@@ -23,6 +23,8 @@ const StudentQuizCard = ({ quiz }: { quiz: Quiz }) => {
                     fullWidth
                     onClick={handleTakeQuiz}
                     mt="auto"
+                    color='dark'
+                    aria-label={`Take Quiz: ${quiz.title}`}
                 >
                     Take Quiz
                 </Button>

@@ -29,9 +29,9 @@ function EntryLabel({ d }: { d: DetailEntry }) {
         <Stack gap={2} style={{ lineHeight: 1.4 }}>
             <Text size="sm" fw={500}>{d.externalQuestionId}</Text>
             {(d.moduleName || d.bloom) && (
-                <Text size="xs" c="dimmed">{[d.moduleName, d.bloom].filter(Boolean).join(' · ')}</Text>
+                <Text size="xs">{[d.moduleName, d.bloom].filter(Boolean).join(' · ')}</Text>
             )}
-            {d.stem && <Text size="xs" c="dimmed">{trunc(d.stem)}</Text>}
+            {d.stem && <Text size="xs">{trunc(d.stem)}</Text>}
             {d.diff && Object.entries(d.diff).map(([field, { old: o, new: n }]) => (
                 <div key={field} style={{
                     display: 'grid',
@@ -40,12 +40,12 @@ function EntryLabel({ d }: { d: DetailEntry }) {
                     alignItems: 'start',
                     marginTop: 1,
                 }}>
-                    <Text size="xs" c="dimmed" fw={500} style={{ paddingTop: 1 }}>{field}:</Text>
-                    <Text size="xs" c="red.6" style={{ textDecoration: 'line-through', wordBreak: 'break-word' }}>
+                    <Text size="xs" fw={500} style={{ paddingTop: 1 }}>{field}:</Text>
+                    <Text size="xs" c="red.9" style={{ textDecoration: 'line-through', wordBreak: 'break-word' }}>
                         {trunc(String(o ?? '—'))}
                     </Text>
-                    <Text size="xs" c="dimmed" ta="center" style={{ paddingTop: 1 }}>→</Text>
-                    <Text size="xs" c="green.7" style={{ wordBreak: 'break-word' }}>
+                    <Text size="xs" ta="center" style={{ paddingTop: 1 }}>→</Text>
+                    <Text size="xs" style={{ color: '#155724', wordBreak: 'break-word' }}>
                         {trunc(String(n ?? '—'))}
                     </Text>
                 </div>
@@ -319,8 +319,8 @@ const UploadPageContent = () => {
             <Container size="md" py="xl">
                 <Stack gap="lg">
                     <Group justify="space-between" align="center">
-                        <Title order={2}>Review Changes</Title>
-                        <Text size="sm" c="dimmed">Uncheck rows you want to skip, then confirm.</Text>
+                        <Title order={1}>Review Changes</Title>
+                        <Text size="sm">Uncheck rows you want to skip, then confirm.</Text>
                     </Group>
 
                     {/* Created */}
@@ -332,7 +332,7 @@ const UploadPageContent = () => {
                                     <Text fw={500}>To be created</Text>
                                 </Group>
                                 <Group gap="xs">
-                                    <Button size="xs" variant="subtle"
+                                    <Button size="xs" variant="subtle" color='dark'
                                         onClick={() => setApprovedCreated(new Set(createdEntries.map(d => d.externalQuestionId!)))}>
                                         All
                                     </Button>
@@ -365,7 +365,7 @@ const UploadPageContent = () => {
                                     <Text fw={500}>To be updated</Text>
                                 </Group>
                                 <Group gap="xs">
-                                    <Button size="xs" variant="subtle"
+                                    <Button size="xs" variant="subtle" color='dark'
                                         onClick={() => setApprovedUpdated(new Set(updatedEntries.map(d => d.externalQuestionId!)))}>
                                         All
                                     </Button>
@@ -398,7 +398,7 @@ const UploadPageContent = () => {
                                     <Text fw={500}>To be deactivated</Text>
                                 </Group>
                                 <Group gap="xs">
-                                    <Button size="xs" variant="subtle"
+                                    <Button size="xs" variant="subtle" color='dark'
                                         onClick={() => setApprovedDeactivated(new Set(deactivatedEntries.map(d => d.itemId!)))}>
                                         All
                                     </Button>
@@ -427,9 +427,9 @@ const UploadPageContent = () => {
                         <Card withBorder>
                             <Group gap="xs" mb="xs">
                                 <Badge color="gray" variant="light">{unchangedEntries.length}</Badge>
-                                <Text fw={500} c="dimmed">Unchanged (no action)</Text>
+                                <Text fw={500}>Unchanged (no action)</Text>
                             </Group>
-                            <Text size="sm" c="dimmed" style={{ wordBreak: 'break-word' }}>
+                            <Text size="sm" style={{ wordBreak: 'break-word' }}>
                                 {unchangedEntries.map(d => d.externalQuestionId).join(', ')}
                             </Text>
                         </Card>
@@ -452,10 +452,11 @@ const UploadPageContent = () => {
                     <Divider />
 
                     <Group justify="flex-end">
-                        <Button variant="subtle" onClick={() => setView('form')} disabled={committing}>
+                        <Button variant="subtle" color='dark' onClick={() => setView('form')} disabled={committing}>
                             Back
                         </Button>
                         <Button
+                            color='dark'
                             onClick={handleCommit}
                             loading={committing}
                             disabled={nothingApproved}
@@ -476,8 +477,8 @@ const UploadPageContent = () => {
             <Container size="md" py="xl">
                 <Stack gap="lg" align="center">
                     <IconCheck size={48} color="green" />
-                    <Title order={2}>Import Complete</Title>
-                    <Text c="dimmed">Redirecting to question bank...</Text>
+                    <Title order={1}>Import Complete</Title>
+                    <Text>Redirecting to question bank...</Text>
                 </Stack>
             </Container>
         )
@@ -487,7 +488,7 @@ const UploadPageContent = () => {
     return (
         <Container size="md" py="xl">
             <Stack gap="lg">
-                <Title order={2}>Upload Questions</Title>
+                <Title order={1}>Upload Questions</Title>
 
                 {!selectedCourseOffering && (
                     <Alert icon={<IconInfoCircle />} title="No Course Selected" color="orange">
@@ -499,10 +500,10 @@ const UploadPageContent = () => {
                     <Card withBorder padding="lg" radius="md">
                         <Stack gap="xs">
                             <Text fw={500}>Uploading to:</Text>
-                            <Text size="sm" c="dimmed">
+                            <Text size="sm">
                                 {selectedCourseOffering.course.code} - {selectedCourseOffering.course.title}
                             </Text>
-                            <Text size="sm" c="dimmed">
+                            <Text size="sm">
                                 {selectedCourseOffering.term.name}
                             </Text>
                         </Stack>
@@ -529,6 +530,7 @@ const UploadPageContent = () => {
                                     <Stack gap="md" align="center">
                                         <IconUpload size={48} stroke={1.5} color="#228be6" />
                                         <FileInput
+                                            label="Choose a spreadsheet file"
                                             placeholder="Click to choose .xlsx, .xls, or .csv file"
                                             accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv"
                                             value={file}
@@ -536,13 +538,23 @@ const UploadPageContent = () => {
                                             disabled={!selectedCourseOffering || loading}
                                             required
                                             styles={{
+                                                label: {
+                                                    position: 'absolute',
+                                                    width: '1px',
+                                                    height: '1px',
+                                                    overflow: 'hidden',
+                                                    clip: 'rect(0 0 0 0)',
+                                                    clipPath: 'inset(50%)',
+                                                    whiteSpace: 'nowrap',
+                                                },
                                                 input: {
                                                     border: 'none',
                                                     backgroundColor: 'transparent',
                                                     fontSize: '16px',
                                                     textAlign: 'center',
                                                     cursor: 'pointer',
-                                                    fontWeight: 500
+                                                    fontWeight: 500,
+                                                    color: '#000',
                                                 },
                                                 root: {
                                                     width: '100%'
@@ -552,7 +564,7 @@ const UploadPageContent = () => {
                                                 }
                                             }}
                                         />
-                                        <Text size="sm" c="dimmed">
+                                        <Text size="sm">
                                             or drag and drop your file here
                                         </Text>
                                     </Stack>
@@ -593,6 +605,7 @@ const UploadPageContent = () => {
                                     checked={deactivateMissing}
                                     onChange={(e) => setDeactivateMissing(e.currentTarget.checked)}
                                     disabled={!selectedCourseOffering || loading}
+                                    styles={{ description: { color: 'black' } }}
                                 />
                             </Stack>
                         </Card>
@@ -603,7 +616,7 @@ const UploadPageContent = () => {
                                     <IconInfoCircle size={20} />
                                     <Text fw={500}>Expected Spreadsheet Format</Text>
                                 </Group>
-                                <Text size="sm" c="dimmed">
+                                <Text size="sm">
                                     Your spreadsheet should include the following columns (case-insensitive):
                                 </Text>
                                 <List size="sm" spacing="xs">
@@ -617,7 +630,7 @@ const UploadPageContent = () => {
                                     <List.Item><strong>status</strong> - <code>active</code> or <code>inactive</code> (optional, defaults to active)</List.Item>
                                     <List.Item><strong>question_figure, biserial, average, attempts, irt_a, irt_b, irt_c, reference</strong> - Optional metadata</List.Item>
                                 </List>
-                                <Text size="sm" c="dimmed" mt="xs">
+                                <Text size="sm" mt="xs">
                                     Re-uploading a spreadsheet will update existing questions matched by <strong>question_id</strong>. New questions will be created automatically.
                                 </Text>
                             </Stack>
@@ -626,12 +639,14 @@ const UploadPageContent = () => {
                         <Group justify="flex-end">
                             <Button
                                 variant="subtle"
+                                color='dark'
                                 onClick={() => router.push('/question-bank')}
                                 disabled={loading}
                             >
                                 Cancel
                             </Button>
                             <Button
+                                color='dark'
                                 type="submit"
                                 leftSection={loading ? <Loader size={16} /> : <IconUpload size={16} />}
                                 disabled={!selectedCourseOffering || !file || loading || !validationStatus?.isValid}

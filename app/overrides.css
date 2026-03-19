@@ -1,0 +1,22 @@
+.mantine-Pagination-control[data-active] {
+    background-color: #000000 !important;
+    border-color: #000000 !important;
+}
+
+.mantine-Divider-root {
+    --mantine-color-dimmed: #000000;
+    border-color: #000000 !important;
+}
+
+.mantine-Checkbox-description {
+    color: #000000 !important;
+}
+
+.mantine-InputWrapper-required {
+    color: #BF1722 !important;
+}
+
+[data-disabled] .mantine-Radio-label {
+    color: black !important;
+    opacity: 1 !important;
+}

@@ -237,7 +237,7 @@ const StudentsContent = () => {
             <Stack gap="lg">
                 <Group gap="md" align="center" justify="space-between">
                     <Group gap="md" align="center">
-                        <Title order={2}>Students</Title>
+                        <Title order={1}>Students</Title>
                         {studentCountText && (
                             <Badge size="lg" variant="light">
                                 {studentCountText}
@@ -282,6 +282,7 @@ const StudentsContent = () => {
                             leftSection={<IconPlus size={16} />}
                             onClick={() => setIsAddStudentsModalOpen(true)}
                             disabled={!selectedCourseOffering?.id}
+                            color='dark'
                         >
                             Add Students
                         </Button>

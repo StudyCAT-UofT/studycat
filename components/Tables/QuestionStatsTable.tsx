@@ -102,12 +102,12 @@ export const QuestionStatsTable = ({ questions, selectedQuizId }: QuestionStatsT
                                             Option {option.label}
                                         </Text>
                                         {option.isCorrect && (
-                                            <Badge size="xs" color="green">
+                                            <Badge size="md" color="green" variant='light'>
                                                 Correct
                                             </Badge>
                                         )}
                                     </Group>
-                                    <Badge size="sm" variant="light">
+                                    <Badge size="md" variant="light">
                                         {percentage.toFixed(1)}%
                                     </Badge>
                                 </Group>
@@ -172,7 +172,7 @@ export const QuestionStatsTable = ({ questions, selectedQuizId }: QuestionStatsT
     return (
         <Paper withBorder p="md" radius="md">
             <Group gap="md" mb="md" align="center">
-                <Title order={4}>Question-Level Statistics</Title>
+                <Title order={2}>Question-Level Statistics</Title>
                 <Badge size="lg" variant="light">
                     {questions.length} question{questions.length !== 1 ? 's' : ''}
                 </Badge>
@@ -201,10 +201,9 @@ export const QuestionStatsTable = ({ questions, selectedQuizId }: QuestionStatsT
                 }}
                 totalRecords={sortedQuestions.length}
                 recordsPerPage={pageSize}
-                paginationActiveBackgroundColor="blue"
                 idAccessor="itemId"
+                paginationActiveBackgroundColor="#000000"
             />
         </Paper>
     )
 }
-

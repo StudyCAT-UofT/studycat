@@ -1,7 +1,8 @@
 'use client'
 
 import { QuizItem, Feedback, FeedbackLevel, feedbackLevels } from '@/types'
-import { Card, Stack, Title, Button, Radio, Text, Paper, Image, Flex } from '@mantine/core'
+import { Card, Stack, Title, Button, Radio, Text, Paper, Image, Flex, Group, VisuallyHidden } from '@mantine/core'
+import { IconCheck, IconX } from '@tabler/icons-react'
 import { useState, useEffect } from 'react'
 
 interface QuizQuestionProps {
@@ -29,7 +30,7 @@ const QuizQuestion = ({ item, onAnswer, onNext, feedback, shuffled, feedbackVisi
         setSubmittedDisplayIndex(null)
     }, [item.item_id])
 
-    // Shuffle options 
+    // Shuffle options
     const [shuffledIndices] = useState(() => {
         const indices = item.options.map((_, i) => i)
 
@@ -77,10 +78,12 @@ const QuizQuestion = ({ item, onAnswer, onNext, feedback, shuffled, feedbackVisi
         return undefined
     }
 
+    const stemId = `question-stem-${item.item_id}`
+
     return (
         <Card withBorder padding="lg" radius="md">
             <Stack gap="md">
-                <Title order={3}>{item.stem}</Title>
+                <Title order={2} id={stemId}>{item.stem}</Title>
 
                 {figureUrl && (
                     <Flex mah="500px" justify="center">
@@ -97,36 +100,39 @@ const QuizQuestion = ({ item, onAnswer, onNext, feedback, shuffled, feedbackVisi
                     value={selectedIndex?.toString() || ''}
                     onChange={(value) => !isFeedbackMode && setUserSelectedIndex(parseInt(value))}
                     name={`question-${item.item_id}`}
+                    label={<VisuallyHidden>{item.stem}</VisuallyHidden>}
                 >
                     <Stack gap="md" mt="md">
                         {shuffledIndices.map((shuffledIndex, displayIndex) => {
-                        const option = item.options[shuffledIndex]
-                        const color = getOptionColor(displayIndex)
+                            const option = item.options[shuffledIndex]
+                            const color = getOptionColor(displayIndex)
+                            const actualIndex = shuffledIndices[displayIndex]
+                            const isCorrectOption = isFeedbackMode && actualIndex === feedback.correctAnswerIndex
+                            const isWrongSelected = isFeedbackMode && actualIndex === feedback.selectedAnswerIndex && !feedback.isCorrect
 
-                        return (
-                            <Paper
-                                key={displayIndex}
-                                p="sm"
-                                radius="md"
-                                style={{
-                                    backgroundColor:
-                                        color === 'green'
-                                            ? 'rgba(34, 197, 94, 0.1)'
-                                            : color === 'red'
-                                            ? 'rgba(239, 68, 68, 0.1)'
-                                            : 'transparent',
-                                    border: color ? `2px solid ${color === 'green' ? '#22c55e' : '#ef4444'}` : 'none'
-                                }}
-                            >
-                            <Radio
-                                value={displayIndex.toString()}
-                                label={option}
-                                size="md"
-                                disabled={isFeedbackMode}
-                            />
-                        </Paper>
-                    )
-                })}
+                            return (
+                                <Paper
+                                    key={displayIndex}
+                                    p="sm"
+                                    radius="md"
+                                    style={{
+                                        backgroundColor:
+                                            color === 'green'
+                                                ? 'rgba(34, 197, 94, 0.1)'
+                                                : color === 'red'
+                                                ? 'rgba(239, 68, 68, 0.1)'
+                                                : 'transparent',
+                                        border: color ? `2px solid ${color === 'green' ? '#22c55e' : '#ef4444'}` : 'none'
+                                    }}
+                                >
+                                    <Group justify="space-between" align="center">
+                                        <Radio value={displayIndex.toString()} label={option} size="md" disabled={isFeedbackMode} style={{ flex: 1 }} />
+                                        {isCorrectOption && <IconCheck size={20} color="#22c55e" />}
+                                        {isWrongSelected && <IconX size={20} color="#ef4444" />}
+                                    </Group>
+                                </Paper>
+                            )
+                        })}
                     </Stack>
                 </Radio.Group>
 
@@ -167,6 +173,7 @@ const QuizQuestion = ({ item, onAnswer, onNext, feedback, shuffled, feedbackVisi
                 {!isFeedbackMode ? (
                     <Button
                         variant="filled"
+                        color='dark'
                         onClick={handleSubmit}
                         disabled={selectedIndex === null}
                         fullWidth
@@ -177,6 +184,7 @@ const QuizQuestion = ({ item, onAnswer, onNext, feedback, shuffled, feedbackVisi
                 ) : (
                     <Button
                         variant="filled"
+                        color='dark'
                         onClick={handleNext}
                         fullWidth
                         mt="lg"

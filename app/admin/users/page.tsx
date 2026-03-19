@@ -53,38 +53,41 @@ export default function UsersPage() {
 
   return (
     <div>
-      <Title order={2} mb="lg">Manage Users</Title>
+      <Title order={1} mb="lg">Manage Users</Title>
 
       <Paper withBorder p="lg" radius="md" mb="xl">
-        <Title order={5} mb="md">Create User</Title>
+        <Title order={2} mb="md">Create User</Title>
         <Stack>
           <TextInput
             placeholder="Username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
+            label="Username"
           />
           <TextInput
             placeholder="Given Name"
             value={givenName}
             onChange={(e) => setGivenName(e.target.value)}
+            label="Given Name"
           />
           <TextInput
             placeholder="Family Name"
             value={familyName}
             onChange={(e) => setFamilyName(e.target.value)}
+            label="Family Name"
           />
-          <Button onClick={createUser} w="fit-content">Create</Button>
+          <Button onClick={createUser} w="fit-content" color="dark">Create</Button>
         </Stack>
       </Paper>
 
       <Paper withBorder p="lg" radius="md">
-        <Title order={5} mb="md">All Users</Title>
+        <Title order={2} mb="md">All Users</Title>
         <Stack gap="sm">
           {users.map((user) => (
             <Paper key={user.id} withBorder p="sm" radius="md">
               <Group>
                 <Text fw={600}>{user.username}</Text>
-                <Text c="dimmed">—</Text>
+                <Text>—</Text>
                 <Text>{user.givenName} {user.familyName}</Text>
               </Group>
             </Paper>

@@ -1,6 +1,6 @@
 'use client'
 
-import { Paper, Title, Badge, Group, Tooltip, ActionIcon } from '@mantine/core'
+import { Paper, Title, Badge, Group, Tooltip, ActionIcon, VisuallyHidden } from '@mantine/core'
 import { DataTable } from 'mantine-datatable'
 import { IconInfoCircle } from '@tabler/icons-react'
 
@@ -53,6 +53,7 @@ export const StudentStatsTable = ({ attempts }: StudentStatsTableProps) => {
                         record.score >= 80 ? 'green' :
                             record.score >= 60 ? 'yellow' : 'red'
                     }
+                    variant='light'
                 >
                     {record.score.toFixed(1)}%
                 </Badge>
@@ -73,10 +74,11 @@ export const StudentStatsTable = ({ attempts }: StudentStatsTableProps) => {
     return (
         <Paper withBorder p="md" radius="md">
             <Group gap="xs" mb="md" align="center">
-                <Title order={4}>Student Performance Summary</Title>
+                <Title order={2}>Student Performance Summary</Title>
                 <Tooltip label="Shows completed student attempts for all time" withArrow>
                     <ActionIcon variant="subtle" color="gray" size="sm">
                         <IconInfoCircle size={16} />
+                        <VisuallyHidden>Info Button</VisuallyHidden>
                     </ActionIcon>
                 </Tooltip>
             </Group>
@@ -94,4 +96,3 @@ export const StudentStatsTable = ({ attempts }: StudentStatsTableProps) => {
         </Paper>
     )
 }
-

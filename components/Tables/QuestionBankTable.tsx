@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import {
     Card,
     Text,
@@ -8,7 +8,8 @@ import {
     Group,
     ActionIcon,
     Box,
-    Flex
+    Flex,
+    VisuallyHidden
 } from '@mantine/core'
 import { DataTable, DataTableSortStatus } from 'mantine-datatable'
 import { IconEdit } from '@tabler/icons-react'
@@ -91,6 +92,15 @@ export const QuestionBankTable = ({ items, loading, error, onRefresh, selectedRe
         return sortedItems.slice(start, end)
     }, [sortedItems, page, pageSize])
 
+    // Fix empty th on checkbox column
+    useEffect(() => {
+        const selectorTh = document.querySelector('th[data-accessor="__selection__"]')
+        if (selectorTh) {
+            selectorTh.setAttribute('title', 'Select rows')
+            selectorTh.setAttribute('aria-label', 'Select rows')
+        }
+    }, [paginatedItems])
+
     const columns = [
         {
             accessor: 'externalQuestionId',
@@ -118,7 +128,7 @@ export const QuestionBankTable = ({ items, loading, error, onRefresh, selectedRe
             sortable: true,
             width: 120,
             render: (item: Item) => (
-                <Badge color={getBloomColor(item.bloom)} size="sm">
+                <Badge color={getBloomColor(item.bloom)} variant='light' size="md">
                     {item.bloom}
                 </Badge>
             )
@@ -172,6 +182,7 @@ export const QuestionBankTable = ({ items, loading, error, onRefresh, selectedRe
                             handleEdit(item)
                         }}
                     >
+                        <VisuallyHidden>Edit quiz</VisuallyHidden>
                         <IconEdit size={16} />
                     </ActionIcon>
                 </Group>
@@ -199,7 +210,7 @@ export const QuestionBankTable = ({ items, loading, error, onRefresh, selectedRe
                                     Option {option.label}
                                 </Text>
                                 {option.isCorrect && (
-                                    <Badge size="xs" color="green">
+                                    <Badge size="sm" color="green" variant='light'>
                                         Correct
                                     </Badge>
                                 )}
@@ -207,7 +218,7 @@ export const QuestionBankTable = ({ items, loading, error, onRefresh, selectedRe
                         </Group>
                         <Text size="sm" mb="xs">{option.text}</Text>
                         {option.justification && (
-                            <Text size="xs" c="dimmed" fs="italic">
+                            <Text size="xs" fs="italic">
                                 Justification: {option.justification}
                             </Text>
                         )}
@@ -230,6 +241,9 @@ export const QuestionBankTable = ({ items, loading, error, onRefresh, selectedRe
     return (
         <>
             <DataTable
+                selectionCheckboxProps={{
+                    'aria-label': 'Select row',
+                }}
                 records={paginatedItems}
                 columns={columns}
                 sortStatus={sortStatus}
@@ -253,7 +267,6 @@ export const QuestionBankTable = ({ items, loading, error, onRefresh, selectedRe
                 onPageChange={setPage}
                 totalRecords={sortedItems.length}
                 recordsPerPage={pageSize}
-                paginationActiveBackgroundColor="blue"
                 idAccessor="id"
             />
 
@@ -273,4 +286,3 @@ export const QuestionBankTable = ({ items, loading, error, onRefresh, selectedRe
         </>
     )
 }
-

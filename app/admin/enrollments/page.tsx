@@ -109,7 +109,7 @@ export default function EnrollmentPage() {
 
   return (
     <div>
-      <Title order={2} mb="lg">Manage Enrollments</Title>
+      <Title order={1} mb="lg">Manage Enrollments</Title>
 
       <Paper withBorder p="lg" radius="md" mb="lg">
         <Stack>
@@ -118,14 +118,15 @@ export default function EnrollmentPage() {
             value={selectedOfferingId}
             onChange={setSelectedOfferingId}
             data={offerings.map((o) => ({ value: o.id, label: o.display }))}
+            label="Select Course Offering"
           />
-          <Button onClick={fetchEnrollments} w="fit-content">Load Enrollments</Button>
+          <Button onClick={fetchEnrollments} w="fit-content" color="dark">Load Enrollments</Button>
         </Stack>
       </Paper>
 
       {selectedOfferingId && (
         <Paper withBorder p="lg" radius="md" mb="xl">
-          <Title order={5} mb="md">Add Enrollment</Title>
+          <Title order={2} mb="md">Add Enrollment</Title>
           <Stack>
             <Select
               placeholder="Select User"
@@ -133,13 +134,15 @@ export default function EnrollmentPage() {
               onChange={setNewUserId}
               data={users.map((u) => ({ value: u.id, label: u.username }))}
               searchable
+              label="Select User"
             />
             <Select
               value={newRole}
               onChange={setNewRole}
               data={['STUDENT', 'INSTRUCTOR', 'TA']}
+              label="Select Role"
             />
-            <Button onClick={createEnrollment} color="green" w="fit-content">Assign</Button>
+            <Button onClick={createEnrollment} color="green" variant="light" w="fit-content">Assign</Button>
           </Stack>
         </Paper>
       )}
@@ -153,9 +156,9 @@ export default function EnrollmentPage() {
               <Group justify="space-between">
                 <Text>
                   {e.user.username}{' '}
-                  <Text span c="dimmed">({e.offeringRole})</Text>
+                  <Text span>({e.offeringRole})</Text>
                 </Text>
-                <Button color="red" size="xs" onClick={() => deleteEnrollment(e.userId)}>
+                <Button color="red" variant="light" size="xs" onClick={() => deleteEnrollment(e.userId)}>
                   Remove
                 </Button>
               </Group>
@@ -165,7 +168,7 @@ export default function EnrollmentPage() {
       )}
 
       {!loading && selectedOfferingId && enrollments.length === 0 && (
-        <Text c="dimmed">No enrollments found for this offering.</Text>
+        <Text>No enrollments found for this offering.</Text>
       )}
     </div>
   )

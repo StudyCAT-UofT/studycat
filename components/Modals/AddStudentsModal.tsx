@@ -307,35 +307,51 @@ const AddStudentsModal = ({
                 <Box
                     style={{
                         border: '2px dashed #228be6',
-                        borderRadius: '8px',
+                        borderRadius: '12px',
                         padding: '2rem',
                         backgroundColor: '#f1f8ff',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
                         textAlign: 'center'
                     }}
                 >
                     <Stack gap="md" align="center">
                         <IconUpload size={40} stroke={1.5} color="#228be6" />
                         <FileInput
+                            label="Choose a CSV file"
                             placeholder="Click to choose CSV file"
                             accept=".csv"
                             value={file}
                             onChange={handleFileChange}
                             disabled={loading}
                             styles={{
+                                label: {
+                                    position: 'absolute',
+                                    width: '1px',
+                                    height: '1px',
+                                    overflow: 'hidden',
+                                    clip: 'rect(0 0 0 0)',
+                                    clipPath: 'inset(50%)',
+                                    whiteSpace: 'nowrap',
+                                },
                                 input: {
                                     border: 'none',
                                     backgroundColor: 'transparent',
                                     fontSize: '14px',
                                     textAlign: 'center',
                                     cursor: 'pointer',
-                                    fontWeight: 500
+                                    fontWeight: 500,
+                                    color: '#000',
                                 },
                                 root: {
+                                    width: '100%'
+                                },
+                                wrapper: {
                                     width: '100%'
                                 }
                             }}
                         />
-                        <Text size="xs" c="dimmed">
+                        <Text size="xs">
                             Upload a CSV file with student information
                         </Text>
                     </Stack>
@@ -373,13 +389,13 @@ const AddStudentsModal = ({
                         <List.Item><strong>givenName</strong> or <strong>firstName</strong> - First name (optional)</List.Item>
                         <List.Item><strong>familyName</strong> or <strong>lastName</strong> - Last name (optional)</List.Item>
                     </List>
-                    <Text size="xs" c="dimmed" mt="xs">
+                    <Text size="xs" mt="xs">
                         Example: UTORid,givenName,familyName
                     </Text>
                 </Alert>
 
                 <Group justify="flex-end" mt="md">
-                    <Button variant="outline" onClick={onClose} disabled={loading}>
+                    <Button variant="subtle" onClick={onClose} disabled={loading} color="dark">
                         Cancel
                     </Button>
                     <Button 
@@ -387,6 +403,7 @@ const AddStudentsModal = ({
                         loading={loading} 
                         disabled={!file || !validationStatus?.isValid}
                         leftSection={<IconUpload size={16} />}
+                        color="dark"
                     >
                         Upload & Add Students
                     </Button>

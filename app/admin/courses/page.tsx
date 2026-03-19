@@ -46,21 +46,23 @@ export default function CoursesPage() {
 
   return (
     <div>
-      <Title order={2} mb="lg">Courses</Title>
+      <Title order={1} mb="lg">Courses</Title>
 
       <Paper withBorder p="lg" radius="md" mb="xl">
         <Stack>
           <TextInput
+            label="Course Code"
             placeholder="Course Code (e.g. CSC309)"
             value={code}
             onChange={(e) => setCode(e.target.value)}
           />
           <TextInput
+            label="Course Title"
             placeholder="Course Title"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
           />
-          <Button onClick={createCourse} w="fit-content">Create Course</Button>
+          <Button onClick={createCourse} w="fit-content" color='dark'>Create Course</Button>
         </Stack>
       </Paper>
 
@@ -69,7 +71,7 @@ export default function CoursesPage() {
           <Paper key={course.id} withBorder p="sm" radius="md">
             <Group>
               <Text fw={600}>{course.code}</Text>
-              <Text c="dimmed">—</Text>
+              <Text>—</Text>
               <Text>{course.title}</Text>
             </Group>
           </Paper>

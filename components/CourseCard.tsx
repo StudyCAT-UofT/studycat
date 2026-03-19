@@ -1,6 +1,6 @@
 'use client'
 
-import { Card, Stack, Text, Badge, Group } from '@mantine/core'
+import { Card, Stack, Text, Badge, Group, Title } from '@mantine/core'
 import { CourseOffering } from '@/lib/client-auth'
 
 interface CourseCardProps {
@@ -72,12 +72,12 @@ export const CourseCard = ({ courseOffering, onClick }: CourseCardProps) => {
                 </Group>
 
                 {/* Course code - large and prominent */}
-                <Text size="1.5rem" fw={700} c="blue">
+                <Title order={2} size="1.5rem" fw={700} c="blue">
                     {display}
-                </Text>
+                </Title>
 
                 {/* Course title */}
-                <Text size="lg" c="dimmed" lineClamp={2}>
+                <Text size="lg" lineClamp={2}>
                     {course.title}
                 </Text>
             </Stack>

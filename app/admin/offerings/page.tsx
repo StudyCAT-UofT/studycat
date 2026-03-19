@@ -47,7 +47,7 @@ export default function OfferingsPage() {
 
   return (
     <div>
-      <Title order={2} mb="lg">Course Offerings</Title>
+      <Title order={1} mb="lg">Course Offerings</Title>
 
       <Paper withBorder p="lg" radius="md" mb="xl">
         <Stack>
@@ -56,19 +56,22 @@ export default function OfferingsPage() {
             value={courseId}
             onChange={setCourseId}
             data={courses.map((c) => ({ value: c.id, label: c.code }))}
+            label="Select Course"
           />
           <Select
             placeholder="Select Term"
             value={termId}
             onChange={setTermId}
             data={terms.map((t) => ({ value: t.id, label: t.name }))}
+            label="Select Term"
           />
           <TextInput
             placeholder="Display Name"
             value={display}
             onChange={(e) => setDisplay(e.target.value)}
+            label="Display Name"
           />
-          <Button onClick={createOffering} w="fit-content">
+          <Button onClick={createOffering} w="fit-content" color="dark">
             Create Offering
           </Button>
         </Stack>
@@ -79,9 +82,9 @@ export default function OfferingsPage() {
           <Paper key={o.id} withBorder p="sm" radius="md">
             <Group>
               <Text fw={600}>{o.display}</Text>
-              <Text c="dimmed">—</Text>
+              <Text>—</Text>
               <Text>{o.course.code}</Text>
-              <Text c="dimmed">({o.term.name})</Text>
+              <Text>({o.term.name})</Text>
             </Group>
           </Paper>
         ))}

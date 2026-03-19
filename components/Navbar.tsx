@@ -89,6 +89,7 @@ export const Navbar = () => {
                                 size="sm"
                                 w={300}
                                 searchable
+                                aria-label='Select course'
                             />
                         ) : (
                             <Text size="sm" c="dimmed">
@@ -102,6 +103,7 @@ export const Navbar = () => {
                         <Button
                             size="sm"
                             variant="outline"
+                            color='dark'
                             onClick={() => router.push('/admin')}
                         >
                             Admin Dashboard

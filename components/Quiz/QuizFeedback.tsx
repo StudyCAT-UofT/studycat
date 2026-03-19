@@ -94,7 +94,7 @@ export default function QuizFeedback({ feedbackData, onContinue, onReturnToDashb
                             <Text>{option.text}</Text>
                         </Group>
                         {justificationVisible && option.justification && (
-                            <Text size="sm" c="dimmed" style={{ fontStyle: 'italic' }}>
+                            <Text size="sm" style={{ fontStyle: 'italic' }}>
                                 {option.justification}
                             </Text>
                         )}
@@ -110,7 +110,7 @@ export default function QuizFeedback({ feedbackData, onContinue, onReturnToDashb
                 {/* Header */}
                 <Stack gap="md" align="center">
                     <Title order={1}>Quiz Feedback</Title>
-                    <Text size="lg" c="dimmed">
+                    <Text size="lg">
                         {feedbackData.quizTitle}
                     </Text>
                 </Stack>
@@ -123,13 +123,13 @@ export default function QuizFeedback({ feedbackData, onContinue, onReturnToDashb
                         <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} spacing="lg">
                             <Card withBorder padding="lg">
                                 <Stack gap="xs" align="center">
-                                    <Text size="sm" c="dimmed" tt="uppercase" fw={700}>
+                                    <Text size="sm" tt="uppercase" fw={700}>
                                         Score
                                     </Text>
-                                    <Text size="3rem" fw={700} c="blue">
+                                    <Text size="3rem" fw={700} c="blue.8">
                                         {feedbackData.percentage}%
                                     </Text>
-                                    <Text size="sm" c="dimmed">
+                                    <Text size="sm">
                                         {feedbackData.questionsCorrect} / {feedbackData.questionsAttempted} correct
                                     </Text>
                                 </Stack>
@@ -137,13 +137,13 @@ export default function QuizFeedback({ feedbackData, onContinue, onReturnToDashb
 
                             <Card withBorder padding="lg">
                                 <Stack gap="xs" align="center">
-                                    <Text size="sm" c="dimmed" tt="uppercase" fw={700}>
+                                    <Text size="sm" tt="uppercase" fw={700}>
                                         Questions
                                     </Text>
                                     <Text size="3rem" fw={700}>
                                         {feedbackData.questionsAttempted}
                                     </Text>
-                                    <Text size="sm" c="dimmed">
+                                    <Text size="sm">
                                         of {feedbackData.fixedLength} target
                                     </Text>
                                 </Stack>
@@ -151,7 +151,7 @@ export default function QuizFeedback({ feedbackData, onContinue, onReturnToDashb
 
                             <Card withBorder padding="lg">
                                 <Stack gap="xs" align="center">
-                                    <Text size="sm" c="dimmed" tt="uppercase" fw={700}>
+                                    <Text size="sm" tt="uppercase" fw={700}>
                                         Time Spent
                                     </Text>
                                     <Group gap="xs" align="center">
@@ -160,7 +160,7 @@ export default function QuizFeedback({ feedbackData, onContinue, onReturnToDashb
                                             {formatTime(feedbackData.totalTimeMs)}
                                         </Text>
                                     </Group>
-                                    <Text size="sm" c="dimmed">
+                                    <Text size="sm">
                                         Total time
                                     </Text>
                                 </Stack>
@@ -171,9 +171,9 @@ export default function QuizFeedback({ feedbackData, onContinue, onReturnToDashb
 
                 {/* Mastery Achievement Alert */}
                 {allMastered && (
-                    <Alert 
-                        icon={<IconCheck size={24} />} 
-                        color="green" 
+                    <Alert
+                        icon={<IconCheck size={24} />}
+                        color="green"
                         variant="light"
                         title="Congratulations! You've Mastered All Modules!"
                     >
@@ -182,8 +182,8 @@ export default function QuizFeedback({ feedbackData, onContinue, onReturnToDashb
                                 You have achieved mastery in all modules covered by this quiz, causing it to end early!
                             </Text>
                             <Text size="sm">
-                                <strong>What does mastery mean?</strong> Our adaptive system uses Item Response Theory (IRT) to estimate your mastery level for each module. 
-                                When your estimated mastery exceeds the mastery threshold set by your instructor, you&apos;ve demonstrated sufficient understanding of that topic. 
+                                <strong>What does mastery mean?</strong> Our adaptive system uses Item Response Theory (IRT) to estimate your mastery level for each module.
+                                When your estimated mastery exceeds the mastery threshold set by your instructor, you&apos;ve demonstrated sufficient understanding of that topic.
                                 Since you&apos;ve reached the mastery threshold for all modules in this quiz, there&apos;s no need to continue - you&apos;ve already shown you know the material!
                             </Text>
                             <Text size="sm">
@@ -197,16 +197,16 @@ export default function QuizFeedback({ feedbackData, onContinue, onReturnToDashb
                 <Paper p="lg" radius="md" withBorder style={{ position: 'sticky', top: 20, zIndex: 100, backgroundColor: 'white' }}>
                     <Group justify="center" gap="md">
                         {feedbackData.canContinue && (
-                            <Button size="lg" onClick={onContinue}>
+                            <Button size="lg" color='dark' onClick={onContinue}>
                                 Continue Quiz
                             </Button>
                         )}
-                        <Button size="lg" variant="outline" onClick={onReturnToDashboard}>
+                        <Button size="lg" variant="outline" color='dark' onClick={onReturnToDashboard}>
                             Return to Dashboard
                         </Button>
                     </Group>
                     {feedbackData.canContinue && feedbackData.continueReason === 'reached_limit' && (
-                        <Text size="sm" c="dimmed" ta="center" mt="md">
+                        <Text size="sm" ta="center" mt="md">
                             You&apos;ve reached the target of {feedbackData.fixedLength} questions, but you can continue practicing!
                         </Text>
                     )}
@@ -226,7 +226,7 @@ export default function QuizFeedback({ feedbackData, onContinue, onReturnToDashb
                                 </Text>
                             </Alert>
 
-                            <Text size="sm" c="dimmed">
+                            <Text size="sm">
                                 Your current mastery level compared to mastery thresholds
                             </Text>
 
@@ -281,26 +281,26 @@ export default function QuizFeedback({ feedbackData, onContinue, onReturnToDashb
                                                 <Group justify="space-between" align="center">
                                                     <Text fw={600}>{module.moduleName}</Text>
                                                     {module.questionsAttempted === 0 ? (
-                                                        <Badge color="gray">Not Attempted</Badge>
+                                                        <Badge size="md" variant="light" color="gray">Not Attempted</Badge>
                                                     ) : hasMastered ? (
-                                                        <Badge color="green" leftSection={<IconCheck size={14} />}>
+                                                        <Badge size="md" variant="light" color="green" leftSection={<IconCheck size={14} />}>
                                                             Mastered
                                                         </Badge>
                                                     ) : (
-                                                        <Badge color={getPerformanceColor(module.performanceLevel)}>
+                                                        <Badge size="md" variant="light" color={getPerformanceColor(module.performanceLevel)}>
                                                             {module.performanceLevel}
                                                         </Badge>
                                                     )}
                                                 </Group>
                                                 <Group justify="space-between">
-                                                    <Text size="sm" c="dimmed">
+                                                    <Text size="sm">
                                                         <strong>Your Mastery:</strong> θ = {module.theta.toFixed(2)}
                                                     </Text>
-                                                    <Text size="sm" c="orange" fw={500}>
+                                                    <Text size="sm" c="orange.9" fw={500}>
                                                         <strong>Threshold:</strong> {module.threshold.toFixed(2)}
                                                     </Text>
                                                 </Group>
-                                                <Text size="sm" c="dimmed">
+                                                <Text size="sm">
                                                     <strong>This quiz:</strong> {module.questionsCorrect} / {module.questionsAttempted} correct
                                                 </Text>
                                                 {hasMastered && (
@@ -333,7 +333,7 @@ export default function QuizFeedback({ feedbackData, onContinue, onReturnToDashb
                     <Paper p="xl" radius="md" withBorder>
                         <Stack gap="lg">
                             <Title order={2}>Question-by-Question Review</Title>
-                            <Text size="sm" c="dimmed">
+                            <Text size="sm">
                                 Expand each question to see your answer, the correct answer, and justifications
                             </Text>
 
@@ -353,16 +353,20 @@ export default function QuizFeedback({ feedbackData, onContinue, onReturnToDashb
                                                     <Stack gap={4}>
                                                         <Text fw={600}>Question {question.questionNumber}</Text>
                                                         <Group gap="xs">
-                                                            <Badge size="sm" variant="light">
+                                                            <Badge size="md" variant="light">
                                                                 {question.moduleName}
                                                             </Badge>
-                                                            <Badge size="sm" color={getBloomColor(question.bloomLevel)}>
+                                                            <Badge size="md" variant="light" color={getBloomColor(question.bloomLevel)}>
                                                                 {question.bloomLevel}
                                                             </Badge>
                                                         </Group>
                                                     </Stack>
                                                 </Group>
-                                                <Badge size="lg" color={question.isCorrect ? 'green' : 'red'}>
+                                                <Badge
+                                                    size="lg"
+                                                    variant="light"
+                                                    color={question.isCorrect ? 'green' : 'red'}
+                                                >
                                                     {question.isCorrect ? 'Correct' : 'Incorrect'}
                                                 </Badge>
                                             </Group>
@@ -391,7 +395,7 @@ export default function QuizFeedback({ feedbackData, onContinue, onReturnToDashb
 
                                                 {/* Reference if present */}
                                                 {question.reference && (
-                                                    <Text size="sm" c="dimmed" style={{ fontStyle: 'italic' }}>
+                                                    <Text size="sm" style={{ fontStyle: 'italic' }}>
                                                         Reference: {question.reference}
                                                     </Text>
                                                 )}
@@ -412,7 +416,7 @@ export default function QuizFeedback({ feedbackData, onContinue, onReturnToDashb
 
                                                 {/* Metadata */}
                                                 <Group gap="md">
-                                                    <Text size="sm" c="dimmed">
+                                                    <Text size="sm">
                                                         Time: {formatTime(question.responseTimeMs)}
                                                     </Text>
                                                 </Group>
@@ -434,4 +438,3 @@ export default function QuizFeedback({ feedbackData, onContinue, onReturnToDashb
         </Container>
     )
 }
-

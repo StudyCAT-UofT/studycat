@@ -411,10 +411,10 @@ const EditQuizModal = ({
                 </Box>
 
                 <Group justify="flex-end" mt="md">
-                    <Button variant="outline" onClick={onClose} disabled={loading}>
+                    <Button variant="outline" onClick={onClose} disabled={loading} color="dark">
                         Cancel
                     </Button>
-                    <Button onClick={handleSave} loading={loading} disabled={success}>
+                    <Button onClick={handleSave} loading={loading} disabled={success} color="dark">
                         {success ? (isCreating ? 'Created!' : 'Saved!') : (isCreating ? 'Create Quiz' : 'Save Changes')}
                     </Button>
                 </Group>

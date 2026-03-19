@@ -65,6 +65,7 @@ export const ExportDataModal = ({
                     <Button
                         onClick={onConfirm}
                         loading={loading}
+                        color="dark"
                     >
                         Export
                     </Button>

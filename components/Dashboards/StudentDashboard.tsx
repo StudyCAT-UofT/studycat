@@ -67,15 +67,15 @@ const StudentDashboard = () => {
         <Container size="lg" py="xl">
             <Stack gap="xl">
                 <Stack gap="md">
-                    <Title order={2}>{selectedCourseOffering?.course?.code}</Title>
-                    <Text size="lg" c="dimmed">
+                    <Title order={1}>{selectedCourseOffering?.course?.code}</Title>
+                    <Text size="lg">
                         {selectedCourseOffering?.course?.title}
                     </Text>
                 </Stack>
 
                 <Stack gap="lg">
                     <Group gap="md" align="center">
-                        <Title order={3}>All Quizzes</Title>
+                        <Title order={2}>All Quizzes</Title>
                         <Badge size="lg" variant="light">
                             {quizzes.length} quiz{quizzes.length !== 1 ? 'zes' : ''}
                         </Badge>
@@ -85,10 +85,10 @@ const StudentDashboard = () => {
                         <Card withBorder padding="xl" radius="md">
                             <Center>
                                 <Stack align="center" gap="md">
-                                    <Text size="lg" c="dimmed">
+                                    <Text size="lg">
                                         No quizzes available at this time.
                                     </Text>
-                                    <Text size="sm" c="dimmed">
+                                    <Text size="sm">
                                         Check back later or contact your instructor.
                                     </Text>
                                 </Stack>

@@ -44,7 +44,7 @@ export default function TermsPage() {
 
   return (
     <div>
-      <Title order={2} mb="lg">Terms</Title>
+      <Title order={1} mb="lg">Terms</Title>
 
       <Paper withBorder p="lg" radius="md" mb="xl">
         <Stack>
@@ -52,8 +52,9 @@ export default function TermsPage() {
             placeholder="Term Name (e.g. Fall 2026)"
             value={name}
             onChange={(e) => setName(e.target.value)}
+            label="Term Name"
           />
-          <Button onClick={createTerm} w="fit-content">Create Term</Button>
+          <Button onClick={createTerm} color="dark" w="fit-content">Create Term</Button>
         </Stack>
       </Paper>
 

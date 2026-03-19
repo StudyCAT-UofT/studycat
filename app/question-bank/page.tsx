@@ -227,7 +227,7 @@ const QuestionBankContent = () => {
         <Container size="xl" py="xl">
             <Stack gap="lg">
                 <Group gap="md" align="center" justify="space-between">
-                    <Title order={2}>Question Bank</Title>
+                    <Title order={1}>Question Bank</Title>
                     <Group gap="sm">
                         {selectedRecords.length > 0 && (
                             <>
@@ -274,6 +274,7 @@ const QuestionBankContent = () => {
                             <Menu.Target>
                                 <Button
                                     variant="outline"
+                                    color='dark'
                                     leftSection={<IconDownload size={16} />}
                                     disabled={!selectedCourseOffering?.course?.id || items.length === 0}
                                     loading={downloading}
@@ -307,6 +308,7 @@ const QuestionBankContent = () => {
                         </Menu>
                         <Button
                             variant="outline"
+                            color='dark'
                             leftSection={<IconUpload size={16} />}
                             onClick={() => router.push('/upload')}
                             disabled={!selectedCourseOffering?.course?.id}
@@ -314,6 +316,7 @@ const QuestionBankContent = () => {
                             Upload Questions
                         </Button>
                         <Button
+                            color='dark'
                             leftSection={<IconPlus size={16} />}
                             onClick={() => setIsNewQuestionModalOpen(true)}
                             disabled={!selectedCourseOffering?.course?.id}
@@ -344,9 +347,11 @@ const QuestionBankContent = () => {
                                     ) : null
                                 }
                                 style={{ flex: 1 }}
+                                label="Search Questions"
                             />
                             <Button
                                 variant={showFilters ? 'filled' : 'outline'}
+                                color='dark'
                                 leftSection={<IconFilter size={16} />}
                                 onClick={() => setShowFilters(!showFilters)}
                             >

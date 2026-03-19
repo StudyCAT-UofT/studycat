@@ -261,10 +261,12 @@ const AnalyticsContent = () => {
             <Stack gap="lg">
                 {/* Header with Quiz Selector */}
                 <Group gap="md" align="center" justify="space-between">
-                    <Title order={2}>Quiz Analytics</Title>
+                    <Title order={1}>Quiz Analytics</Title>
                     <Group gap="sm" align="center">
-                        <Text size="sm" fw={500}>Selected Quiz:</Text>
+                        <Text id='quiz-select-label' size="sm" fw={500}>Selected Quiz:</Text>
                         <Select
+                            aria-labelledby="quiz-select-label"
+                            id='quiz-select'
                             value={selectedQuizId}
                             onChange={(value) => setSelectedQuizId(value)}
                             data={quizzes.map(quiz => ({
@@ -322,11 +324,11 @@ const AnalyticsContent = () => {
                         {/* Key Metrics Cards */}
                         <SimpleGrid cols={{ base: 1, sm: 2, md: 4 }} spacing="md">
                             <Card withBorder padding="md" radius="md">
-                                <Text size="sm" c="dimmed" fw={500}>Total Attempts</Text>
+                                <Text size="sm" fw={500}>Total Attempts</Text>
                                 <Text size="xl" fw={700} mt="xs">{metrics.totalAttempts}</Text>
                             </Card>
                             <Card withBorder padding="md" radius="md">
-                                <Text size="sm" c="dimmed" fw={500}>Average Score</Text>
+                                <Text size="sm" fw={500}>Average Score</Text>
                                 <Text size="xl" fw={700} mt="xs">
                                     {metrics.averageScore !== null
                                         ? `${metrics.averageScore.toFixed(1)}%`
@@ -334,7 +336,7 @@ const AnalyticsContent = () => {
                                 </Text>
                             </Card>
                             <Card withBorder padding="md" radius="md">
-                                <Text size="sm" c="dimmed" fw={500}>Completion Rate</Text>
+                                <Text size="sm" fw={500}>Completion Rate</Text>
                                 <Text size="xl" fw={700} mt="xs">
                                     {metrics.completionRate !== null
                                         ? `${metrics.completionRate.toFixed(1)}%`
@@ -342,7 +344,7 @@ const AnalyticsContent = () => {
                                 </Text>
                             </Card>
                             <Card withBorder padding="md" radius="md">
-                                <Text size="sm" c="dimmed" fw={500}>% Student Attempted</Text>
+                                <Text size="sm" fw={500}>% Student Attempted</Text>
                                 <Text size="xl" fw={700} mt="xs">
                                     {metrics.studentAttemptRate.toFixed(1)}%
                                 </Text>
