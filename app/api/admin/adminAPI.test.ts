@@ -323,6 +323,7 @@ const mockEnrollment = {
     offeringId: 'o1',
     offeringRole: 'STUDENT',
     createdAt: new Date(),
+    hidden: false,
     user: { id: 'u1', username: 'alice', givenName: 'Alice', familyName: 'Smith', isAdmin: false, createdAt: new Date() },
 }
 
