@@ -235,6 +235,7 @@ export const POST = async (request: NextRequest) => {
       startedAt: attempt.startedAt.toISOString(),
       finishedAt: attempt.finishedAt?.toISOString() || null,
       totalTimeMs,
+      feedbackVisibility: attempt.quiz.feedbackVisibility,
       questionsAttempted,
       questionsCorrect,
       questionsIncorrect,

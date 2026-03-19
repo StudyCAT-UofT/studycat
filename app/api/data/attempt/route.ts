@@ -40,29 +40,34 @@ export async function GET(request: Request) {
             return NextResponse.json({ error: 'Quiz not found' }, { status: 404 });
         }
 
-        // Get total number of students enrolled in the course offering
+        // Get total number of visible (non-hidden) students enrolled in the course offering
         const totalStudents = await prisma.enrollment.count({
             where: {
                 offeringId: quiz.offeringId,
                 offeringRole: 'STUDENT',
+                hidden: false,
             },
         });
 
         // Get total attempts count (including incomplete) for completion rate calculation
+        // Exclude attempts from hidden students
         const totalAttempts = await prisma.attempt.count({
-            where: { quizId },
+            where: { quizId, enrollment: { hidden: false } },
         });
 
         // Get count of unique students who have attempted this quiz (including incomplete attempts)
-        // Use groupBy to get distinct enrollmentIds
+        // Use groupBy to get distinct enrollmentIds; exclude hidden students
         const uniqueEnrollmentIds = await prisma.attempt.groupBy({
             by: ['enrollmentId'],
-            where: { quizId },
+            where: { quizId, enrollment: { hidden: false } },
         });
         const uniqueStudentsAttemptedCount = uniqueEnrollmentIds.length;
 
-        // Build where clause based on includeIncomplete flag
-        const whereClause: { quizId: string; status?: string } = { quizId };
+        // Build where clause based on includeIncomplete flag; always exclude hidden students
+        const whereClause: { quizId: string; status?: string; enrollment: { hidden: boolean } } = {
+            quizId,
+            enrollment: { hidden: false },
+        };
         if (!includeIncomplete) {
             whereClause.status = "COMPLETED";
         }

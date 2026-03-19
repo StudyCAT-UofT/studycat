@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation'
 import { useState, useEffect, use } from 'react'
 import QuizQuestion from '@/components/Quiz/QuizQuestion'
 import { quizClient } from '@/lib/quiz-client'
-import { QuizItem, Feedback, QuizResults, FeedbackData } from '@/types'
+import { QuizItem, Feedback, QuizResults, FeedbackData, FeedbackLevel, feedbackLevels } from '@/types'
 
 interface QuizState {
     attemptId: string
@@ -25,6 +25,7 @@ interface QuizState {
     feedbackData?: FeedbackData
     loadingFeedback: boolean
     shuffled: boolean
+    feedbackVisibility: FeedbackLevel
 }
 
 const QuizContent = ({ quizId }: { quizId: string }) => {
@@ -39,7 +40,8 @@ const QuizContent = ({ quizId }: { quizId: string }) => {
         loadingResults: false,
         showFeedback: false,
         loadingFeedback: false,
-        shuffled: false
+        shuffled: false,
+        feedbackVisibility: feedbackLevels.FULL
     })
     const [isInitialized, setIsInitialized] = useState(false)
 
@@ -79,7 +81,8 @@ const QuizContent = ({ quizId }: { quizId: string }) => {
                     loadingResults: false,
                     showFeedback: false,
                     loadingFeedback: false, 
-                    shuffled: response.shuffled
+                    shuffled: response.shuffled,
+                    feedbackVisibility: response.feedbackVisibility,
                 })
                 setIsInitialized(true) // Mark as initializing to prevent duplicate calls
             } catch (error) {
@@ -280,6 +283,7 @@ const QuizContent = ({ quizId }: { quizId: string }) => {
                     onNext={handleNext}
                     feedback={quizState.feedback}
                     shuffled={quizState.shuffled}
+                    feedbackVisibility={quizState.feedbackVisibility}
                 />
             </Stack>
         </Container>
