@@ -1,0 +1,8 @@
+{
+  "extends": ["stylelint-config-standard"],
+  "plugins": ["./scripts/stylelint-eol-plugin.mjs"],
+  "ignoreFiles": ["shibboleth/**", "node_modules/**", ".next/**"],
+  "rules": {
+    "studycat/eol-last": true
+  }
+}
