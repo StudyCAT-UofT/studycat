@@ -306,22 +306,34 @@ const AddStudentsModal = ({
 
                 <Box
                     style={{
-                        border: '2px dashed black',
-                        borderRadius: '8px',
+                        border: '2px dashed #228be6',
+                        borderRadius: '12px',
                         padding: '2rem',
-                        backgroundColor: 'white',
+                        backgroundColor: '#f1f8ff',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s ease',
                         textAlign: 'center'
                     }}
                 >
                     <Stack gap="md" align="center">
-                        <IconUpload size={40} stroke={1.5} color="black" />
+                        <IconUpload size={40} stroke={1.5} color="#228be6" />
                         <FileInput
+                            label="Choose a CSV file"
                             placeholder="Click to choose CSV file"
                             accept=".csv"
                             value={file}
                             onChange={handleFileChange}
                             disabled={loading}
                             styles={{
+                                label: {
+                                    position: 'absolute',
+                                    width: '1px',
+                                    height: '1px',
+                                    overflow: 'hidden',
+                                    clip: 'rect(0 0 0 0)',
+                                    clipPath: 'inset(50%)',
+                                    whiteSpace: 'nowrap',
+                                },
                                 input: {
                                     border: 'none',
                                     backgroundColor: 'transparent',
@@ -329,11 +341,12 @@ const AddStudentsModal = ({
                                     textAlign: 'center',
                                     cursor: 'pointer',
                                     fontWeight: 500,
-                                },
-                                placeholder: {
-                                    color: 'black'
+                                    color: '#000',
                                 },
                                 root: {
+                                    width: '100%'
+                                },
+                                wrapper: {
                                     width: '100%'
                                 }
                             }}
@@ -376,13 +389,13 @@ const AddStudentsModal = ({
                         <List.Item><strong>givenName</strong> or <strong>firstName</strong> - First name (optional)</List.Item>
                         <List.Item><strong>familyName</strong> or <strong>lastName</strong> - Last name (optional)</List.Item>
                     </List>
-                    <Text size="xs" c="dimmed" mt="xs">
+                    <Text size="xs" mt="xs">
                         Example: UTORid,givenName,familyName
                     </Text>
                 </Alert>
 
                 <Group justify="flex-end" mt="md">
-                    <Button variant="outline" onClick={onClose} disabled={loading} color="dark">
+                    <Button variant="subtle" onClick={onClose} disabled={loading} color="dark">
                         Cancel
                     </Button>
                     <Button 

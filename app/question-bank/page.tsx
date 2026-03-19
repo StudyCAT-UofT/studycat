@@ -274,6 +274,7 @@ const QuestionBankContent = () => {
                             <Menu.Target>
                                 <Button
                                     variant="outline"
+                                    color='dark'
                                     leftSection={<IconDownload size={16} />}
                                     disabled={!selectedCourseOffering?.course?.id || items.length === 0}
                                     loading={downloading}

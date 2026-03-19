@@ -121,6 +121,21 @@ export const StudentsTable = ({
         if (selectorTh) {
             selectorTh.setAttribute('title', 'Select rows')
             selectorTh.setAttribute('aria-label', 'Select rows')
+            if (!selectorTh.querySelector('[data-sr-label]')) {
+                const span = document.createElement('span')
+                span.setAttribute('data-sr-label', '')
+                Object.assign(span.style, {
+                    display: 'inline-block',
+                    width: '1px',
+                    height: '1px',
+                    overflow: 'hidden',
+                    clip: 'rect(0 0 0 0)',
+                    clipPath: 'inset(50%)',
+                    whiteSpace: 'nowrap',
+                })
+                span.textContent = 'Select rows'
+                selectorTh.appendChild(span)
+            }
         }
     }, [sortedStudents])
 
@@ -229,7 +244,7 @@ export const StudentsTable = ({
                 <Button
                     size="xs"
                     variant="subtle"
-                    color={student.hidden ? 'blue' : 'gray'}
+                    color='dark'
                     onClick={(e) => {
                         e.stopPropagation()
                         onToggleHidden(student.id, !student.hidden)
