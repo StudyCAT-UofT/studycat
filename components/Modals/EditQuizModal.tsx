@@ -28,6 +28,7 @@ const EditQuizModal = ({
         masteryThresholds: {} as Record<string, number | undefined>,
         isActive: true,
         shuffled: false,
+        repeatCorrectQuestions: true,
         feedbackVisibility: feedbackLevels.FULL as FeedbackLevel,
         fixedLength: 10
     })
@@ -80,6 +81,7 @@ const EditQuizModal = ({
                     masteryThresholds: {},
                     isActive: true,
                     shuffled: false,
+                    repeatCorrectQuestions: true,
                     feedbackVisibility: feedbackLevels.FULL,
                     fixedLength: 10
                 })
@@ -90,6 +92,7 @@ const EditQuizModal = ({
                     masteryThresholds: {},
                     isActive: quiz.isActive,
                     shuffled: quiz.shuffled,
+                    repeatCorrectQuestions: quiz.repeatCorrectQuestions,
                     feedbackVisibility: quiz.feedbackVisibility,
                     fixedLength: quiz.fixedLength
                 })
@@ -191,6 +194,7 @@ const EditQuizModal = ({
                         masteryThresholds: masteryThresholdsArray,
                         active: formData.isActive,
                         shuffled: formData.shuffled,
+                        repeatCorrectQuestions: formData.repeatCorrectQuestions,
                         feedbackVisibility: formData.feedbackVisibility,
                         fixedLength: formData.fixedLength
                     }),
@@ -209,6 +213,7 @@ const EditQuizModal = ({
                         masteryThresholds: masteryThresholdsArray,
                         active: formData.isActive,
                         shuffled: formData.shuffled,
+                        repeatCorrectQuestions: formData.repeatCorrectQuestions,
                         feedbackVisibility: formData.feedbackVisibility,
                         fixedLength: formData.fixedLength
                     }),
@@ -361,6 +366,23 @@ const EditQuizModal = ({
                         checked={formData.shuffled}
                         onChange={(e) => setFormData({ ...formData, shuffled: e.currentTarget.checked })}
                     />
+                </Box>
+
+                <Box>
+                    <Text size="sm" fw={500} mb="xs">Repeat Correct Questions?</Text>
+                    <Switch
+                        label={formData.repeatCorrectQuestions ? 'Repeat Allowed' : 'Do Not Repeat'}
+                        checked={formData.repeatCorrectQuestions}
+                        onChange={(e) =>
+                            setFormData({
+                                ...formData,
+                                repeatCorrectQuestions: e.currentTarget.checked
+                            })
+                        }
+                    />
+                    <Text size="xs" mt="xs">
+                        If disabled, students will not see questions they previously answered correctly in future attempts.
+                    </Text>
                 </Box>
 
                 <Box>
