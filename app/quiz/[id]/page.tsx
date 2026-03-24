@@ -72,6 +72,18 @@ const QuizContent = ({ quizId }: { quizId: string }) => {
                     quizId,
                 })
 
+                if (response.nextAction === "FINISH") {
+                    setQuizState(prev => ({
+                        ...prev,
+                        attemptId: response.attemptId,
+                        isFinished: true,
+                        loading: false,
+                    }))
+
+                    await showFeedbackScreen(response.attemptId)
+                    return
+                }
+
                 setQuizState({
                     attemptId: response.attemptId,
                     currentItem: response.nextItem,
@@ -141,7 +153,9 @@ const QuizContent = ({ quizId }: { quizId: string }) => {
         }
     }
 
-    const showFeedbackScreen = async () => {
+    const showFeedbackScreen = async (attemptIdOverride?: string) => {
+        const attemptId = attemptIdOverride || quizState.attemptId
+
         setQuizState(prev => ({
             ...prev,
             loadingFeedback: true,
@@ -149,7 +163,7 @@ const QuizContent = ({ quizId }: { quizId: string }) => {
         }))
 
         try {
-            const feedbackData = await quizClient.getFeedback(quizState.attemptId)
+            const feedbackData = await quizClient.getFeedback(attemptId)
             setQuizState(prev => ({
                 ...prev,
                 showFeedback: true,
@@ -260,9 +274,15 @@ const QuizContent = ({ quizId }: { quizId: string }) => {
     if (!quizState.currentItem) {
         return (
             <Container size="md" py="xl">
-                <Alert title="Error" color="red">
-                    No question available.
-                </Alert>
+                <Stack align="center" gap="md">
+                    <Loader size="lg" />
+
+                    <Title order={1}>Preparing your results...</Title>
+
+                    <Text size="md" ta="center">
+                        You've completed this quiz. Loading your feedback now...
+                    </Text>
+                </Stack>
             </Container>
         )
     }
