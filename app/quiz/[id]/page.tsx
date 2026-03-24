@@ -138,7 +138,7 @@ const QuizContent = ({ quizId }: { quizId: string }) => {
         }
 
         initQuiz()
-    }, [quizId, selectedCourseOffering?.id, user?.userId, isInitialized])
+    }, [quizId, selectedCourseOffering?.id, user?.userId, isInitialized, showFeedbackScreen])
 
     const handleAnswer = async (answerIndex: number) => {
         if (!quizState.attemptId || !quizState.currentItem) return
