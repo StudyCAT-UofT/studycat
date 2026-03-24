@@ -369,7 +369,7 @@ const EditQuizModal = ({
                 </Box>
 
                 <Box>
-                    <Text size="sm" fw={500} mb="xs">Repeat Correct Questions?</Text>
+                    <Text size="sm" fw={500} mb="xs">Repeat Correctly-Answered Questions?</Text>
                     <Switch
                         label={formData.repeatCorrectQuestions ? 'Repeat Allowed' : 'Do Not Repeat'}
                         checked={formData.repeatCorrectQuestions}
