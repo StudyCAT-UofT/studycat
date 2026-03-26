@@ -26,6 +26,8 @@ export default defineConfig({
         'next.config.ts',
         'vitest.config.mts',
         'vitest.setup.ts',
+        'test-utils.tsx',
+        'mocks/**',
         '.next/**',
         'external/**',
       ],
