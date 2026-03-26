@@ -5,7 +5,7 @@ import { ProtectedRoute, RoleBasedRoute, QuizFeedback } from '@/components'
 import { useCourse } from '@/lib/course-context'
 import { useAuth } from '@/lib/auth-context'
 import { useRouter } from 'next/navigation'
-import { useState, useEffect, use } from 'react'
+import { useState, useEffect, use, useCallback } from 'react'
 import QuizQuestion from '@/components/Quiz/QuizQuestion'
 import { quizClient } from '@/lib/quiz-client'
 import { QuizItem, Feedback, QuizResults, FeedbackData, FeedbackLevel, feedbackLevels } from '@/types'
@@ -45,6 +45,33 @@ const QuizContent = ({ quizId }: { quizId: string }) => {
     })
     const [isInitialized, setIsInitialized] = useState(false)
 
+    const showFeedbackScreen = useCallback(async (attemptIdOverride?: string) => {
+        const attemptId = attemptIdOverride || quizState.attemptId
+
+        setQuizState(prev => ({
+            ...prev,
+            loadingFeedback: true,
+            feedback: null
+        }))
+
+        try {
+            const feedbackData = await quizClient.getFeedback(attemptId)
+            setQuizState(prev => ({
+                ...prev,
+                showFeedback: true,
+                feedbackData,
+                loadingFeedback: false
+            }))
+        } catch (error) {
+            console.error('Failed to fetch quiz feedback:', error)
+            setQuizState(prev => ({
+                ...prev,
+                error: error instanceof Error ? error.message : 'Failed to fetch quiz feedback',
+                loadingFeedback: false
+            }))
+        }
+    }, [quizState.attemptId])
+
     // Initialize quiz attempt
     useEffect(() => {
         // Prevent multiple initializations
@@ -71,6 +98,18 @@ const QuizContent = ({ quizId }: { quizId: string }) => {
                 const response = await quizClient.initAttempt({
                     quizId,
                 })
+
+                if (response.nextAction === "FINISH") {
+                    setQuizState(prev => ({
+                        ...prev,
+                        attemptId: response.attemptId,
+                        isFinished: true,
+                        loading: false,
+                    }))
+
+                    await showFeedbackScreen(response.attemptId)
+                    return
+                }
 
                 setQuizState({
                     attemptId: response.attemptId,
@@ -99,7 +138,7 @@ const QuizContent = ({ quizId }: { quizId: string }) => {
         }
 
         initQuiz()
-    }, [quizId, selectedCourseOffering?.id, user?.userId, isInitialized])
+    }, [quizId, selectedCourseOffering?.id, user?.userId, isInitialized, showFeedbackScreen])
 
     const handleAnswer = async (answerIndex: number) => {
         if (!quizState.attemptId || !quizState.currentItem) return
@@ -137,31 +176,6 @@ const QuizContent = ({ quizId }: { quizId: string }) => {
                 currentItem: prev.nextItem,
                 feedback: null,
                 nextItem: undefined
-            }))
-        }
-    }
-
-    const showFeedbackScreen = async () => {
-        setQuizState(prev => ({
-            ...prev,
-            loadingFeedback: true,
-            feedback: null
-        }))
-
-        try {
-            const feedbackData = await quizClient.getFeedback(quizState.attemptId)
-            setQuizState(prev => ({
-                ...prev,
-                showFeedback: true,
-                feedbackData,
-                loadingFeedback: false
-            }))
-        } catch (error) {
-            console.error('Failed to fetch quiz feedback:', error)
-            setQuizState(prev => ({
-                ...prev,
-                error: error instanceof Error ? error.message : 'Failed to fetch quiz feedback',
-                loadingFeedback: false
             }))
         }
     }
@@ -260,9 +274,15 @@ const QuizContent = ({ quizId }: { quizId: string }) => {
     if (!quizState.currentItem) {
         return (
             <Container size="md" py="xl">
-                <Alert title="Error" color="red">
-                    No question available.
-                </Alert>
+                <Stack align="center" gap="md">
+                    <Loader size="lg" />
+
+                    <Title order={1}>Preparing your results...</Title>
+
+                    <Text size="md" ta="center">
+                        You&apos;ve completed this quiz. Loading your feedback now...
+                    </Text>
+                </Stack>
             </Container>
         )
     }
