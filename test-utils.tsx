@@ -34,6 +34,7 @@ export const makeQuiz = (overrides: Partial<Quiz> = {}): Quiz => ({
   modules: ['Module 1'],
   isActive: true,
   shuffled: false,
+  repeatCorrectQuestions: false,
   feedbackVisibility: 'full' as FeedbackLevel,
   dueDate: null,
   createdAt: '2024-01-01T00:00:00.000Z',

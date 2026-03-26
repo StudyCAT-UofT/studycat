@@ -46,6 +46,7 @@ const mockQuiz = {
     offeringId: 'offering-1',
     active: true,
     shuffled: false,
+    repeatCorrectQuestions: false,
     feedbackVisibility: 'full',
     fixedLength: 10,
     includedBlooms: '[]',
@@ -129,7 +130,7 @@ describe('POST /api/quizzes', () => {
         asAuthenticated()
         vi.mocked(prisma.courseOffering.findUnique).mockResolvedValue({ id: 'o1', courseId: 'c1', termId: 't1', display: null, createdAt: new Date() })
         vi.mocked(prisma.module.findMany).mockResolvedValue([{ id: 'm1', name: 'Module 1', offeringId: 'o1', createdAt: new Date() }])
-        vi.mocked(prisma.quiz.create).mockResolvedValue({ id: 'quiz-new', title: 'New Quiz', offeringId: 'o1', active: true, shuffled: false, feedbackVisibility: 'full', fixedLength: 5, includedBlooms: '[]', createdAt: new Date(), updatedAt: new Date(), createdById: 'user-1' })
+        vi.mocked(prisma.quiz.create).mockResolvedValue({ id: 'quiz-new', title: 'New Quiz', offeringId: 'o1', active: true, shuffled: false, repeatCorrectQuestions: false, feedbackVisibility: 'full', fixedLength: 5, includedBlooms: '[]', createdAt: new Date(), updatedAt: new Date(), createdById: 'user-1' })
         vi.mocked(prisma.quizModule.createMany).mockResolvedValue({ count: 1 })
 
         const res = await POST(makeRequest({ courseOfferingId: 'o1', title: 'New Quiz', includedModuleIds: ['m1'], masteryThresholds: [0.8], fixedLength: 5 }))
@@ -158,7 +159,7 @@ describe('DELETE /api/quizzes', () => {
 
     it('returns 200 on successful bulk delete', async () => {
         asAuthenticated()
-        vi.mocked(prisma.quiz.findMany).mockResolvedValue([{ id: 'quiz-1', title: 'Q', offeringId: 'o1', active: true, shuffled: false, feedbackVisibility: 'full', fixedLength: 5, includedBlooms: '[]', createdAt: new Date(), updatedAt: new Date(), createdById: 'user-1' }])
+        vi.mocked(prisma.quiz.findMany).mockResolvedValue([{ id: 'quiz-1', title: 'Q', offeringId: 'o1', active: true, shuffled: false, repeatCorrectQuestions: false, feedbackVisibility: 'full', fixedLength: 5, includedBlooms: '[]', createdAt: new Date(), updatedAt: new Date(), createdById: 'user-1' }])
         vi.mocked(prisma.quiz.deleteMany).mockResolvedValue({ count: 1 })
         const res = await DELETE(makeRequest({ ids: ['quiz-1'] }, 'DELETE'))
         expect(res.status).toBe(200)
