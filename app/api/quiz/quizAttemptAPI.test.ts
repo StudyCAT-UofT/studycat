@@ -148,8 +148,9 @@ describe('POST /api/quiz/attempt/init', () => {
         vi.mocked(prisma.attempt.findFirst).mockResolvedValue(mockAttempt as never)
         vi.mocked(prisma.attempt.update).mockResolvedValue(mockAttempt as never)
         vi.mocked(fastApiClient.initAttempt).mockResolvedValue({
-            theta: 0,
-            next_item: { id: 'item-1' },
+            attempt_id: 'attempt-1',
+            theta: { 'mod-1': 0 },
+            next_item: { item_id: 'item-1', skill: 'mod-1', stem: 'Test?', options: [] },
             next_action: 'CONTINUE',
         })
         const res = await initRoute(makeRequest({ quizId: 'quiz-1' }))
@@ -166,8 +167,9 @@ describe('POST /api/quiz/attempt/init', () => {
         vi.mocked(prisma.attempt.create).mockResolvedValue(mockAttempt as never)
         vi.mocked(prisma.attempt.update).mockResolvedValue(mockAttempt as never)
         vi.mocked(fastApiClient.initAttempt).mockResolvedValue({
-            theta: 0,
-            next_item: { id: 'item-1' },
+            attempt_id: 'attempt-1',
+            theta: { 'mod-1': 0 },
+            next_item: { item_id: 'item-1', skill: 'mod-1', stem: 'Test?', options: [] },
             next_action: 'CONTINUE',
         })
         const res = await initRoute(makeRequest({ quizId: 'quiz-1' }))
@@ -221,10 +223,11 @@ describe('POST /api/quiz/attempt/step', () => {
             engineMasterySnapshot: null,
         })
         vi.mocked(fastApiClient.stepAttempt).mockResolvedValue({
-            theta: 0.5,
-            mastery: { 'mod-1': 0.8 },
+            attempt_id: 'attempt-1',
+            theta: { 'mod-1': 0.5 },
+            mastery: { 'mod-1': true },
             next_action: 'CONTINUE',
-            next_item: { id: 'item-2' },
+            next_item: { item_id: 'item-2', skill: 'mod-1', stem: 'Next?', options: [] },
         })
         vi.mocked(prisma.attempt.update).mockResolvedValue(mockAttempt as never)
         vi.mocked(prisma.response.update).mockResolvedValue({} as never)
@@ -239,10 +242,10 @@ describe('POST /api/quiz/attempt/step', () => {
         vi.mocked(prisma.item.findUnique).mockResolvedValue(mockItem as never)
         vi.mocked(prisma.response.create).mockResolvedValue({ id: 'resp-1', itemOptionId: 'opt-1' } as never)
         vi.mocked(fastApiClient.stepAttempt).mockResolvedValue({
-            theta: 1.0,
-            mastery: { 'mod-1': 0.9 },
+            attempt_id: 'attempt-1',
+            theta: { 'mod-1': 1.0 },
+            mastery: { 'mod-1': true },
             next_action: 'FINISH',
-            next_item: null,
         })
         vi.mocked(prisma.attempt.update).mockResolvedValue({ ...mockAttempt, status: 'COMPLETED' } as never)
         vi.mocked(prisma.response.update).mockResolvedValue({} as never)

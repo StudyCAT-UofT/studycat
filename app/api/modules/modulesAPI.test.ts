@@ -22,8 +22,8 @@ describe('GET /api/modules', () => {
 
     it('returns 200 with modules array', async () => {
         vi.mocked(prisma.module.findMany).mockResolvedValue([
-            { id: 'mod-1', name: 'Module 1', createdAt: new Date() },
-            { id: 'mod-2', name: 'Module 2', createdAt: new Date() },
+            { id: 'mod-1', name: 'Module 1', offeringId: 'o1', createdAt: new Date() },
+            { id: 'mod-2', name: 'Module 2', offeringId: 'o1', createdAt: new Date() },
         ])
         const res = await GET(makeRequest('offering-1'))
         const data = await res.json()

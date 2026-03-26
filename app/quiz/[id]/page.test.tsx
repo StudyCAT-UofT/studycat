@@ -85,15 +85,22 @@ const mockQuizItem = makeQuizItem({
 
 const mockInitResponse = {
     attemptId: 'attempt-1',
+    enrollmentId: 'enroll-1',
     quizId: 'quiz-1',
+    theta: { 'mod-1': 0 },
     nextItem: mockQuizItem,
+    nextAction: 'CONTINUE',
     shuffled: false,
     feedbackVisibility: 'full' as const,
     startedAt: new Date().toISOString(),
 }
 
 const mockStepResponse = {
-    feedback: null,
+    attemptId: 'attempt-1',
+    theta: { 'mod-1': 0.5 },
+    mastery: { 'mod-1': false },
+    nextAction: 'CONTINUE',
+    feedback: undefined,
     nextItem: makeQuizItem({ item_id: 'item-2', stem: 'What is 3 + 3?' }),
     isFinished: false,
     allMastered: false,
@@ -116,7 +123,7 @@ describe('app/quiz/[id]/page.tsx', () => {
         vi.clearAllMocks()
         vi.mocked(useAuth).mockReturnValue(makeDefaultAuthValue())
         vi.mocked(useCourse).mockReturnValue(makeDefaultCourseValue())
-        vi.mocked(useRouter).mockReturnValue({ push: mockPush } as ReturnType<typeof useRouter>)
+        vi.mocked(useRouter).mockReturnValue({ push: mockPush } as unknown as ReturnType<typeof useRouter>)
     })
 
     // ── Loading / Init state ────────────────────────────────────────────────

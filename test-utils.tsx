@@ -1,4 +1,5 @@
 import React from 'react'
+import { vi } from 'vitest'
 import { render, type RenderOptions } from '@testing-library/react'
 import { MantineProvider } from '@mantine/core'
 import type { User, CourseOffering } from '@/lib/client-auth'

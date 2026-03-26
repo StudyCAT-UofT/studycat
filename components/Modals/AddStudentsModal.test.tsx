@@ -30,7 +30,7 @@ describe('AddStudentsModal', () => {
       <AddStudentsModal
         opened={true}
         onClose={vi.fn()}
-        onSuccess={vi.fn()}
+        onSave={vi.fn()}
       />
     )
 
@@ -42,7 +42,7 @@ describe('AddStudentsModal', () => {
       <AddStudentsModal
         opened={true}
         onClose={vi.fn()}
-        onSuccess={vi.fn()}
+        onSave={vi.fn()}
       />
     )
 
@@ -57,7 +57,7 @@ describe('AddStudentsModal', () => {
       <AddStudentsModal
         opened={true}
         onClose={vi.fn()}
-        onSuccess={vi.fn()}
+        onSave={vi.fn()}
       />
     )
 
@@ -69,7 +69,7 @@ describe('AddStudentsModal', () => {
       <AddStudentsModal
         opened={true}
         onClose={vi.fn()}
-        onSuccess={vi.fn()}
+        onSave={vi.fn()}
       />
     )
 
@@ -101,7 +101,7 @@ describe('AddStudentsModal', () => {
       <AddStudentsModal
         opened={true}
         onClose={vi.fn()}
-        onSuccess={vi.fn()}
+        onSave={vi.fn()}
       />
     )
 

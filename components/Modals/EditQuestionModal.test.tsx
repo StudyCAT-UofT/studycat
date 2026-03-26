@@ -33,7 +33,7 @@ describe('EditQuestionModal', () => {
         onClose={vi.fn()}
         isCreating={true}
         item={null}
-        onSuccess={vi.fn()}
+        onSave={vi.fn()}
       />
     )
 
@@ -49,7 +49,7 @@ describe('EditQuestionModal', () => {
         onClose={vi.fn()}
         isCreating={false}
         item={makeItem()}
-        onSuccess={vi.fn()}
+        onSave={vi.fn()}
       />
     )
 
@@ -65,7 +65,7 @@ describe('EditQuestionModal', () => {
         onClose={vi.fn()}
         isCreating={true}
         item={null}
-        onSuccess={vi.fn()}
+        onSave={vi.fn()}
       />
     )
 
@@ -83,7 +83,7 @@ describe('EditQuestionModal', () => {
         onClose={vi.fn()}
         isCreating={false}
         item={makeItem()}
-        onSuccess={vi.fn()}
+        onSave={vi.fn()}
       />
     )
 
@@ -101,7 +101,7 @@ describe('EditQuestionModal', () => {
         onClose={vi.fn()}
         isCreating={true}
         item={null}
-        onSuccess={vi.fn()}
+        onSave={vi.fn()}
       />
     )
 
@@ -121,7 +121,7 @@ describe('EditQuestionModal', () => {
         onClose={vi.fn()}
         isCreating={false}
         item={makeItem({ active: true })}
-        onSuccess={vi.fn()}
+        onSave={vi.fn()}
       />
     )
 
@@ -139,7 +139,7 @@ describe('EditQuestionModal', () => {
         onClose={vi.fn()}
         isCreating={false}
         item={null}
-        onSuccess={vi.fn()}
+        onSave={vi.fn()}
       />
     )
 
@@ -210,7 +210,7 @@ describe('EditQuestionModal', () => {
       expect(screen.getByText(/updated successfully/i)).toBeInTheDocument()
     })
 
-    expect(capturedBody?.stem).toBe('What is an array?')
+    expect(capturedBody).toMatchObject({ stem: 'What is an array?' })
   })
 
   it('calls onSave callback after a successful PUT', async () => {
