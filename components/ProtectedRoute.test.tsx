@@ -136,7 +136,7 @@ describe('ProtectedRoute', () => {
     mockUseAuth.mockReturnValue({
       user: null,
       loading: false,
-      isAuthenticated: true, // Edge case
+      isAuthenticated: true, // Edge case: isAuthenticated true but user not yet populated
     })
 
     render(
@@ -147,18 +147,9 @@ describe('ProtectedRoute', () => {
       </AuthProvider>
     )
 
-    // Should behave as unauthenticated because user is null (lines 38 in component checks !user)
-    // Note: The useEffect only checks !isAuthenticated, so it might NOT redirect if isAuthenticated is true but user is null.
-    // Let's check logic: useEffect check is `if (!loading && !isAuthenticated)`.
-    // If isAuthenticated is true, useEffect WON'T redirect.
-    // But rendering check is `if (!isAuthenticated || !user)`.
-    // So it will render loader/fallback but NOT call replace.
-
     expect(screen.getByTestId('loader')).toBeInTheDocument()
     expect(screen.queryByTestId('protected-content')).not.toBeInTheDocument()
-
-    // Based on code, it won't redirect. This might be a bug or intended. 
-    // For test purposes, we verify what it does: render loader.
+    expect(mockReplace).toHaveBeenCalledWith('/login')
   })
 })
 

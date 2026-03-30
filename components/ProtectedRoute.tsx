@@ -17,10 +17,10 @@ export const ProtectedRoute = ({ children, fallback }: ProtectedRouteProps) => {
 
     // Redirect to login if not authenticated
     useEffect(() => {
-        if (!loading && !isAuthenticated) {
+        if (!loading && (!isAuthenticated || !user)) {
             router.replace('/login')
         }
-    }, [loading, isAuthenticated, router])
+    }, [loading, isAuthenticated, user, router])
 
     if (loading) {
         return (

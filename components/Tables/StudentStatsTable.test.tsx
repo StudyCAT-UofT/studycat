@@ -93,6 +93,22 @@ describe('StudentStatsTable', () => {
     expect(badgeRoot?.getAttribute('style') ?? badgeRoot?.className ?? '').toMatch(/green/)
   })
 
+  it('shows yellow badge for score >= 60 and < 80', () => {
+    const midScoreAttempt = makeAttemptData({
+      userId: 'user-3',
+      username: 'bjones',
+      score: 70,
+      startedAt: '2024-01-03T00:00:00.000Z',
+    })
+    renderWithProviders(
+      <StudentStatsTable attempts={[midScoreAttempt]} />
+    )
+    const badge = screen.getByText('70.0%')
+    expect(badge).toBeInTheDocument()
+    const badgeRoot = badge.closest('.mantine-Badge-root')
+    expect(badgeRoot?.getAttribute('style') ?? badgeRoot?.className ?? '').toMatch(/yellow/)
+  })
+
   it('shows red badge for score < 60', () => {
     renderWithProviders(
       <StudentStatsTable attempts={[lowScoreAttempt]} />
