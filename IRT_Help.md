@@ -41,6 +41,18 @@ These parameters enable adaptive testing that:
 - Focuses on questions that provide the most information about student knowledge
 - Provides more accurate ability estimates with fewer questions
 
+## Default Parameter Values in StudyCAT
+
+When importing questions via the spreadsheet upload (see [UPLOAD_FORMAT.md](UPLOAD_FORMAT.md)), IRT parameters can be provided in the `irt_a`, `irt_b`, and `irt_c` columns. If these columns are omitted or left blank, StudyCAT assigns the following defaults:
+
+| Parameter | Default Value | Notes |
+|-----------|--------------|-------|
+| `a` (discrimination) | `1.0` | Neutral discrimination — the question is treated as reasonably effective |
+| `b` (difficulty) | `0.0` | Average difficulty — appropriate for a student of average ability |
+| `c` (guessing) | `1 / number of options` | Automatically computed from the number of answer choices (e.g. `0.25` for 4 options, `0.5` for 2 options) |
+
+These defaults allow you to import questions without prior IRT calibration. For more accurate adaptive testing, consider calibrating your questions using the software listed below and supplying the estimated parameters in the spreadsheet.
+
 ## Calibration Software
 
 For accurate parameter estimation, you need specialized software that uses maximum likelihood or Bayesian estimation methods:
