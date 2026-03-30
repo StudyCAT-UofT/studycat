@@ -107,8 +107,8 @@ const QuizQuestion = ({ item, onAnswer, onNext, feedback, shuffled, feedbackVisi
                             const option = item.options[shuffledIndex]
                             const color = getOptionColor(displayIndex)
                             const actualIndex = shuffledIndices[displayIndex]
-                            const isCorrectOption = isFeedbackMode && actualIndex === feedback.correctAnswerIndex
-                            const isWrongSelected = isFeedbackMode && actualIndex === feedback.selectedAnswerIndex && !feedback.isCorrect
+                            const isCorrectOption = isFeedbackMode && (feedbackVisibility == feedbackLevels.FULL || feedbackVisibility == feedbackLevels.NO_JUST) && actualIndex === feedback.correctAnswerIndex
+                            const isWrongSelected = isFeedbackMode && (feedbackVisibility == feedbackLevels.FULL || feedbackVisibility == feedbackLevels.NO_JUST) &&  actualIndex === feedback.selectedAnswerIndex && !feedback.isCorrect
 
                             return (
                                 <Paper
