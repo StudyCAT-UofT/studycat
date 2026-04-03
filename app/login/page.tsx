@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Button, Container, Stack, Text, TextInput, Title, Card, Alert } from '@mantine/core'
 import { login } from '@/lib/client-auth'
 import { useAuth } from '@/lib/auth-context'
+import { authConfig } from '@/lib/auth-config'
 
 export default function LoginPage() {
     const [username, setUsername] = useState('')
@@ -19,7 +20,7 @@ export default function LoginPage() {
     useEffect(() => {
         const fetchAuthMode = async () => {
             try {
-                const mode = process.env.AUTH_MODE || 'shibboleth'
+                const mode = process.env.AUTH_MODE || 'simple'
                 setAuthMode(mode as 'simple' | 'shibboleth')
             } catch (error) {
                 console.error('Failed to fetch auth mode:', error)
@@ -99,7 +100,7 @@ export default function LoginPage() {
                                         // Use Shibboleth SessionInitiator with target parameter
                                         // This will trigger SSO flow and return to the callback URL
                                         const callbackUrl = encodeURIComponent('/api/auth/shibboleth/callback');
-                                        window.location.href = `https://sp.studycat.local/Shibboleth.sso/Login?target=${callbackUrl}`;
+                                        window.location.href = `${authConfig.shibboleth.loginUrl}?target=${callbackUrl}`;
                                     }}
                                     fullWidth
                                     size="lg"

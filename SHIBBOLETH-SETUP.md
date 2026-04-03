@@ -39,7 +39,7 @@ This guide provides step-by-step instructions for setting up Shibboleth Single S
 - **Service Provider (SP)**: Apache with mod_shib, protects the application, validates SAML assertions
 - **OpenLDAP**: Directory server storing test user credentials
 - **Next.js Application**: The StudyCAT application backend
-- **PostgreSQL Database**: Stores user and application data
+- **SQL Server Database**: Stores user and application data
 
 ---
 
@@ -54,7 +54,7 @@ This guide provides step-by-step instructions for setting up Shibboleth Single S
 
 ### Required Permissions
 - Ability to modify `/etc/hosts` file (requires sudo)
-- Ports 3000, 4443, 9443, and 5432 available
+- Ports 3000, 1433, 4443, and 9443 available
 
 ---
 
@@ -106,12 +106,18 @@ Set environment variables as described in [Step 4 of Detailed Setup](#step-4-con
 ### B. Starting the App (run each time)
 
 ```bash
-# Start database, IdP, SP, and OpenLDAP
+# Start SQL Server database
+docker compose up -d
+
+# Start IdP, SP, and OpenLDAP
 docker compose --profile shibboleth up -d --build
 
 # Set up database
 pnpm db:generate
 pnpm db:migrate
+
+# Start quiz engine service (required for adaptive quizzes — in a separate terminal)
+cd ../studycat-service && make run && cd ../studycat
 
 # Start Next.js development server
 pnpm dev
@@ -476,13 +482,13 @@ Update your `.env` file with the following values. Run the commands below for th
 
 **macOS:**
 ```bash
-sed -i '' 's|^NEXT_PUBLIC_AUTH_MODE=.*|NEXT_PUBLIC_AUTH_MODE=shibboleth|' .env
+sed -i '' 's|^AUTH_MODE=.*|AUTH_MODE=shibboleth|' .env
 sed -i '' 's|^SHIBBOLETH_LOGIN_URL=.*|SHIBBOLETH_LOGIN_URL=https://sp.studycat.local/Shibboleth.sso/Login|' .env
 ```
 
 **Linux:**
 ```bash
-sed -i 's|^NEXT_PUBLIC_AUTH_MODE=.*|NEXT_PUBLIC_AUTH_MODE=shibboleth|' .env
+sed -i 's|^AUTH_MODE=.*|AUTH_MODE=shibboleth|' .env
 sed -i 's|^SHIBBOLETH_LOGIN_URL=.*|SHIBBOLETH_LOGIN_URL=https://sp.studycat.local/Shibboleth.sso/Login|' .env
 ```
 
@@ -494,7 +500,7 @@ JWT_SECRET=your-secret-key-here
 JWT_EXPIRES_IN=7d
 
 # Database
-DATABASE_URL=postgresql://user:password@localhost:5432/studycat
+DATABASE_URL=sqlserver://localhost:1433;database=studycat;user=sa;password=studycatPassword123!;encrypt=true;trustServerCertificate=true
 ```
 
 ---
@@ -1079,7 +1085,7 @@ StudyCAT implements **local logout only**—when a user logs out, only the appli
    - Configure clustered session storage
 
 3. **Database:**
-   - Use managed PostgreSQL (RDS, Cloud SQL)
+   - Use a managed SQL Server instance (e.g. Azure SQL Database, Amazon RDS for SQL Server)
    - Configure connection pooling
    - Enable SSL for database connections
 

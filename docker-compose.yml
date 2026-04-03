@@ -1,16 +1,4 @@
 services:
-  db:
-    image: postgres:16-alpine
-    container_name: studycat_db
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: studycat
-      POSTGRES_PASSWORD: studycatPassword123!
-      POSTGRES_DB: studycat
-    ports:
-      - "5432:5432"
-    volumes:
-      - db_data:/var/lib/postgresql/data
   mssql:
     image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: mssql
@@ -20,7 +8,6 @@ services:
       ACCEPT_EULA: "Y"
       SA_PASSWORD: "studycatPassword123!"
       MSSQL_PID: "Developer"
-    profiles: [ "manual" ] # Prevent service from starting automatically
     volumes:
       - mssql_data:/var/opt/mssql
     restart: unless-stopped
@@ -98,7 +85,6 @@ services:
       - ./shibboleth/sp/config/attribute-map.xml:/etc/shibboleth/attribute-map.xml:ro
 
 volumes:
-  db_data:
   mssql_data:
   ldap_data:
   ldap_config:
