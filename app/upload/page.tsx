@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Container, Stack, Title, Card, Text, Button, FileInput, Alert, List, Group, Loader, Box, Checkbox, Badge, Divider } from '@mantine/core'
 import { IconUpload, IconInfoCircle, IconCheck, IconX, IconAlertCircle, IconAlertTriangle } from '@tabler/icons-react'
 import { useRouter } from 'next/navigation'
@@ -77,6 +77,7 @@ const UploadPageContent = () => {
     const [approvedUpdated, setApprovedUpdated] = useState<Set<string>>(new Set())
     const [approvedDeactivated, setApprovedDeactivated] = useState<Set<string>>(new Set())
     const [committing, setCommitting] = useState(false)
+    const fileInputRef = useRef<HTMLButtonElement>(null)
 
     const validateSpreadsheet = async (file: File) => {
         setValidating(true)
@@ -517,6 +518,7 @@ const UploadPageContent = () => {
                                 <Text fw={500} size="lg">Select Your Spreadsheet</Text>
 
                                 <Box
+                                    onClick={() => fileInputRef.current?.click()}
                                     style={{
                                         border: '2px dashed #228be6',
                                         borderRadius: '12px',
@@ -529,7 +531,9 @@ const UploadPageContent = () => {
                                 >
                                     <Stack gap="md" align="center">
                                         <IconUpload size={48} stroke={1.5} color="#228be6" />
+                                        <div onClick={e => e.stopPropagation()}>
                                         <FileInput
+                                            ref={fileInputRef}
                                             label="Choose a spreadsheet file"
                                             placeholder="Click to choose .xlsx, .xls, or .csv file"
                                             accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv"
@@ -564,6 +568,7 @@ const UploadPageContent = () => {
                                                 }
                                             }}
                                         />
+                                        </div>
                                         <Text size="sm">
                                             or drag and drop your file here
                                         </Text>
