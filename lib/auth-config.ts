@@ -2,8 +2,8 @@
 export type AuthMode = 'simple' | 'shibboleth';
 
 export const authConfig = {
-  mode: (process.env.AUTH_MODE || 'simple') as AuthMode,
-  
+  mode: (process.env.AUTH_MODE || process.env.NEXT_PUBLIC_AUTH_MODE || 'simple') as AuthMode,
+
   shibboleth: {
     spUrl: process.env.SHIBBOLETH_SP_URL || 'https://sp.studycat.local',
     loginUrl: process.env.SHIBBOLETH_LOGIN_URL || 'https://sp.studycat.local/Shibboleth.sso/Login',

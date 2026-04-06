@@ -18,18 +18,9 @@ export default function LoginPage() {
 
     // Fetch auth mode from environment
     useEffect(() => {
-        const fetchAuthMode = async () => {
-            try {
-                const mode = process.env.AUTH_MODE || 'simple'
-                setAuthMode(mode as 'simple' | 'shibboleth')
-            } catch (error) {
-                console.error('Failed to fetch auth mode:', error)
-                setAuthMode('simple')
-            } finally {
-                setAuthModeLoading(false)
-            }
-        }
-        fetchAuthMode()
+        const mode = process.env.NEXT_PUBLIC_AUTH_MODE || 'simple'
+        setAuthMode(mode as 'simple' | 'shibboleth')
+        setAuthModeLoading(false)
     }, [])
 
     const handleLogin = async () => {
