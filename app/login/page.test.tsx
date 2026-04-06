@@ -28,7 +28,7 @@ vi.mock('@/lib/client-auth', () => ({
 
 beforeEach(() => {
   vi.clearAllMocks()
-  process.env.AUTH_MODE = 'simple'
+  process.env.NEXT_PUBLIC_AUTH_MODE = 'simple'
   mockUseAuth.mockReturnValue({
     user: null,
     loading: false,
@@ -52,7 +52,7 @@ describe('LoginPage', () => {
   })
 
   it('shows UTORid input in simple auth mode', async () => {
-    process.env.AUTH_MODE = 'simple'
+    process.env.NEXT_PUBLIC_AUTH_MODE = 'simple'
     renderWithProviders(<LoginPage />)
     await waitFor(() => {
       expect(screen.getByPlaceholderText('Enter your UTORid')).toBeInTheDocument()
@@ -60,7 +60,7 @@ describe('LoginPage', () => {
   })
 
   it('shows "Login with UTORid" button in shibboleth mode', async () => {
-    process.env.AUTH_MODE = 'shibboleth'
+    process.env.NEXT_PUBLIC_AUTH_MODE = 'shibboleth'
     renderWithProviders(<LoginPage />)
     await waitFor(() => {
       expect(screen.getByRole('button', { name: /login with utorid/i })).toBeInTheDocument()
