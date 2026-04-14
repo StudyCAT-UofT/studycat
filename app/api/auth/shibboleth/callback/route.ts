@@ -61,7 +61,8 @@ export async function GET(request: NextRequest) {
     // NOT the internal host (host.docker.internal)
     // Always use HTTPS since the browser is on HTTPS (Apache forwards as http in dev)
     const forwardedHost = request.headers.get('x-forwarded-host') || 'localhost:3000';
-    const redirectUrl = `https://${forwardedHost}/`;
+    const protocol = forwardedHost == 'localhost:3000' ? 'http' : 'https';
+    const redirectUrl = `${protocol}://${forwardedHost}/`;
 
     const response = NextResponse.redirect(redirectUrl);
 

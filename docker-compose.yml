@@ -32,6 +32,15 @@ services:
     profiles: [ "shibboleth" ] # Only start with: docker compose --profile shibboleth up
     restart: unless-stopped
 
+  # One-off service to initialize the Shibboleth IdP configuration (run once before first build)
+  # Usage: docker compose --profile init run --rm idp-init
+  idp-init:
+    image: unicon/shibboleth-idp:3.4.3
+    volumes:
+      - ./shibboleth/idp:/ext-mount
+    profiles: ["init"]
+    command: init-idp.sh
+
   # Shibboleth Identity Provider (Mock IdP for SSO testing)
   idp:
     build: ./shibboleth/idp

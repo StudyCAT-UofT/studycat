@@ -36,7 +36,7 @@ This guide provides step-by-step instructions for setting up Shibboleth Single S
 
 **Components:**
 - **Identity Provider (IdP)**: Authenticates users via OpenLDAP, issues SAML assertions
-- **Service Provider (SP)**: Apache with mod_shib, protects the application, validates SAML assertions
+- **Service Provider (SP)**: Apache with [`mod_shib`](https://shibboleth.atlassian.net/wiki/spaces/SP3/pages/2065335062/Apache), protects the application, validates SAML assertions
 - **OpenLDAP**: Directory server storing test user credentials
 - **Next.js Application**: The StudyCAT application backend
 - **SQL Server Database**: Stores user and application data
@@ -134,9 +134,7 @@ Then open `https://sp.studycat.local/` and log in with username `student` or `in
 The IdP configuration is NOT stored in the repository—it must be generated locally using the Shibboleth IdP Docker image's built-in initialization script.
 
 ```bash
-cd shibboleth/idp
-docker run -it -v $(pwd):/ext-mount --rm unicon/shibboleth-idp:3.4.3 init-idp.sh
-cd ../..
+docker compose --profile init run --rm idp-init
 ```
 
 The script will prompt you for configuration values. Use these settings:
@@ -153,10 +151,6 @@ The script will prompt you for configuration values. Use these settings:
 
 This creates the `customized-shibboleth-idp/` directory with default Shibboleth IdP configuration. You must then apply the customizations documented in the steps below.
 
-> **Note:** The `customized-shibboleth-idp/` directory is gitignored. Each developer must generate and configure it locally.
-
----
-
 ### Step 2: Generate TLS Certificates
 
 Security certificates are unique to each environment and excluded from Git. Every developer must generate their own local certificates.
@@ -169,12 +163,7 @@ mkdir -p shibboleth/sp/certificates
 cd shibboleth/sp/certificates
 
 # Generate SP certificates (for Apache HTTPS and SAML signing)
-openssl req -x509 -newkey rsa:3072 \
-  -keyout sp-key.pem \
-  -out sp-cert.pem \
-  -days 3650 \
-  -nodes \
-  -subj "/CN=sp.studycat.local"
+openssl req -x509 -newkey rsa:3072 -keyout sp-key.pem -out sp-cert.pem -days 3650 -nodes -subj "/CN=sp.studycat.local"
 
 # Copy to create signing certificates (same keypair used for SAML signing)
 cp sp-cert.pem sp-signing-cert.pem
@@ -198,12 +187,6 @@ cd ../../..
 
 4. Find the `<ds:X509Certificate>` tag and replace its contents with the certificate string you copied.
 
-5. Rebuild and restart the IdP to load the new metadata:
-   ```bash
-   docker compose --profile shibboleth build idp
-   docker compose --profile shibboleth up -d idp
-   ```
-
 #### Generate IdP Credentials
 
 ```bash
@@ -212,36 +195,39 @@ mkdir -p shibboleth/idp/customized-shibboleth-idp/credentials
 cd shibboleth/idp/customized-shibboleth-idp/credentials
 
 # Generate signing key/cert
-openssl req -newkey rsa:2048 -nodes -keyout idp-signing.key -x509 -days 365 -out idp-signing.crt \
-  -subj "/CN=idp.studycat.local"
+openssl req -newkey rsa:2048 -nodes -keyout idp-signing.key -x509 -days 365 -out idp-signing.crt -subj "/CN=idp.studycat.local"
 
 # Generate encryption key/cert
-openssl req -newkey rsa:2048 -nodes -keyout idp-encryption.key -x509 -days 365 -out idp-encryption.crt \
-  -subj "/CN=idp.studycat.local"
+openssl req -newkey rsa:2048 -nodes -keyout idp-encryption.key -x509 -days 365 -out idp-encryption.crt -subj "/CN=idp.studycat.local"
 
 # Generate browser TLS certificate (PKCS12 format for Jetty)
-openssl req -newkey rsa:2048 -nodes -keyout idp-browser.key -x509 -days 365 -out idp-browser.crt \
-  -subj "/CN=idp.studycat.local"
-openssl pkcs12 -export -legacy -inkey idp-browser.key -in idp-browser.crt \
-  -out idp-browser.p12 -password pass:abc123
+openssl req -newkey rsa:2048 -nodes -keyout idp-browser.key -x509 -days 365 -out idp-browser.crt -subj "/CN=idp.studycat.local"
+openssl pkcs12 -export -legacy -inkey idp-browser.key -in idp-browser.crt -out idp-browser.p12 -password pass:abc123
 
 # Generate backchannel TLS certificate (PKCS12 format for Jetty)
-openssl req -newkey rsa:2048 -nodes -keyout idp-backchannel.key -x509 -days 365 -out idp-backchannel.crt \
-  -subj "/CN=idp.studycat.local"
-openssl pkcs12 -export -legacy -inkey idp-backchannel.key -in idp-backchannel.crt \
-  -out idp-backchannel.p12 -password pass:abc123
+openssl req -newkey rsa:2048 -nodes -keyout idp-backchannel.key -x509 -days 365 -out idp-backchannel.crt -subj "/CN=idp.studycat.local"
+openssl pkcs12 -export -legacy -inkey idp-backchannel.key -in idp-backchannel.crt -out idp-backchannel.p12 -password pass:abc123
 
 # Generate sealer keystore (for cookie encryption) - requires Java
 openssl rand -out sealer.kver 32
-keytool -genseckey -alias secret1 -keyalg AES -keysize 128 -keystore sealer.jks \
-  -storepass abc123 -keypass abc123 -storetype JCEKS
+keytool -genseckey -alias secret1 -keyalg AES -keysize 128 -keystore sealer.jks -storepass abc123 -keypass abc123 -storetype JCEKS
 
 cd ../../../..
 ```
 
-**Note:** The `keytool` command requires Java. If Java is not available, copy `sealer.jks` and `sealer.kver` from another developer who has generated them.
+**Note:** The `keytool` command requires the Java Development Kit (JDK) to be installed. If you do not have it installed, you can also use docker:
 
----
+```bash
+docker run --rm -v $(pwd):/work -w /work eclipse-temurin:21 keytool -genseckey -alias secret1 -keyalg AES -keysize 128 -keystore sealer.jks -storepass abc123 -keypass abc123 -storetype JCEKS
+```
+
+#### Rebuild and restart the IdP to load the new metadata
+
+```bash
+docker compose --profile shibboleth build idp
+docker compose --profile shibboleth up -d idp
+```
+
 
 ### Step 3: Configure IdP
 
@@ -253,24 +239,30 @@ Edit `customized-shibboleth-idp/conf/idp.properties` to set the entity ID, scope
 
 **macOS:**
 ```bash
-CONF=shibboleth/idp/customized-shibboleth-idp/conf
+IDP_PROPERTIES_FILE=shibboleth/idp/customized-shibboleth-idp/conf/idp.properties
 
-sed -i '' 's|^idp.entityID=.*|idp.entityID=https://idp.studycat.local/idp/shibboleth|' "$CONF/idp.properties"
-sed -i '' 's|^idp.scope=.*|idp.scope=studycat.local|' "$CONF/idp.properties"
-sed -i '' 's|^idp.sealer.storePassword=.*|idp.sealer.storePassword=abc123|' "$CONF/idp.properties"
-sed -i '' 's|^idp.sealer.keyPassword=.*|idp.sealer.keyPassword=abc123|' "$CONF/idp.properties"
-sed -i '' 's|^idp.authn.flows=.*|idp.authn.flows=Password|' "$CONF/idp.properties"
+sed -i '' 's|^idp.entityID=.*|idp.entityID=https://idp.studycat.local/idp/shibboleth|' "$IDP_PROPERTIES_FILE"
+sed -i '' 's|^idp.scope=.*|idp.scope=studycat.local|' "$IDP_PROPERTIES_FILE"
+sed -i '' 's|^idp.sealer.storePassword=.*|idp.sealer.storePassword=abc123|' "$IDP_PROPERTIES_FILE"
+sed -i '' 's|^idp.sealer.keyPassword=.*|idp.sealer.keyPassword=abc123|' "$IDP_PROPERTIES_FILE"
+sed -i '' 's|^idp.authn.flows=.*|idp.authn.flows=Password|' "$IDP_PROPERTIES_FILE"
 ```
 
 **Linux:**
 ```bash
-CONF=shibboleth/idp/customized-shibboleth-idp/conf
+IDP_PROPERTIES_FILE=shibboleth/idp/customized-shibboleth-idp/conf/idp.properties
 
-sed -i 's|^idp.entityID=.*|idp.entityID=https://idp.studycat.local/idp/shibboleth|' "$CONF/idp.properties"
-sed -i 's|^idp.scope=.*|idp.scope=studycat.local|' "$CONF/idp.properties"
-sed -i 's|^idp.sealer.storePassword=.*|idp.sealer.storePassword=abc123|' "$CONF/idp.properties"
-sed -i 's|^idp.sealer.keyPassword=.*|idp.sealer.keyPassword=abc123|' "$CONF/idp.properties"
-sed -i 's|^idp.authn.flows=.*|idp.authn.flows=Password|' "$CONF/idp.properties"
+sed -i 's|^idp.entityID=.*|idp.entityID=https://idp.studycat.local/idp/shibboleth|' "$IDP_PROPERTIES_FILE"
+sed -i 's|^idp.scope=.*|idp.scope=studycat.local|' "$IDP_PROPERTIES_FILE"
+sed -i 's|^idp.sealer.storePassword=.*|idp.sealer.storePassword=abc123|' "$IDP_PROPERTIES_FILE"
+sed -i 's|^idp.sealer.keyPassword=.*|idp.sealer.keyPassword=abc123|' "$IDP_PROPERTIES_FILE"
+sed -i 's|^idp.authn.flows=.*|idp.authn.flows=Password|' "$IDP_PROPERTIES_FILE"
+```
+
+Also need to uncomment the setting:
+
+```properties
+#idp.sealer.storeType = JCEKS
 ```
 
 #### Step 3b: Configure LDAP Properties
@@ -435,18 +427,14 @@ docker compose --profile shibboleth up -d sp
 sleep 8
 
 # Download SP metadata into IdP
-curl -k https://sp.studycat.local/Shibboleth.sso/Metadata > \
-    shibboleth/idp/customized-shibboleth-idp/metadata/sp-metadata.xml
+curl -k https://sp.studycat.local/Shibboleth.sso/Metadata > shibboleth/idp/customized-shibboleth-idp/metadata/sp-metadata.xml
+
+# Extend validUntil to 2028 in IdP Metadata
+sed -i '' 's|validUntil="[^"]*"|validUntil="2099-01-01T00:00:00.000Z"|g' shibboleth/idp/customized-shibboleth-idp/metadata/idp-metadata.xml
 
 # Update the SP's copy of idp-metadata.xml with the freshly-generated IdP certificates
 # (the init script generates metadata with a short-lived validUntil; both copies need updating)
-cp shibboleth/idp/customized-shibboleth-idp/metadata/idp-metadata.xml \
-   shibboleth/sp/config/idp-metadata.xml
-
-# Extend validUntil to 2028 in both files
-sed -i '' 's|validUntil="[^"]*"|validUntil="2028-01-01T00:00:00.000Z"|g' \
-    shibboleth/sp/config/idp-metadata.xml \
-    shibboleth/idp/customized-shibboleth-idp/metadata/idp-metadata.xml
+cp shibboleth/idp/customized-shibboleth-idp/metadata/idp-metadata.xml shibboleth/sp/config/idp-metadata.xml
 
 # Fix SSO/SLO endpoint URLs to use port 4443 (the IdP's HTTPS port).
 # The init script generates URLs without a port (defaulting to 443), but the IdP runs on 4443.
@@ -478,23 +466,13 @@ PYEOF
 
 ### Step 4: Configure Next.js Application
 
-Update your `.env` file with the following values. Run the commands below for the standard settings, then set `JWT_SECRET` and `DATABASE_URL` manually since they are environment-specific.
-
-**macOS:**
-```bash
-sed -i '' 's|^AUTH_MODE=.*|AUTH_MODE=shibboleth|' .env
-sed -i '' 's|^SHIBBOLETH_LOGIN_URL=.*|SHIBBOLETH_LOGIN_URL=https://sp.studycat.local/Shibboleth.sso/Login|' .env
-```
-
-**Linux:**
-```bash
-sed -i 's|^AUTH_MODE=.*|AUTH_MODE=shibboleth|' .env
-sed -i 's|^SHIBBOLETH_LOGIN_URL=.*|SHIBBOLETH_LOGIN_URL=https://sp.studycat.local/Shibboleth.sso/Login|' .env
-```
-
-Then set these values manually in `.env`:
+Update your `.env` file with the following values.
 
 ```bash
+AUTH_MODE=shibboleth
+NEXT_PUBLIC_AUTH_MODE=shibboleth
+SHIBBOLETH_LOGIN_URL=https://sp.studycat.local/Shibboleth.sso/Login
+
 # JWT configuration — choose a strong random secret
 JWT_SECRET=your-secret-key-here
 JWT_EXPIRES_IN=7d
@@ -508,6 +486,9 @@ DATABASE_URL=sqlserver://localhost:1433;database=studycat;user=sa;password=study
 ### Step 5: Build and Start Services
 
 ```bash
+# Stop existing containers
+docker compose --profile shibboleth stop
+
 # Build Docker images
 docker compose --profile shibboleth build
 

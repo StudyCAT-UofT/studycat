@@ -48,52 +48,64 @@ The StudyCAT quiz engine service can be found in the [studycat-service](https://
 
 ## Getting Started
 
-First, clone the repository:
+1. Clone the repository:
 
-```bash
-git clone https://github.com/StudyCAT-UofT/studycat.git
-cd studycat
-```
+    ```bash
+    git clone https://github.com/StudyCAT-UofT/studycat.git
+    cd studycat
+    ```
 
-Then, initialize the submodule:
+2. Initialize the `studycat-schema` submodule:
 
-```bash
-git submodule update --init
-```
+    ```bash
+    git submodule update --init
+    ```
 
-Then, install the dependencies:
+3. Install the project dependencies:
 
-```bash
-pnpm install
-```
+    ```bash
+    pnpm install
+    ```
 
-Create a `.env` file in the root directory and copy the contents of the `.env.example` file into it:
+4. Create an `.env` file in the project root directory and copy the contents of the `.env.example` file into it:
 
-```bash
-cp .env.example .env
-```
+    ```bash
+    cp .env.example .env
+    ```
 
-Then, start the local SQL Server database container:
+5. Then, start the local SQL Server database container:
 
-```bash
-docker compose up -d
-```
+    ```bash
+    docker compose up -d mssql
+    ```
 
-Migrate the database and generate the Prisma client:
+6. Migrate the database and generate the Prisma client:
 
-```bash
-pnpm db:migrate
-```
+    ```bash
+    pnpm db:migrate
+    ```
 
-> **Note:** `pnpm db:migrate` (`prisma migrate dev`) automatically generates the Prisma client as its final step. Running `pnpm db:generate` separately afterwards is only necessary if you want to regenerate the client without running a migration (e.g. after manually updating the submodule).
+7. Generate the Javascript Prisma client:
 
-Then, run the development server:
+    ```bash
+    pnpm db:migrate
+    ```
 
-```bash
-pnpm dev
-```
+8. Seed the database:
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+    ```bash
+    pnpm db:seed
+    ```
+
+9. Then, run the development server:
+
+    ```bash
+    pnpm dev
+    ```
+
+10. Open <http://localhost:3000> with your browser to visit StudyCAT!
+
+    You can login as the `instructor` or `student` users. For a full list of users, see `scripts/seed.ts`.
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
@@ -105,6 +117,7 @@ The following environment variables are required in your `.env` file:
 |----------|-------------|---------|
 | `DATABASE_URL` | SQL Server connection string | `sqlserver://localhost:1433;database=studycat;user=sa;password=...` |
 | `AUTH_MODE` | Authentication mode. Use `shibboleth` for SSO or `simple` for username-only local login. **Defaults to `simple` if not set.** | `shibboleth` |
+| `PUBLIC_NEXT_AUTH_MODE` | Authentication mode (for client-side authentication detection) | `shibboleth` |
 | `JWT_SECRET` | Secret key used to sign session tokens. **Must be set to a strong, random value in any non-trivial environment.** Falls back to an insecure placeholder if omitted. | `change-me-to-a-long-random-string` |
 | `JWT_EXPIRES_IN` | How long a session token remains valid. Defaults to `7d` if not set. | `7d` |
 | `ENABLE_MOCK_SHIBBOLETH` | Set to `true` to enable the `/mock-shibboleth` login page for local development without the full Shibboleth stack | `true` |
