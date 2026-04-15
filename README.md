@@ -44,7 +44,7 @@ The StudyCAT quiz engine service can be found in the [studycat-service](https://
 - [Docker](https://www.docker.com)
 - [Node.js](https://nodejs.org) (v18+)
 - [pnpm](https://pnpm.io)
-- [Python 3.13+](https://www.python.org) (for the quiz engine service)
+- [Python 3.12+](https://www.python.org) (for the quiz engine service)
 
 ## Getting Started
 
@@ -88,7 +88,7 @@ The StudyCAT quiz engine service can be found in the [studycat-service](https://
 7. Generate the Javascript Prisma client:
 
     ```bash
-    pnpm db:migrate
+    pnpm db:generate
     ```
 
 8. Seed the database:
@@ -106,6 +106,7 @@ The StudyCAT quiz engine service can be found in the [studycat-service](https://
 10. Open <http://localhost:3000> with your browser to visit StudyCAT!
 
     You can login as the `instructor` or `student` users. For a full list of users, see `scripts/seed.ts`.
+    If using Shibboleth authentication, supply the password `password`.
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
@@ -171,7 +172,7 @@ The following pnpm scripts are available for working with the database:
 | `pnpm db:seed` | Seed the database with full test data (users, courses, questions, quizzes, and mock responses). User credentials match the Shibboleth IdP test accounts. |
 | `pnpm db:seed:basic` | Seed the database with a minimal dataset (users, a course, and modules only). Useful for manual testing without pre-existing quiz data. |
 
-## Working with the Schema Submodule
+### Working with the Schema Submodule
 
 The Prisma schema and migrations are located in a submodule at `external/studycat-schema/`. This allows for a single source of truth for the database schema across multiple StudyCAT repositories.
 
@@ -272,14 +273,15 @@ Both authentication modes require the user's account to exist in the database be
 - **Simple mode:** The username entered must match an existing `User` record. Returns a `404` if not found.
 - **Shibboleth mode:** The UTORid from the SAML assertion must match an existing `User` record. Returns a `404` if not found.
 
-For local development, running `pnpm db:seed` creates the test accounts (`instructor`, `student`) that match the Shibboleth IdP credentials. In production, users must be added in advance via the Students management page (`/students`) or by an administrator directly.
+For local development, running `pnpm db:seed` creates the test accounts (`instructor`, `student`) that match the Shibboleth IdP credentials (password is `password` for both users). In production, users must be added in advance via the Students management page (`/students`) or by an administrator directly.
 
 ### Mock Shibboleth Login (Development Shortcut)
 
 If you do not need to test the full Shibboleth flow, you can use the built-in mock login page instead. Set the following in your `.env`:
 
-```
+```bash
 AUTH_MODE=shibboleth
+NEXT_PUBLIC_AUTH_MODE=shibboleth
 ENABLE_MOCK_SHIBBOLETH=true
 ```
 

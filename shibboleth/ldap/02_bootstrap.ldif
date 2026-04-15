@@ -1,5 +1,6 @@
 # StudyCAT LDAP Bootstrap - Test Users
 # This file populates the LDAP directory with test users for Shibboleth authentication
+# Note: passwords currently use SHA-1.
 
 # Create organizational unit for people
 dn: ou=people,dc=studycat,dc=local

@@ -16,7 +16,7 @@ ENV IDP_ENTITY_ID="https://idp.studycat.local/idp/shibboleth"
 ENV IDP_METADATA_URL="https://idp.studycat.local:4443/idp/shibboleth"
 ENV SUPPORT_EMAIL="admin@studycat.local"
 ENV SHIB_METADATA_BACKUP_URL="https://idp.studycat.local:4443/idp/shibboleth"
-ENV SHIB_DOWNLOAD_METADATA="true"
+ENV SHIB_DOWNLOAD_METADATA="false"
 
 # Copy Apache SSL certificates (for HTTPS on the SP)
 # Note: jefferyb image expects these at /etc/apache2/ssl/
