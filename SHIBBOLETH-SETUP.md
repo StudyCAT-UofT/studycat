@@ -338,7 +338,7 @@ cp shibboleth/idp/customized-shibboleth-idp/metadata/idp-metadata.xml shibboleth
 
 > **⚠️ Important:** Whenever you generate new SP certificates, you MUST update the IdP's SP metadata file with your new public certificate. The IdP encrypts SAML assertions using your SP's public key—if they don't match, authentication will fail with "Unable to resolve any key decryption keys".
 
-1. Open your newly generated `shibboleth/sp/certificates/sp-cert.pem` in a text editor.
+1. Open `shibboleth/sp/certificates/sp-cert.pem` in a text editor.
 
 2. Copy the certificate content between (but not including) the `-----BEGIN CERTIFICATE-----` and `-----END CERTIFICATE-----` lines.
 
