@@ -115,19 +115,7 @@ chmod 600 sp-key.pem sp-signing-key.pem
 cd ../../..
 ```
 
-#### 3b. Update the IdP with Your New SP Certificate
-
-> **⚠️ Important:** Whenever you generate new SP certificates, you MUST update the IdP's SP metadata file with your new public certificate. The IdP encrypts SAML assertions using your SP's public key—if they don't match, authentication will fail with "Unable to resolve any key decryption keys".
-
-1. Open your newly generated `shibboleth/sp/certificates/sp-cert.pem` in a text editor.
-
-2. Copy the certificate content between (but not including) the `-----BEGIN CERTIFICATE-----` and `-----END CERTIFICATE-----` lines.
-
-3. Open `shibboleth/idp/customized-shibboleth-idp/metadata/sp-metadata.xml`.
-
-4. Find the `<ds:X509Certificate>` tag and replace its contents with the certificate string you copied.
-
-#### 3c. Generate IdP Credentials
+#### 3b. Generate IdP Credentials
 
 ```bash
 # Create credentials directory
@@ -161,7 +149,7 @@ cd ../../../..
 docker run --rm -v $(pwd):/work -w /work eclipse-temurin:21 keytool -genseckey -alias secret1 -keyalg AES -keysize 128 -keystore sealer.jks -storepass abc123 -keypass abc123 -storetype JCEKS
 ```
 
-#### 3d. Rebuild and restart the IdP to load the new metadata
+#### 3c. Rebuild and restart the IdP to load the new metadata
 
 ```bash
 docker compose --profile shibboleth build idp
@@ -172,7 +160,7 @@ docker compose --profile shibboleth up -d idp
 
 All files in this step live under `shibboleth/idp/customized-shibboleth-idp/conf/` (created by Step 2).
 
-#### 3a. Configure IdP Properties
+#### 4a. Configure IdP Properties
 
 Edit `shibboleth/idp/customized-shibboleth-idp/conf/idp.properties` to set the entity ID, scope, sealer configuration, and authentication flow.
 
@@ -189,7 +177,7 @@ idp.sealer.keyPassword=abc123  # Line 48
 idp.authn.flows=Password  # Line 122
 ```
 
-#### Step 3b: Configure LDAP Properties
+#### Step 4b: Configure LDAP Properties
 
 Edit `shibboleth/idp/customized-shibboleth-idp/conf/ldap.properties` to point the IdP at the OpenLDAP container.
 
@@ -206,7 +194,7 @@ idp.authn.LDAP.bindDNCredential                 = admin123  # Line 36
 idp.authn.LDAP.dnFormat                         = uid=%s,ou=people,dc=studycat,dc=local  # Line 40
 ```
 
-#### Step 3c: Configure Attribute Resolver
+#### Step 4c: Configure Attribute Resolver
 
 The application only uses `uid` (username) for authentication, with `eppn` as a fallback. Replace `shibboleth/idp/customized-shibboleth-idp/conf/attribute-resolver.xml` entirely:
 
@@ -231,7 +219,7 @@ cat > shibboleth/idp/customized-shibboleth-idp/conf/attribute-resolver.xml << 'E
 EOF
 ```
 
-#### Step 3d: Configure Attribute Filter
+#### Step 4d: Configure Attribute Filter
 
 Replace `shibboleth/idp/customized-shibboleth-idp/conf/attribute-filter.xml` to release only the required attributes:
 
@@ -252,7 +240,7 @@ cat > shibboleth/idp/customized-shibboleth-idp/conf/attribute-filter.xml << 'EOF
 EOF
 ```
 
-#### Step 3e: Configure Relying Party (Disable Encryption)
+#### Step 4e: Configure Relying Party (Disable Encryption)
 
 Insert a StudyCAT-specific override into `shibboleth/idp/customized-shibboleth-idp/conf/relying-party.xml` to disable assertion encryption for development. This prevents "A valid authentication statement was not found" errors caused by certificate mismatches.
 
@@ -279,7 +267,7 @@ print("Done.")
 PYEOF
 ```
 
-#### Step 3f: Configure Metadata Provider
+#### Step 4f: Configure Metadata Provider
 
 Replace `customized-shibboleth-idp/conf/metadata-providers.xml` entirely. The generated file's `ShibbolethMetadata` element is the root `ChainingMetadataProvider`—the `StudyCATSP` entry must go **inside** it as a child, not before it:
 
@@ -306,7 +294,7 @@ cat > shibboleth/idp/customized-shibboleth-idp/conf/metadata-providers.xml << 'E
 EOF
 ```
 
-#### Step 3g: Download SP Metadata and Update IdP Metadata
+#### Step 4g: Download SP Metadata and Update IdP Metadata
 
 Start the SP container first to expose its metadata endpoint, then download the metadata into the IdP. Also update the `validUntil` in both `idp-metadata.xml` files — the init script generates metadata that expires within minutes, which causes the SP to reject it:
 
@@ -345,6 +333,18 @@ PYEOF
 # Update the SP's copy of idp-metadata.xml with the freshly-generated IdP certificates
 cp shibboleth/idp/customized-shibboleth-idp/metadata/idp-metadata.xml shibboleth/sp/config/idp-metadata.xml
 ```
+
+#### Step 4h. Update the IdP with Your New SP Certificate
+
+> **⚠️ Important:** Whenever you generate new SP certificates, you MUST update the IdP's SP metadata file with your new public certificate. The IdP encrypts SAML assertions using your SP's public key—if they don't match, authentication will fail with "Unable to resolve any key decryption keys".
+
+1. Open `shibboleth/sp/certificates/sp-cert.pem` in a text editor.
+
+2. Copy the certificate content between (but not including) the `-----BEGIN CERTIFICATE-----` and `-----END CERTIFICATE-----` lines.
+
+3. Open `shibboleth/idp/customized-shibboleth-idp/metadata/sp-metadata.xml`.
+
+4. Find the `<ds:X509Certificate>` tag and replace its contents with the certificate string you copied.
 
 ---
 
