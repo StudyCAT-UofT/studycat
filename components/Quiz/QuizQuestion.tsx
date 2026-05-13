@@ -115,7 +115,6 @@ const QuizQuestion = ({ item, onAnswer, onNext, feedback, shuffled, feedbackVisi
                                     key={displayIndex}
                                     p="sm"
                                     radius="md"
-                                    tabIndex={0}
                                     onClick={() => !isFeedbackMode && setUserSelectedIndex(displayIndex)}
                                     style={{
                                         backgroundColor:
