@@ -115,7 +115,7 @@ const QuizQuestion = ({ item, onAnswer, onNext, feedback, shuffled, feedbackVisi
                                     key={displayIndex}
                                     p="sm"
                                     radius="md"
-                                    onClick={() => !isFeedbackMode && setUserSelectedIndex(displayIndex)}
+                                    component="label"
                                     style={{
                                         backgroundColor:
                                             color === 'green'
@@ -127,7 +127,10 @@ const QuizQuestion = ({ item, onAnswer, onNext, feedback, shuffled, feedbackVisi
                                     }}
                                 >
                                     <Group justify="space-between" align="center">
-                                        <Radio value={displayIndex.toString()} label={option} size="md" disabled={isFeedbackMode} style={{ flex: 1 }} />
+                                        <Group align="center" gap="sm">
+                                            <Radio value={displayIndex.toString()} size="md" disabled={isFeedbackMode} style={{ flex: 1 }} />
+                                            <span>{option}</span>
+                                        </Group>
                                         {isCorrectOption && <IconCheck size={20} color="#22c55e" />}
                                         {isWrongSelected && <IconX size={20} color="#ef4444" />}
                                     </Group>
