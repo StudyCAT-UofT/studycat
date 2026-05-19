@@ -19,7 +19,8 @@ describe('StudentQuizCard', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockUseCourse.mockReturnValue({
-      selectedCourseOffering: { courseCode: 'CSC494' }
+      selectedCourseOffering: { courseCode: 'CSC494' },
+      setSelectedCourseOffering: vi.fn()
     })
   })
 
