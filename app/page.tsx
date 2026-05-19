@@ -15,10 +15,11 @@ const CourseSelectionContent = () => {
 
     const handleCourseSelect = (courseOfferingId: string) => {
         const selectedOffering = courseOfferings.find(co => co.id === courseOfferingId)
-        if (selectedOffering) {
-            setSelectedCourseOffering(selectedOffering)
-            router.push('/quiz')
-        }
+        if (!selectedOffering) return
+        const courseCode = selectedOffering.course.code 
+        
+        setSelectedCourseOffering(selectedOffering)
+        router.push(`/${courseCode}/quiz`)
     }
 
     // Loading state
