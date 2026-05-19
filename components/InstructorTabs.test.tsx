@@ -12,10 +12,12 @@ import {
 
 const mockPush = vi.fn()
 const mockUsePathname = vi.fn()
+const mockUseParams = vi.fn()
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: mockPush }),
   usePathname: () => mockUsePathname(),
+  useParams: () => mockUseParams(),
 }))
 
 const mockUseCourse = vi.fn()
@@ -33,6 +35,7 @@ describe('InstructorTabs', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockUsePathname.mockReturnValue('/quiz')
+    mockUseParams.mockReturnValue({ courseCode: 'CSC207' })
   })
 
   it('renders all tabs for an INSTRUCTOR', () => {
@@ -112,7 +115,7 @@ describe('InstructorTabs', () => {
     renderWithProviders(<InstructorTabs>{children}</InstructorTabs>)
 
     await user.click(screen.getByRole('tab', { name: 'Quizzes' }))
-    expect(mockPush).toHaveBeenCalledWith('/quizzes')
+    expect(mockPush).toHaveBeenCalledWith('/CSC207/quizzes')
   })
 
   it('sets the Dashboard tab as active when pathname is /quiz', () => {

@@ -8,7 +8,6 @@ const StudentQuizCard = ({ quiz }: { quiz: Quiz }) => {
     const router = useRouter()
     const { selectedCourseOffering, setSelectedCourseOffering } = useCourse()
     if (!selectedCourseOffering) return
-    const courseCode = selectedCourseOffering.course.code 
 
     setSelectedCourseOffering(selectedCourseOffering)
     
