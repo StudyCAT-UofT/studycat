@@ -11,11 +11,15 @@ vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: mockPush }),
 }))
 
+vi.mock('@/lib/course-context', () => ({
+  useCourse: () => mockUseCourse(),
+}))
+
 describe('StudentQuizCard', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockUseCourse.mockReturnValue({
-      selectedCourseOffering: { courseCode: 'CSC207' }
+      selectedCourseOffering: { courseCode: 'CSC494' }
     })
   })
 
@@ -37,6 +41,6 @@ describe('StudentQuizCard', () => {
     renderWithProviders(<StudentQuizCard quiz={quiz as never} />)
 
     await user.click(screen.getByRole('button', { name: /Take Quiz/i }))
-    expect(mockPush).toHaveBeenCalledWith('/CSC207/quiz/quiz-42')
+    expect(mockPush).toHaveBeenCalledWith('/CSC494/quiz/quiz-42')
   })
 })

@@ -237,7 +237,7 @@ describe('app/quiz/[id]/page.tsx', () => {
         await screen.findByTestId('quiz-feedback')
         await userEvent.click(screen.getByRole('button', { name: 'Return to Dashboard' }))
 
-        expect(mockPush).toHaveBeenCalledWith('/CSC207/quiz')
+        expect(mockPush).toHaveBeenCalledWith('/CSC494/quiz')
     })
 
     // ── Error handling ──────────────────────────────────────────────────────
