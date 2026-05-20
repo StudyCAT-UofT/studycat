@@ -64,7 +64,10 @@ describe('InstructorTabs', () => {
     renderWithProviders(<InstructorTabs>{children}</InstructorTabs>)
 
     expect(screen.getByRole('tab', { name: 'Dashboard' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Question Bank' })).toBeInTheDocument()
     expect(screen.getByRole('tab', { name: 'Quizzes' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Analytics' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Students' })).toBeInTheDocument()
   })
 
   it('does not render tabs for a STUDENT — just renders children', () => {
@@ -79,6 +82,71 @@ describe('InstructorTabs', () => {
     expect(screen.queryByRole('tab')).not.toBeInTheDocument()
     expect(screen.getByTestId('child-content')).toBeInTheDocument()
   })
+
+  it.each(['INSTRUCTOR', 'TA'])(
+  'shows all tabs when switching from a STUDENT course to an %s course', 
+  (targetRole) => {
+    mockUseCourse.mockReturnValue(
+      makeDefaultCourseValue({
+        selectedCourseOffering: makeCourseOffering({ role: 'STUDENT' }),
+        loading: false,
+      })
+    )
+
+    const { rerender } = renderWithProviders(<InstructorTabs>{children}</InstructorTabs>)
+
+    expect(screen.queryByRole('tab')).not.toBeInTheDocument()
+    expect(screen.getByTestId('child-content')).toBeInTheDocument()
+
+    mockUseCourse.mockReturnValue(
+      makeDefaultCourseValue({
+        selectedCourseOffering: makeCourseOffering({ role: targetRole }), 
+        loading: false,
+      })
+    )
+
+    rerender(<InstructorTabs>{children}</InstructorTabs>)
+
+    expect(screen.getByRole('tab', { name: 'Dashboard' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Question Bank' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Quizzes' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Analytics' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Students' })).toBeInTheDocument()
+  }
+)
+
+  it.each(['INSTRUCTOR', 'TA'])(
+  'hides all tabs when switching from an %s course to a STUDENT course', 
+  (targetRole) => {
+    mockUseCourse.mockReturnValue(
+      makeDefaultCourseValue({
+        selectedCourseOffering: makeCourseOffering({ role: targetRole }),
+        loading: false,
+      })
+    )
+
+    const { rerender } = renderWithProviders(<InstructorTabs>{children}</InstructorTabs>)
+
+    expect(screen.getByRole('tab', { name: 'Dashboard' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Question Bank' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Quizzes' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Analytics' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Students' })).toBeInTheDocument()
+
+    mockUseCourse.mockReturnValue(
+      makeDefaultCourseValue({
+        selectedCourseOffering: makeCourseOffering({ role: 'STUDENT' }), 
+        loading: false,
+      })
+    )
+
+    rerender(<InstructorTabs>{children}</InstructorTabs>)
+
+    expect(screen.queryByRole('tab')).not.toBeInTheDocument()
+    expect(screen.getByTestId('child-content')).toBeInTheDocument()
+  }
+)
+
 
   it('does not render tabs when no course offering is selected', () => {
     mockUseCourse.mockReturnValue(

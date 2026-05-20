@@ -10,6 +10,7 @@ export default function CoursesPage() {
   const [courses, setCourses] = useState<Course[]>([])
   const [code, setCode] = useState('')
   const [title, setTitle] = useState('')
+  const [invalidCode, setInvalidCode] = useState('')
 
   async function fetchCourses() {
     const res = await fetch('/api/admin/courses')
@@ -44,6 +45,17 @@ export default function CoursesPage() {
 
   useEffect(() => { fetchCourses() }, [])
 
+  const handleCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setCode(value);
+
+    if (value && !/^[a-zA-Z0-9]+$/.test(value)) {
+        setInvalidCode("Course code can only contain letters and numbers.");
+    } else {
+        setInvalidCode(""); // Clear the error if it's valid
+    }
+  }
+
   return (
     <div>
       <Title order={1} mb="lg">Courses</Title>
@@ -54,7 +66,8 @@ export default function CoursesPage() {
             label="Course Code"
             placeholder="Course Code (e.g. CSC309)"
             value={code}
-            onChange={(e) => setCode(e.target.value)}
+            onChange={handleCodeChange}
+            error={invalidCode}
           />
           <TextInput
             label="Course Title"
@@ -62,7 +75,7 @@ export default function CoursesPage() {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
           />
-          <Button onClick={createCourse} w="fit-content" color='dark'>Create Course</Button>
+          <Button onClick={createCourse} disabled={!!invalidCode} w="fit-content" color='dark'>Create Course</Button>
         </Stack>
       </Paper>
 

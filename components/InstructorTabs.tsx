@@ -117,7 +117,7 @@ export const InstructorTabs = ({ children }: InstructorTabsProps) => {
             router.push(`/${courseCode}${selectedTab.route}`)
         } else {
             // Fallback to dashboard if tab not found
-            router.push('/quiz')
+            router.push(`/${courseCode}/quiz`)
         }
     }
 

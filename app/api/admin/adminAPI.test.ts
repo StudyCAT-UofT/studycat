@@ -105,6 +105,12 @@ describe('POST /api/admin/courses', () => {
         expect(res.status).toBe(400)
     })
 
+    it('returns 400 when course code is not alphanumeric', async () => {
+        asAdmin()
+        const res = await postCoursesRoute(makeRequest({ code: 'CSC 309' }))
+        expect(res.status).toBe(400)
+    })
+
     it('returns 201 with created course', async () => {
         asAdmin()
         vi.mocked(prisma.course.create).mockResolvedValue({ id: '1', code: 'CSC309', title: 'Web', createdAt: new Date() })

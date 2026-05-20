@@ -6,10 +6,8 @@ import { useCourse } from '@/lib/course-context'
 
 const StudentQuizCard = ({ quiz }: { quiz: Quiz }) => {
     const router = useRouter()
-    const { selectedCourseOffering, setSelectedCourseOffering } = useCourse()
+    const { selectedCourseOffering } = useCourse()
     if (!selectedCourseOffering) return
-
-    setSelectedCourseOffering(selectedCourseOffering)
     
     const handleTakeQuiz = () => {
         router.push(`/${selectedCourseOffering.course.code}/quiz/${quiz.id}`)

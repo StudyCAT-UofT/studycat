@@ -21,13 +21,13 @@ export default function CourseLayout({ children }: { children: React.ReactNode }
         } else {
             notifications.show({
                 title: 'Course not found',
-                message: `"${courseCode}" is not a valid course code.`,
+                message: `Course "${courseCode}" not found.`,
                 color: 'red',
             })
                 
             router.replace('/')
         }
-    }, [courseCode, courseOfferings])
+    }, [courseCode, courseOfferings, router, setSelectedCourseOffering])
 
     return <>{children}</>
 
