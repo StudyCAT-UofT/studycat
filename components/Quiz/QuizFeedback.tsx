@@ -120,7 +120,7 @@ export default function QuizFeedback({ feedbackData, onContinue, onReturnToDashb
                     <Stack gap="lg">
                         <Title order={2}>Performance Summary</Title>
 
-                        <SimpleGrid cols={{ base: 1, sm: 2, md: 3 }} spacing="lg">
+                        <SimpleGrid cols={{ base: 1, sm: 2 }} spacing="lg">
                             <Card withBorder padding="lg">
                                 <Stack gap="xs" align="center">
                                     <Text size="sm" tt="uppercase" fw={700}>
@@ -131,20 +131,6 @@ export default function QuizFeedback({ feedbackData, onContinue, onReturnToDashb
                                     </Text>
                                     <Text size="sm">
                                         {feedbackData.questionsCorrect} / {feedbackData.questionsAttempted} correct
-                                    </Text>
-                                </Stack>
-                            </Card>
-
-                            <Card withBorder padding="lg">
-                                <Stack gap="xs" align="center">
-                                    <Text size="sm" tt="uppercase" fw={700}>
-                                        Questions
-                                    </Text>
-                                    <Text size="3rem" fw={700}>
-                                        {feedbackData.questionsAttempted}
-                                    </Text>
-                                    <Text size="sm">
-                                        of {feedbackData.fixedLength} target
                                     </Text>
                                 </Stack>
                             </Card>
