@@ -218,7 +218,7 @@ const QuizContent = ({ quizId }: { quizId: string }) => {
     }
 
     const handleReturnToDashboard = () => {
-        router.push('/quiz')
+        router.push(`/${selectedCourseOffering?.course.code}/quiz`)
     }
 
     if (quizState.loading) {

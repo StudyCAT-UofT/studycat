@@ -310,7 +310,7 @@ const QuestionBankContent = () => {
                             variant="outline"
                             color='dark'
                             leftSection={<IconUpload size={16} />}
-                            onClick={() => router.push('/upload')}
+                            onClick={() => router.push(`/${selectedCourseOffering?.course.code}/upload`)}
                             disabled={!selectedCourseOffering?.course?.id}
                         >
                             Upload Questions

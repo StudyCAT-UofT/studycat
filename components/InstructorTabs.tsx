@@ -1,7 +1,7 @@
 'use client'
 
 import { Tabs } from '@mantine/core'
-import { useRouter, usePathname } from 'next/navigation'
+import { useRouter, usePathname, useParams } from 'next/navigation'
 import { useCourse } from '@/lib/course-context'
 
 interface InstructorTabsProps {
@@ -63,6 +63,7 @@ export const InstructorTabs = ({ children }: InstructorTabsProps) => {
     const router = useRouter()
     const pathname = usePathname()
     const { selectedCourseOffering, loading } = useCourse()
+    const { courseCode } = useParams<{ courseCode: string }>()
 
     // Check if current user has instructor or TA role for the selected course offering
     const isInstructorOrTA = selectedCourseOffering?.role === 'INSTRUCTOR' || selectedCourseOffering?.role === 'TA'
@@ -83,7 +84,7 @@ export const InstructorTabs = ({ children }: InstructorTabsProps) => {
      */
     const getCurrentTab = (): string => {
         // Special case: if pathname is exactly '/quiz', return dashboard
-        if (pathname === '/quiz') {
+        if (pathname === `/${courseCode}/quiz`) {
             return TAB_CONFIGS[0]?.value || 'dashboard'
         }
 
@@ -113,10 +114,10 @@ export const InstructorTabs = ({ children }: InstructorTabsProps) => {
         const selectedTab = TAB_CONFIGS.find(tab => tab.value === value)
 
         if (selectedTab) {
-            router.push(selectedTab.route)
+            router.push(`/${courseCode}${selectedTab.route}`)
         } else {
             // Fallback to dashboard if tab not found
-            router.push('/quiz')
+            router.push(`/${courseCode}/quiz`)
         }
     }
 

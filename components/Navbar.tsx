@@ -79,7 +79,12 @@ export const Navbar = () => {
                                 value={selectedCourseOffering?.id || null}
                                 onChange={(value) => {
                                     const offering = courseOfferings.find(o => o.id === value)
+                                    if (!offering) return
                                     setSelectedCourseOffering(offering || null)
+                                    
+                                    const newCourseCode = offering.course.code
+                                    const newPath = pathname.replace(/^\/[^/]+/, `/${newCourseCode}`)
+                                    router.push(newPath)
                                 }}
                                 data={courseOfferings.map(offering => ({
                                     value: offering.id,

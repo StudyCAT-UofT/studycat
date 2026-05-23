@@ -68,6 +68,12 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
         }
 
+        const isValidCode = /^[a-zA-Z0-9]+$/.test(body.code);
+
+        if (!isValidCode) {
+            return NextResponse.json({ error: 'Course code must be alphanumeric (no spaces or symbols).' }, { status: 400 })
+        }
+
         const course = await prisma.course.create({
             data: {
                 code: body.code,

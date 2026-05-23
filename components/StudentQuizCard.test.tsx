@@ -5,14 +5,27 @@ import StudentQuizCard from './StudentQuizCard'
 import { renderWithProviders, makeQuiz } from '@/test-utils'
 
 const mockPush = vi.fn()
+const mockUseCourse = vi.fn()
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: mockPush }),
 }))
 
+vi.mock('@/lib/course-context', () => ({
+  useCourse: () => mockUseCourse(),
+}))
+
 describe('StudentQuizCard', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockUseCourse.mockReturnValue({
+      selectedCourseOffering: {
+      course: {
+        code: 'CSC494',
+      },
+    },
+    setSelectedCourseOffering: vi.fn(),
+    })
   })
 
   it('renders the quiz title', () => {
@@ -33,6 +46,6 @@ describe('StudentQuizCard', () => {
     renderWithProviders(<StudentQuizCard quiz={quiz as never} />)
 
     await user.click(screen.getByRole('button', { name: /Take Quiz/i }))
-    expect(mockPush).toHaveBeenCalledWith('/quiz/quiz-42')
+    expect(mockPush).toHaveBeenCalledWith('/CSC494/quiz/quiz-42')
   })
 })

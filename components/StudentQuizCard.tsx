@@ -1,12 +1,16 @@
 import { Card, Stack, Group, Button, Text } from "@mantine/core"
 import { Quiz } from "@prisma/client"
 import { useRouter } from "next/navigation"
+import { useCourse } from '@/lib/course-context'
+
 
 const StudentQuizCard = ({ quiz }: { quiz: Quiz }) => {
     const router = useRouter()
-
+    const { selectedCourseOffering } = useCourse()
+    if (!selectedCourseOffering) return
+    
     const handleTakeQuiz = () => {
-        router.push(`/quiz/${quiz.id}`)
+        router.push(`/${selectedCourseOffering.course.code}/quiz/${quiz.id}`)
     }
 
     return (

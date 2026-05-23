@@ -12,10 +12,12 @@ import {
 
 const mockPush = vi.fn()
 const mockUsePathname = vi.fn()
+const mockUseParams = vi.fn()
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: mockPush }),
   usePathname: () => mockUsePathname(),
+  useParams: () => mockUseParams(),
 }))
 
 const mockUseCourse = vi.fn()
@@ -33,6 +35,7 @@ describe('InstructorTabs', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockUsePathname.mockReturnValue('/quiz')
+    mockUseParams.mockReturnValue({ courseCode: 'CSC207' })
   })
 
   it('renders all tabs for an INSTRUCTOR', () => {
@@ -61,7 +64,10 @@ describe('InstructorTabs', () => {
     renderWithProviders(<InstructorTabs>{children}</InstructorTabs>)
 
     expect(screen.getByRole('tab', { name: 'Dashboard' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Question Bank' })).toBeInTheDocument()
     expect(screen.getByRole('tab', { name: 'Quizzes' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Analytics' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Students' })).toBeInTheDocument()
   })
 
   it('does not render tabs for a STUDENT — just renders children', () => {
@@ -76,6 +82,71 @@ describe('InstructorTabs', () => {
     expect(screen.queryByRole('tab')).not.toBeInTheDocument()
     expect(screen.getByTestId('child-content')).toBeInTheDocument()
   })
+
+  it.each(['INSTRUCTOR', 'TA'])(
+  'shows all tabs when switching from a STUDENT course to an %s course', 
+  (targetRole) => {
+    mockUseCourse.mockReturnValue(
+      makeDefaultCourseValue({
+        selectedCourseOffering: makeCourseOffering({ role: 'STUDENT' }),
+        loading: false,
+      })
+    )
+
+    const { rerender } = renderWithProviders(<InstructorTabs>{children}</InstructorTabs>)
+
+    expect(screen.queryByRole('tab')).not.toBeInTheDocument()
+    expect(screen.getByTestId('child-content')).toBeInTheDocument()
+
+    mockUseCourse.mockReturnValue(
+      makeDefaultCourseValue({
+        selectedCourseOffering: makeCourseOffering({ role: targetRole }), 
+        loading: false,
+      })
+    )
+
+    rerender(<InstructorTabs>{children}</InstructorTabs>)
+
+    expect(screen.getByRole('tab', { name: 'Dashboard' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Question Bank' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Quizzes' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Analytics' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Students' })).toBeInTheDocument()
+  }
+)
+
+  it.each(['INSTRUCTOR', 'TA'])(
+  'hides all tabs when switching from an %s course to a STUDENT course', 
+  (targetRole) => {
+    mockUseCourse.mockReturnValue(
+      makeDefaultCourseValue({
+        selectedCourseOffering: makeCourseOffering({ role: targetRole }),
+        loading: false,
+      })
+    )
+
+    const { rerender } = renderWithProviders(<InstructorTabs>{children}</InstructorTabs>)
+
+    expect(screen.getByRole('tab', { name: 'Dashboard' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Question Bank' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Quizzes' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Analytics' })).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'Students' })).toBeInTheDocument()
+
+    mockUseCourse.mockReturnValue(
+      makeDefaultCourseValue({
+        selectedCourseOffering: makeCourseOffering({ role: 'STUDENT' }), 
+        loading: false,
+      })
+    )
+
+    rerender(<InstructorTabs>{children}</InstructorTabs>)
+
+    expect(screen.queryByRole('tab')).not.toBeInTheDocument()
+    expect(screen.getByTestId('child-content')).toBeInTheDocument()
+  }
+)
+
 
   it('does not render tabs when no course offering is selected', () => {
     mockUseCourse.mockReturnValue(
@@ -112,7 +183,7 @@ describe('InstructorTabs', () => {
     renderWithProviders(<InstructorTabs>{children}</InstructorTabs>)
 
     await user.click(screen.getByRole('tab', { name: 'Quizzes' }))
-    expect(mockPush).toHaveBeenCalledWith('/quizzes')
+    expect(mockPush).toHaveBeenCalledWith('/CSC207/quizzes')
   })
 
   it('sets the Dashboard tab as active when pathname is /quiz', () => {
