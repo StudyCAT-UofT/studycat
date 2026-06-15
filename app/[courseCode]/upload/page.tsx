@@ -83,69 +83,90 @@ const UploadPageContent = () => {
         setValidating(true)
         setValidationStatus(null)
 
+        const fileName = file.name?.toLowerCase() ?? ''
+        const isQti = fileName.endsWith('.xml') || fileName.endsWith('.qti')
+
         try {
             const arrayBuffer = await file.arrayBuffer()
             const buffer = Buffer.from(arrayBuffer)
-            const workbook = xlsx.read(buffer, { type: 'buffer' })
-            const sheetName = workbook.SheetNames[0]
 
-            if (!sheetName) {
-                setValidationStatus({
-                    isValid: false,
-                    message: 'Spreadsheet contains no sheets'
-                })
-                return
-            }
+            if (isQti) {
+                const textSnippet = buffer.subarray(0, 256).toString("utf8").trim();
+                const isXmlMagicNum = textSnippet.startsWith("<?xml") && textSnippet.includes("<questestinterop");
 
-            const sheet = workbook.Sheets[sheetName]
-            const rows = xlsx.utils.sheet_to_json(sheet, { defval: null }) as Record<string, unknown>[]
-
-            if (rows.length === 0) {
-                setValidationStatus({
-                    isValid: false,
-                    message: 'Spreadsheet is empty'
-                })
-                return
-            }
-
-            // Get column headers (normalized to lowercase)
-            const headers = Object.keys(rows[0]).map(h => h.toLowerCase().trim())
-
-            // Required columns (case-insensitive matches)
-            const requiredColumns = [
-                { names: ['lecture'],        display: 'lecture' },
-                { names: ['question_id'],    display: 'question_id' },
-                { names: ['category'],       display: 'category' },
-                { names: ['question'],       display: 'question' },
-                { names: ['correct_answer'], display: 'correct_answer' },
-            ]
-
-            const missingColumns: string[] = []
-
-            for (const col of requiredColumns) {
-                const found = col.names.some(name => headers.includes(name))
-                if (!found) {
-                    missingColumns.push(col.display)
+                if (!isXmlMagicNum) {
+                    setValidationStatus({
+                        isValid: false,
+                        message: 'File does not appear to be a valid QTI file.'
+                    })
+                } else {
+                    setValidationStatus({
+                        isValid: true,
+                        message: 'QTI file selected. Click \'Preview Changes\' to analyze.'
+                    })
                 }
-            }
-
-            // At least one answer option (answer_a, answer_b, ...) must be present
-            const hasAnswerOption = headers.some(h => /^answer_[a-z]$/.test(h))
-            if (!hasAnswerOption) {
-                missingColumns.push('answer_a (at least one answer option required)')
-            }
-
-            if (missingColumns.length > 0) {
-                setValidationStatus({
-                    isValid: false,
-                    message: `Missing required columns: ${missingColumns.join(', ')}`,
-                    missingColumns
-                })
             } else {
-                setValidationStatus({
-                    isValid: true,
-                    message: `All required columns found. Ready to import ${rows.length} row(s).`
-                })
+                const workbook = xlsx.read(buffer, { type: 'buffer' })
+                const sheetName = workbook.SheetNames[0]
+
+                if (!sheetName) {
+                    setValidationStatus({
+                        isValid: false,
+                        message: 'Spreadsheet contains no sheets'
+                    })
+                    return
+                }
+
+                const sheet = workbook.Sheets[sheetName]
+                const rows = xlsx.utils.sheet_to_json(sheet, { defval: null }) as Record<string, unknown>[]
+
+                if (rows.length === 0) {
+                    setValidationStatus({
+                        isValid: false,
+                        message: 'Spreadsheet is empty'
+                    })
+                    return
+                }
+
+                // Get column headers (normalized to lowercase)
+                const headers = Object.keys(rows[0]).map(h => h.toLowerCase().trim())
+
+                // Required columns (case-insensitive matches)
+                const requiredColumns = [
+                    { names: ['lecture'],        display: 'lecture' },
+                    { names: ['question_id'],    display: 'question_id' },
+                    { names: ['category'],       display: 'category' },
+                    { names: ['question'],       display: 'question' },
+                    { names: ['correct_answer'], display: 'correct_answer' },
+                ]
+
+                const missingColumns: string[] = []
+
+                for (const col of requiredColumns) {
+                    const found = col.names.some(name => headers.includes(name))
+                    if (!found) {
+                        missingColumns.push(col.display)
+                    }
+                }
+
+                // At least one answer option (answer_a, answer_b, ...) must be present
+                const hasAnswerOption = headers.some(h => /^answer_[a-z]$/.test(h))
+                if (!hasAnswerOption) {
+                    missingColumns.push('answer_a (at least one answer option required)')
+                }
+
+                if (missingColumns.length > 0) {
+                    setValidationStatus({
+                        isValid: false,
+                        message: `Missing required columns: ${missingColumns.join(', ')}`,
+                        missingColumns
+                    })
+                } else {
+                    setValidationStatus({
+                        isValid: true,
+                        message: `All required columns found. Ready to import ${rows.length} row(s).`
+                    })
+                }
             }
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Unknown error'
@@ -536,8 +557,8 @@ const UploadPageContent = () => {
                                         <FileInput
                                             ref={fileInputRef}
                                             label="Choose a spreadsheet file"
-                                            placeholder="Click to choose .xlsx, .xls, or .csv file"
-                                            accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv"
+                                            placeholder="Click to choose .xlsx, .xls, .csv, or .xml (qti) file"
+                                            accept=".xlsx,.xls,.csv,.xml,.qti,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv,application/xml,text/xml"
                                             value={file}
                                             onChange={handleFileChange}
                                             disabled={!selectedCourseOffering || loading}
@@ -623,7 +644,7 @@ const UploadPageContent = () => {
                                     <Text fw={500}>Expected Spreadsheet Format</Text>
                                 </Group>
                                 <Text size="sm">
-                                    Your spreadsheet should include the following columns (case-insensitive):
+                                    Your spreadsheet (.xlsx, .xls, or .csv file) should include the following columns (case-insensitive):
                                 </Text>
                                 <List size="sm" spacing="xs">
                                     <List.Item><strong>lecture</strong> - Module/lecture name</List.Item>

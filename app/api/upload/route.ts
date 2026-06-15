@@ -3,6 +3,9 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import * as xlsx from "xlsx";
 import { BloomCategory } from '@/types'
+import { parseQtiBuffer, formatQuestions, QuestionObj } from "@/lib/qti-parser";
+
+class UploadValidationError extends Error {}
 
 export const runtime = "nodejs";
 
@@ -71,17 +74,7 @@ export async function POST(request: Request) {
         const courseId = String(courseIdRaw);
         const offeringId = String(offeringIdRaw);
 
-        // Read uploaded file into buffer and parse via xlsx
-        const arrayBuffer = await file.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
-        const workbook = xlsx.read(buffer, { type: "buffer" });
-        const sheetName = workbook.SheetNames[0];
-        if (!sheetName) {
-            return NextResponse.json({ error: "Uploaded workbook contains no sheets" }, { status: 400 });
-        }
-
-        const sheet = workbook.Sheets[sheetName];
-        const rawRows = xlsx.utils.sheet_to_json(sheet, { defval: null }) as Record<string, unknown>[];
+        const rawRows = await parseUploadedFile(file);
 
         // helpers
         const normalizeHeader = (h: string) => h?.toString().trim().toLowerCase();
@@ -119,6 +112,8 @@ export async function POST(request: Request) {
 
         // Track all question IDs seen in the spreadsheet for deactivation
         const seenQuestionIds: string[] = [];
+        const seenIds = new Set<string>(); // tracks seen question ids for new quizzes to prevent duplicates
+        const seenQuestionContents = new Set<string>(); // tracks seen questions (question text, answer options, feedback) for classic quizzes to prevent duplicates
 
         // process rows sequentially (keeps DB small-batch friendly and easy to reason about)
         for (const row of parsedRows) {
@@ -145,7 +140,7 @@ export async function POST(request: Request) {
                 const externalQuestionId = externalQuestionIdRaw ? String(externalQuestionIdRaw) : null;
                 const moduleNameStr = moduleName ? String(moduleName) : null;
 
-                if (!moduleNameStr || !externalQuestionId) {
+                if (!moduleNameStr || !externalQuestionId || !stem) {
                     details.push({ externalQuestionId, status: "skipped: missing identifiers" });
                     continue;
                 }
@@ -159,7 +154,7 @@ export async function POST(request: Request) {
                     continue;
                 }
 
-                const bloom = mapBloom(bloomRaw);
+                const bloom = mapBloom(bloomRaw) ?? "REMEMBER"; // Default is set to "REMEMBER" for now
                 if (!bloom) {
                     details.push({ externalQuestionId, status: "skipped: invalid bloom category" });
                     continue;
@@ -179,8 +174,8 @@ export async function POST(request: Request) {
                     }
                 }
 
-                if (labels.length === 0) {
-                    details.push({ externalQuestionId, status: "skipped: no answer options found" });
+                if (labels.length < 2 || labels.length > 26) {
+                    details.push({ externalQuestionId, status: "skipped: impermissible number of answer options (must be between 2 and 26)" });
                     continue;
                 }
 
@@ -200,9 +195,13 @@ export async function POST(request: Request) {
                     let isCorrect = false;
 
                     if (correctRaw != null) {
-                        const c = String(correctRaw).trim();
-                        if (/^[A-Za-z]$/.test(c)) {
-                            if (c.toUpperCase() === label) isCorrect = true;
+                        if (Array.isArray(correctRaw)) {
+                            isCorrect = correctRaw.some((c) => String(c).trim().toUpperCase() === label);
+                        } else {
+                            const c = String(correctRaw).trim();
+                            if (/^[A-Za-z]$/.test(c)) {
+                                if (c.toUpperCase() === label) isCorrect = true;
+                            }
                         }
                     }
 
@@ -213,6 +212,40 @@ export async function POST(request: Request) {
                         isCorrect,
                     });
                 }
+
+                const seenAnswerTexts = new Set<string>();
+                for (const opt of optionsToCreate) {
+                    if (seenAnswerTexts.has(opt.text)) {
+                        details.push({ externalQuestionId, status: "skipped: duplicate answer options" });
+                        break;
+                    }
+                    seenAnswerTexts.add(opt.text);
+                }
+
+                if (seenAnswerTexts.size < optionsToCreate.length) continue; 
+
+                if (!optionsToCreate.some(o => o.isCorrect)) {
+                    details.push({ externalQuestionId, status: "skipped: no correct answer specified" });
+                    continue;
+                }
+
+                if (seenIds.has(externalQuestionId)) {
+                    details.push({ externalQuestionId, status: "skipped: duplicate question ID" });
+                    continue;
+                }
+                seenIds.add(externalQuestionId);
+
+                const ansString = optionsToCreate.map(option => {
+                    return `(${option.text},${option.justification})`;
+                });
+
+                const questionContent = `${String(stem)},${String(figure)},${ansString.sort().join(",")}`;
+
+                if (seenQuestionContents.has(questionContent)) {
+                    details.push({ externalQuestionId, status: "skipped: duplicate question content" });
+                    continue;
+                }
+                seenQuestionContents.add(questionContent);
 
                 // find or create module by (offeringId, name)
                 let moduleRecord = await prisma.module.findFirst({
@@ -515,7 +548,73 @@ export async function POST(request: Request) {
 
         return NextResponse.json({ importedCount: details.length, details }, { status: 200 });
     } catch (error) {
+        if (error instanceof UploadValidationError) {
+            return NextResponse.json({ error: String(error.message) }, { status: 400 });
+        }
         console.error("Failed to import spreadsheet:", error);
         return NextResponse.json({ error: "Failed to import spreadsheet", details: String(error) }, { status: 500 });
     }
+}
+
+async function parseUploadedFile (file: File): Promise<Record<string, unknown>[]> {
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    const fileName = file.name?.toLowerCase() ?? "";
+
+    const isXmlExt = (fileName.endsWith(".xml") || fileName.endsWith(".qti"));
+    const isXlsxExt = (fileName.endsWith(".xlsx"));
+    const isXlsExt = (fileName.endsWith(".xls"));
+    const isCsvExt = (fileName.endsWith(".csv"));
+
+    const isXlsxMagicNum = buffer[0] === 0x50 && buffer[1] === 0x4B && buffer[2] === 0x03 && buffer[3] === 0x04;
+    const isXlsMagicNum  = buffer[0] === 0xD0 && buffer[1] === 0xCF && buffer[2] === 0x11 && buffer[3] === 0xE0;
+
+    const textSnippet = buffer.subarray(0, 256).toString("utf8").trim();
+    const isXmlMagicNum = textSnippet.startsWith("<?xml") && textSnippet.includes("<questestinterop");
+
+    if (isXmlExt && !isXmlMagicNum) throw new UploadValidationError("File extension suggests QTI format but file content does not match");
+    if (isXmlMagicNum && !isXmlExt) throw new UploadValidationError("File content suggests QTI format but file extension does not match");
+    if (isXlsxExt && !isXlsxMagicNum) throw new UploadValidationError("File extension suggests XLSX format but file content does not match");
+    if (isXlsxMagicNum && !isXlsxExt && !isCsvExt) throw new UploadValidationError("File content suggests XLSX format but file extension does not match");
+    if (isXlsExt && !isXlsMagicNum) throw new UploadValidationError("File extension suggests XLS format but file content does not match.");
+    if (isXlsMagicNum && !isXlsExt) throw new UploadValidationError("File content suggests XLS format but file extension does not match.");
+
+    if (isXmlExt && isXmlMagicNum) {
+        try {
+            const { questions } = await parseQtiBuffer(buffer, null); // const { questions, itemBanks } = await parseQtiBuffer(buffer, null) - then loop to parse item banks when zip file upload is supported
+            const formatted = formatQuestions(questions);
+            return toFlatRows(formatted);
+        } catch (parserError: any) {
+            throw new UploadValidationError(`Invalid QTI file structure. Ensure your file follows QTI standards and all questions have the required attributes. `);
+        }
+    }
+
+    const workbook = xlsx.read(buffer, { type: "buffer" });
+    const sheetName = workbook.SheetNames[0];
+    if (!sheetName) {
+        throw new Error("Uploaded workbook contains no sheets");
+    }
+
+    const sheet = workbook.Sheets[sheetName];
+    const rawRows = xlsx.utils.sheet_to_json(sheet, { defval: null }) as Record<string, unknown>[];
+
+    return rawRows;
+}
+
+function toFlatRows(questions: QuestionObj[]): Record<string, unknown>[] {
+    return questions.map((q) => {
+        const row: Record<string, unknown> = {
+            lecture: q.moduleTitle,
+            question_id: q.questionId,
+            question: q.questionTitle,
+            correct_answer: q.correctAnsLetters,
+        };
+
+        for (const [key, option] of Object.entries(q.answerOptions)) {
+            row[key] = option.answerText;
+            row[`answer_justification_${option.answerLetter.toLowerCase()}`] = option.justification;
+        }
+
+        return row;
+    })
 }
