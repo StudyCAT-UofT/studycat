@@ -109,7 +109,7 @@ export const QuestionBankTable = ({ items, loading, error, onRefresh, selectedRe
             width: 130,
             render: (item: Item) => (
                 <Group gap="xs">
-                    <Text size="sm" c={item.active ? undefined : 'dimmed'}>{item.externalQuestionId}</Text>
+                    <Text size="sm" lineClamp={2} c={item.active ? undefined : 'dimmed'}>{item.externalQuestionId}</Text>
                     {!item.active && (
                         <Badge size="xs" color="gray" variant="filled">Inactive</Badge>
                     )}
