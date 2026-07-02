@@ -113,8 +113,8 @@ export async function POST(request: Request) {
 
         // Track all question IDs seen in the spreadsheet for deactivation
         const seenQuestionIds: string[] = [];
-        const seenIds = new Set<string>(); // tracks seen question ids for new quizzes to prevent duplicates
-        const seenQuestionContents = new Set<string>(); // tracks seen questions (question text, answer options, feedback) for classic quizzes to prevent duplicates
+        const seenIds = new Set<string>(); // tracks seen question ids to prevent duplicates
+        const seenQuestionContents = new Set<string>(); // tracks seen questions (question text, answer options, feedback) to prevent duplicates
 
         // process rows sequentially (keeps DB small-batch friendly and easy to reason about)
         for (const row of parsedRows) {
