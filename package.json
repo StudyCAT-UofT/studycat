@@ -29,7 +29,6 @@
     "@mantine/notifications": "^8.3.6",
     "@prisma/client": "^6.16.2",
     "@tabler/icons-react": "^3.35.0",
-    "cheerio": "^1.2.0",
     "clsx": "^2.1.1",
     "js-cookie": "^3.0.5",
     "jsonwebtoken": "^9.0.2",
@@ -39,7 +38,6 @@
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "recharts": "^3.4.1",
-    "sax": "^1.6.0",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
@@ -53,7 +51,6 @@
     "@types/papaparse": "^5.5.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@types/sax": "^1.2.7",
     "@vitejs/plugin-react": "^5.1.1",
     "@vitest/coverage-v8": "4.0.10",
     "@vitest/ui": "^4.0.10",
