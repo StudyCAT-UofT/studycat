@@ -119,17 +119,6 @@ export async function POST(request: Request) {
         // process rows sequentially (keeps DB small-batch friendly and easy to reason about)
         for (const row of parsedRows) {
             try {
-                if (row["_is_parser_error"]) {
-                    const fullPath = String(row["failed_file"] || "unknown_file");
-                    const shortFileName = fullPath.split('/').pop() || fullPath;
-
-                    details.push({ 
-                        status: "error", 
-                        error: `Failed to parse file: ${shortFileName}` 
-                    });
-                    continue;
-                }
-
                 const questionTypeRaw = row["question_type"];
 
                 if (questionTypeRaw != null && !allowedQuestionTypes.has(String(questionTypeRaw))) {
