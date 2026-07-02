@@ -83,91 +83,71 @@ const UploadPageContent = () => {
         setValidating(true)
         setValidationStatus(null)
 
-        const fileName = file.name?.toLowerCase() ?? ''
-        const isQti = fileName.endsWith('.xml') || fileName.endsWith('.qti')
-
         try {
             const arrayBuffer = await file.arrayBuffer()
             const buffer = Buffer.from(arrayBuffer)
+            const workbook = xlsx.read(buffer, { type: 'buffer' })
+            const sheetName = workbook.SheetNames[0]
 
-            if (isQti) {
-                const textSnippet = buffer.subarray(0, 256).toString("utf8").trim();
-                const isXmlMagicNum = textSnippet.startsWith("<?xml") && textSnippet.includes("<questestinterop");
+            if (!sheetName) {
+                setValidationStatus({
+                    isValid: false,
+                    message: 'Spreadsheet contains no sheets'
+                })
+                return
+            }
 
-                if (!isXmlMagicNum) {
-                    setValidationStatus({
-                        isValid: false,
-                        message: 'File does not appear to be a valid QTI file.'
-                    })
-                } else {
-                    setValidationStatus({
-                        isValid: true,
-                        message: 'QTI file selected. Click \'Preview Changes\' to analyze.'
-                    })
-                }
-            } else {
-                const workbook = xlsx.read(buffer, { type: 'buffer' })
-                const sheetName = workbook.SheetNames[0]
+            const sheet = workbook.Sheets[sheetName]
+            const rows = xlsx.utils.sheet_to_json(sheet, { defval: null }) as Record<string, unknown>[]
 
-                if (!sheetName) {
-                    setValidationStatus({
-                        isValid: false,
-                        message: 'Spreadsheet contains no sheets'
-                    })
-                    return
-                }
+            if (rows.length === 0) {
+                setValidationStatus({
+                    isValid: false,
+                    message: 'Spreadsheet is empty'
+                })
+                return
+            }
 
-                const sheet = workbook.Sheets[sheetName]
-                const rows = xlsx.utils.sheet_to_json(sheet, { defval: null }) as Record<string, unknown>[]
+            // Get column headers (normalized to lowercase)
+            const headers = Object.keys(rows[0]).map(h => h.toLowerCase().trim())
 
-                if (rows.length === 0) {
-                    setValidationStatus({
-                        isValid: false,
-                        message: 'Spreadsheet is empty'
-                    })
-                    return
-                }
+            // Required columns (case-insensitive matches)
+            const requiredColumns = [
+                { names: ['lecture'],        display: 'lecture' },
+                { names: ['question_id'],    display: 'question_id' },
+                // { names: ['category'],       display: 'category' },
+                { names: ['question'],       display: 'question' },
+                { names: ['correct_answer'], display: 'correct_answer' },
+            ]
 
-                // Get column headers (normalized to lowercase)
-                const headers = Object.keys(rows[0]).map(h => h.toLowerCase().trim())
+            const missingColumns: string[] = []
 
-                // Required columns (case-insensitive matches)
-                const requiredColumns = [
-                    { names: ['lecture'],        display: 'lecture' },
-                    { names: ['question_id'],    display: 'question_id' },
-                    { names: ['category'],       display: 'category' },
-                    { names: ['question'],       display: 'question' },
-                    { names: ['correct_answer'], display: 'correct_answer' },
-                ]
-
-                const missingColumns: string[] = []
-
-                for (const col of requiredColumns) {
-                    const found = col.names.some(name => headers.includes(name))
-                    if (!found) {
-                        missingColumns.push(col.display)
-                    }
-                }
-
-                // At least one answer option (answer_a, answer_b, ...) must be present
-                const hasAnswerOption = headers.some(h => /^answer_[a-z]$/.test(h))
-                if (!hasAnswerOption) {
-                    missingColumns.push('answer_a (at least one answer option required)')
-                }
-
-                if (missingColumns.length > 0) {
-                    setValidationStatus({
-                        isValid: false,
-                        message: `Missing required columns: ${missingColumns.join(', ')}`,
-                        missingColumns
-                    })
-                } else {
-                    setValidationStatus({
-                        isValid: true,
-                        message: `All required columns found. Ready to import ${rows.length} row(s).`
-                    })
+            for (const col of requiredColumns) {
+                const found = col.names.some(name => headers.includes(name))
+                if (!found) {
+                    missingColumns.push(col.display)
                 }
             }
+
+            // At least one answer option (answer_a, answer_b, ...) must be present
+            const hasAnswerOption = headers.some(h => /^answer_[a-z]$/.test(h))
+            if (!hasAnswerOption) {
+                missingColumns.push('answer_a (at least one answer option required)')
+            }
+
+            if (missingColumns.length > 0) {
+                setValidationStatus({
+                    isValid: false,
+                    message: `Missing required columns: ${missingColumns.join(', ')}`,
+                    missingColumns
+                })
+            } else {
+                setValidationStatus({
+                    isValid: true,
+                    message: `All required columns found. Ready to import ${rows.length} row(s).`
+                })
+            }
+            
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Unknown error'
             setValidationStatus({
@@ -290,6 +270,33 @@ const UploadPageContent = () => {
                 icon: <IconCheck size={16} />,
                 autoClose: 5000,
             })
+            
+            if (errors > 0) {
+                notifications.show({
+                    title: `${errors} Question(s) Failed`,
+                    message: data.details
+                        .filter(d => d.status === 'error')
+                        .map(d => `• ${d.externalQuestionId ?? 'unknown'}: ${d.error ?? 'unknown error'}`)
+                        .join('\n'),
+                    color: 'red',
+                    icon: <IconAlertCircle size={16} />,
+                    autoClose: false,
+                })
+            }
+            console.log(errors)
+
+            if (skipped > 0) {
+                notifications.show({
+                    title: `${skipped} Question(s) Skipped`,
+                    message: data.details
+                        .filter(d => d.status?.startsWith('skipped'))
+                        .map(d => `• ${d.externalQuestionId ?? 'unknown'}${d.error ? ': ' + d.error : ''}`)
+                        .join('\n'),
+                    color: 'orange',
+                    icon: <IconAlertTriangle size={16} />,
+                    autoClose: false,
+                })
+            }
 
             if (deactivated > 0) {
                 notifications.show({
@@ -458,11 +465,28 @@ const UploadPageContent = () => {
                         </Card>
                     )}
 
-                    {/* Skipped / Errors */}
-                    {(skippedEntries.length > 0 || errorEntries.length > 0) && (
-                        <Alert color="orange" icon={<IconAlertTriangle size={16} />} title="Rows with issues">
-                            {skippedEntries.length > 0 && <Text size="sm">Skipped: {skippedEntries.length}</Text>}
-                            {errorEntries.length > 0 && <Text size="sm">Errors: {errorEntries.length}</Text>}
+                    {/* Skipped Rows */}
+                    {skippedEntries.length > 0 && (
+                        <Alert color="orange" icon={<IconAlertTriangle size={16} />} title="Rows Skipped">
+                            <Text size="sm">
+                                {skippedEntries.length} row(s) were skipped due to missing data, duplicates, or validation rules.
+                            </Text>
+                        </Alert>
+                    )}
+
+                    {/* Fatal / File Errors */}
+                    {errorEntries.length > 0 && (
+                        <Alert color="red" icon={<IconAlertCircle size={16} />} title="Critical Parsing Errors">
+                            <Text size="sm" mb="sm" fw={500}>
+                                The following files or entries encountered critical errors and could not be processed:
+                            </Text>
+                            <List size="sm" withPadding styles={{ item: { color: 'black' } }}>
+                                {errorEntries.map((entry, idx) => (
+                                    <List.Item key={idx}>
+                                        {entry.error || 'An unknown error occurred during parsing.'}
+                                    </List.Item>
+                                ))}
+                            </List>
                         </Alert>
                     )}
 
@@ -557,8 +581,8 @@ const UploadPageContent = () => {
                                         <FileInput
                                             ref={fileInputRef}
                                             label="Choose a spreadsheet file"
-                                            placeholder="Click to choose .xlsx, .xls, .csv, or .xml (qti) file"
-                                            accept=".xlsx,.xls,.csv,.xml,.qti,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv,application/xml,text/xml"
+                                            placeholder="Click to choose .xlsx, .xls, or .csv file"
+                                            accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv"
                                             value={file}
                                             onChange={handleFileChange}
                                             disabled={!selectedCourseOffering || loading}

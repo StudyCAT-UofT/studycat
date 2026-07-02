@@ -3,7 +3,6 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import * as xlsx from "xlsx";
 import { BloomCategory } from '@/types'
-import { parseQtiBuffer, formatQuestions, QuestionObj } from "@/lib/qti-parser";
 
 class UploadValidationError extends Error {}
 
@@ -74,6 +73,8 @@ export async function POST(request: Request) {
         const courseId = String(courseIdRaw);
         const offeringId = String(offeringIdRaw);
 
+        const allowedQuestionTypes = new Set(["multiple_choice_question", "true_false_question"]);
+
         const rawRows = await parseUploadedFile(file);
 
         // helpers
@@ -118,9 +119,31 @@ export async function POST(request: Request) {
         // process rows sequentially (keeps DB small-batch friendly and easy to reason about)
         for (const row of parsedRows) {
             try {
+                if (row["_is_parser_error"]) {
+                    const fullPath = String(row["failed_file"] || "unknown_file");
+                    const shortFileName = fullPath.split('/').pop() || fullPath;
+
+                    details.push({ 
+                        status: "error", 
+                        error: `Failed to parse file: ${shortFileName}` 
+                    });
+                    continue;
+                }
+
+                const questionTypeRaw = row["question_type"];
+
+                if (questionTypeRaw != null && !allowedQuestionTypes.has(String(questionTypeRaw))) {
+                    const skippedQuestionId = row["question_id"] != null ? String(row["question_id"]) : null;
+                    details.push({
+                        externalQuestionId: skippedQuestionId,
+                        status: `skipped: unsupported question type (${String(questionTypeRaw)})`,
+                    });
+                    continue;
+                }
+
                 const moduleName = row["lecture"];
                 const externalQuestionIdRaw = row["question_id"];
-                const bloomRaw = row["category"];
+                const bloomRaw = row["category"] ?? "REM";
                 const stem = row["question"] ?? "";
                 const figure = row["question_figure"] ?? null;
                 // answer_figure is not yet stored — see GitHub issue #68
@@ -216,6 +239,7 @@ export async function POST(request: Request) {
                 const seenAnswerTexts = new Set<string>();
                 for (const opt of optionsToCreate) {
                     if (seenAnswerTexts.has(opt.text)) {
+                        console.log(`[SKIP] ${externalQuestionId} — duplicate answer option text: "${opt.text}"`);
                         details.push({ externalQuestionId, status: "skipped: duplicate answer options" });
                         break;
                     }
@@ -545,7 +569,7 @@ export async function POST(request: Request) {
                 }
             }
         }
-
+        console.log(details.filter(d => 'status' in d && d.status.startsWith('skipped')));
         return NextResponse.json({ importedCount: details.length, details }, { status: 200 });
     } catch (error) {
         if (error instanceof UploadValidationError) {
@@ -561,33 +585,21 @@ async function parseUploadedFile (file: File): Promise<Record<string, unknown>[]
     const buffer = Buffer.from(arrayBuffer);
     const fileName = file.name?.toLowerCase() ?? "";
 
-    const isXmlExt = (fileName.endsWith(".xml") || fileName.endsWith(".qti"));
     const isXlsxExt = (fileName.endsWith(".xlsx"));
     const isXlsExt = (fileName.endsWith(".xls"));
     const isCsvExt = (fileName.endsWith(".csv"));
 
-    const isXlsxMagicNum = buffer[0] === 0x50 && buffer[1] === 0x4B && buffer[2] === 0x03 && buffer[3] === 0x04;
+    const isXlsxZipMagicNum = buffer[0] === 0x50 && buffer[1] === 0x4B && buffer[2] === 0x03 && buffer[3] === 0x04;
     const isXlsMagicNum  = buffer[0] === 0xD0 && buffer[1] === 0xCF && buffer[2] === 0x11 && buffer[3] === 0xE0;
 
-    const textSnippet = buffer.subarray(0, 256).toString("utf8").trim();
-    const isXmlMagicNum = textSnippet.startsWith("<?xml") && textSnippet.includes("<questestinterop");
-
-    if (isXmlExt && !isXmlMagicNum) throw new UploadValidationError("File extension suggests QTI format but file content does not match");
-    if (isXmlMagicNum && !isXmlExt) throw new UploadValidationError("File content suggests QTI format but file extension does not match");
-    if (isXlsxExt && !isXlsxMagicNum) throw new UploadValidationError("File extension suggests XLSX format but file content does not match");
-    if (isXlsxMagicNum && !isXlsxExt && !isCsvExt) throw new UploadValidationError("File content suggests XLSX format but file extension does not match");
+    const isCsvContent = !isXlsxZipMagicNum && !isXlsMagicNum;
+   
+    if (isXlsxExt && !isXlsxZipMagicNum) throw new UploadValidationError("File extension suggests XLSX format or a ZIP file but file content does not match.");
+    
     if (isXlsExt && !isXlsMagicNum) throw new UploadValidationError("File extension suggests XLS format but file content does not match.");
     if (isXlsMagicNum && !isXlsExt) throw new UploadValidationError("File content suggests XLS format but file extension does not match.");
 
-    if (isXmlExt && isXmlMagicNum) {
-        try {
-            const { questions } = await parseQtiBuffer(buffer, null); // const { questions, itemBanks } = await parseQtiBuffer(buffer, null) - then loop to parse item banks when zip file upload is supported
-            const formatted = formatQuestions(questions);
-            return toFlatRows(formatted);
-        } catch (parserError: any) {
-            throw new UploadValidationError(`Invalid QTI file structure. Ensure your file follows QTI standards and all questions have the required attributes. `);
-        }
-    }
+    if (isCsvExt && !isCsvContent) throw new UploadValidationError("File extension suggests CSV format but file content contains unexpected binary or XML data.");
 
     const workbook = xlsx.read(buffer, { type: "buffer" });
     const sheetName = workbook.SheetNames[0];
@@ -599,22 +611,4 @@ async function parseUploadedFile (file: File): Promise<Record<string, unknown>[]
     const rawRows = xlsx.utils.sheet_to_json(sheet, { defval: null }) as Record<string, unknown>[];
 
     return rawRows;
-}
-
-function toFlatRows(questions: QuestionObj[]): Record<string, unknown>[] {
-    return questions.map((q) => {
-        const row: Record<string, unknown> = {
-            lecture: q.moduleTitle,
-            question_id: q.questionId,
-            question: q.questionTitle,
-            correct_answer: q.correctAnsLetters,
-        };
-
-        for (const [key, option] of Object.entries(q.answerOptions)) {
-            row[key] = option.answerText;
-            row[`answer_justification_${option.answerLetter.toLowerCase()}`] = option.justification;
-        }
-
-        return row;
-    })
 }
