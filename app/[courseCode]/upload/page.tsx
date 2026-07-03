@@ -115,7 +115,7 @@ const UploadPageContent = () => {
             const requiredColumns = [
                 { names: ['lecture'],        display: 'lecture' },
                 { names: ['question_id'],    display: 'question_id' },
-                { names: ['category'],       display: 'category' },
+                // { names: ['category'],       display: 'category' },
                 { names: ['question'],       display: 'question' },
                 { names: ['correct_answer'], display: 'correct_answer' },
             ]
@@ -269,6 +269,33 @@ const UploadPageContent = () => {
                 icon: <IconCheck size={16} />,
                 autoClose: 5000,
             })
+            
+            if (errors > 0) {
+                notifications.show({
+                    title: `${errors} Question(s) Failed`,
+                    message: data.details
+                        .filter(d => d.status === 'error')
+                        .map(d => `• ${d.externalQuestionId ?? 'unknown'}: ${d.error ?? 'unknown error'}`)
+                        .join('\n'),
+                    color: 'red',
+                    icon: <IconAlertCircle size={16} />,
+                    autoClose: false,
+                })
+                console.error(errors)
+            }
+
+            if (skipped > 0) {
+                notifications.show({
+                    title: `${skipped} Question(s) Skipped`,
+                    message: data.details
+                        .filter(d => d.status?.startsWith('skipped'))
+                        .map(d => `• ${d.externalQuestionId ?? 'unknown'}${d.error ? ': ' + d.error : ''}`)
+                        .join('\n'),
+                    color: 'orange',
+                    icon: <IconAlertTriangle size={16} />,
+                    autoClose: false,
+                })
+            }
 
             if (deactivated > 0) {
                 notifications.show({
@@ -437,11 +464,28 @@ const UploadPageContent = () => {
                         </Card>
                     )}
 
-                    {/* Skipped / Errors */}
-                    {(skippedEntries.length > 0 || errorEntries.length > 0) && (
-                        <Alert color="orange" icon={<IconAlertTriangle size={16} />} title="Rows with issues">
-                            {skippedEntries.length > 0 && <Text size="sm">Skipped: {skippedEntries.length}</Text>}
-                            {errorEntries.length > 0 && <Text size="sm">Errors: {errorEntries.length}</Text>}
+                    {/* Skipped Rows */}
+                    {skippedEntries.length > 0 && (
+                        <Alert color="orange" icon={<IconAlertTriangle size={16} />} title="Rows Skipped">
+                            <Text size="sm">
+                                {skippedEntries.length} row(s) were skipped due to missing data, duplicates, or validation rules.
+                            </Text>
+                        </Alert>
+                    )}
+
+                    {/* Fatal / File Errors */}
+                    {errorEntries.length > 0 && (
+                        <Alert color="red" icon={<IconAlertCircle size={16} />} title="Critical Parsing Errors">
+                            <Text size="sm" mb="sm" fw={500}>
+                                The following files or entries encountered critical errors and could not be processed:
+                            </Text>
+                            <List size="sm" withPadding styles={{ item: { color: 'black' } }}>
+                                {errorEntries.map((entry, idx) => (
+                                    <List.Item key={idx}>
+                                        {entry.error || 'An unknown error occurred during parsing.'}
+                                    </List.Item>
+                                ))}
+                            </List>
                         </Alert>
                     )}
 
@@ -623,7 +667,7 @@ const UploadPageContent = () => {
                                     <Text fw={500}>Expected Spreadsheet Format</Text>
                                 </Group>
                                 <Text size="sm">
-                                    Your spreadsheet should include the following columns (case-insensitive):
+                                    Your spreadsheet (.xlsx, .xls, or .csv file) should include the following columns (case-insensitive):
                                 </Text>
                                 <List size="sm" spacing="xs">
                                     <List.Item><strong>lecture</strong> - Module/lecture name</List.Item>

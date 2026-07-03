@@ -4,6 +4,8 @@ import { prisma } from "@/lib/prisma";
 import * as xlsx from "xlsx";
 import { BloomCategory } from '@/types'
 
+class UploadValidationError extends Error {}
+
 export const runtime = "nodejs";
 
 /**
@@ -71,17 +73,7 @@ export async function POST(request: Request) {
         const courseId = String(courseIdRaw);
         const offeringId = String(offeringIdRaw);
 
-        // Read uploaded file into buffer and parse via xlsx
-        const arrayBuffer = await file.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
-        const workbook = xlsx.read(buffer, { type: "buffer" });
-        const sheetName = workbook.SheetNames[0];
-        if (!sheetName) {
-            return NextResponse.json({ error: "Uploaded workbook contains no sheets" }, { status: 400 });
-        }
-
-        const sheet = workbook.Sheets[sheetName];
-        const rawRows = xlsx.utils.sheet_to_json(sheet, { defval: null }) as Record<string, unknown>[];
+        const rawRows = await parseUploadedFile(file);
 
         // helpers
         const normalizeHeader = (h: string) => h?.toString().trim().toLowerCase();
@@ -119,13 +111,28 @@ export async function POST(request: Request) {
 
         // Track all question IDs seen in the spreadsheet for deactivation
         const seenQuestionIds: string[] = [];
+        const seenIds = new Set<string>(); // tracks seen question ids to prevent duplicates
+        const seenQuestionContents = new Set<string>(); // tracks seen questions (question text, answer options, feedback) to prevent duplicates
+
+        const allowedQuestionTypes = new Set(["multiple_choice_question", "true_false_question"]);
 
         // process rows sequentially (keeps DB small-batch friendly and easy to reason about)
         for (const row of parsedRows) {
             try {
+                const questionTypeRaw = row["question_type"];
+
+                if (questionTypeRaw != null && !allowedQuestionTypes.has(String(questionTypeRaw))) {
+                    const skippedQuestionId = row["question_id"] != null ? String(row["question_id"]) : null;
+                    details.push({
+                        externalQuestionId: skippedQuestionId,
+                        status: `skipped: unsupported question type (${String(questionTypeRaw)})`,
+                    });
+                    continue;
+                }
+
                 const moduleName = row["lecture"];
                 const externalQuestionIdRaw = row["question_id"];
-                const bloomRaw = row["category"];
+                const bloomRaw = row["category"] ?? "REC";
                 const stem = row["question"] ?? "";
                 const figure = row["question_figure"] ?? null;
                 // answer_figure is not yet stored — see GitHub issue #68
@@ -145,7 +152,7 @@ export async function POST(request: Request) {
                 const externalQuestionId = externalQuestionIdRaw ? String(externalQuestionIdRaw) : null;
                 const moduleNameStr = moduleName ? String(moduleName) : null;
 
-                if (!moduleNameStr || !externalQuestionId) {
+                if (!moduleNameStr || !externalQuestionId || !stem) {
                     details.push({ externalQuestionId, status: "skipped: missing identifiers" });
                     continue;
                 }
@@ -179,8 +186,8 @@ export async function POST(request: Request) {
                     }
                 }
 
-                if (labels.length === 0) {
-                    details.push({ externalQuestionId, status: "skipped: no answer options found" });
+                if (labels.length < 2 || labels.length > 26) {
+                    details.push({ externalQuestionId, status: "skipped: impermissible number of answer options (must be between 2 and 26)" });
                     continue;
                 }
 
@@ -200,9 +207,13 @@ export async function POST(request: Request) {
                     let isCorrect = false;
 
                     if (correctRaw != null) {
-                        const c = String(correctRaw).trim();
-                        if (/^[A-Za-z]$/.test(c)) {
-                            if (c.toUpperCase() === label) isCorrect = true;
+                        if (Array.isArray(correctRaw)) {
+                            isCorrect = correctRaw.some((c) => String(c).trim().toUpperCase() === label);
+                        } else {
+                            const c = String(correctRaw).trim();
+                            if (/^[A-Za-z]$/.test(c)) {
+                                if (c.toUpperCase() === label) isCorrect = true;
+                            }
                         }
                     }
 
@@ -213,6 +224,41 @@ export async function POST(request: Request) {
                         isCorrect,
                     });
                 }
+
+                const seenAnswerTexts = new Set<string>();
+                for (const opt of optionsToCreate) {
+                    if (seenAnswerTexts.has(opt.text)) {
+                        console.log(`[SKIP] ${externalQuestionId} — duplicate answer option text: "${opt.text}"`);
+                        details.push({ externalQuestionId, status: "skipped: duplicate answer options" });
+                        break;
+                    }
+                    seenAnswerTexts.add(opt.text);
+                }
+
+                if (seenAnswerTexts.size < optionsToCreate.length) continue; 
+
+                if (!optionsToCreate.some(o => o.isCorrect)) {
+                    details.push({ externalQuestionId, status: "skipped: no correct answer specified" });
+                    continue;
+                }
+
+                if (seenIds.has(externalQuestionId)) {
+                    details.push({ externalQuestionId, status: "skipped: duplicate question ID" });
+                    continue;
+                }
+                seenIds.add(externalQuestionId);
+
+                const ansString = optionsToCreate.map(option => {
+                    return `(${option.text},${option.justification})`;
+                });
+
+                const questionContent = `${String(stem)},${String(figure)},${ansString.join(",")}`;
+
+                if (seenQuestionContents.has(questionContent)) {
+                    details.push({ externalQuestionId, status: "skipped: duplicate question content" });
+                    continue;
+                }
+                seenQuestionContents.add(questionContent);
 
                 // find or create module by (offeringId, name)
                 let moduleRecord = await prisma.module.findFirst({
@@ -512,10 +558,38 @@ export async function POST(request: Request) {
                 }
             }
         }
-
+        console.log(details.filter(d => 'status' in d && d.status.startsWith('skipped')));
         return NextResponse.json({ importedCount: details.length, details }, { status: 200 });
     } catch (error) {
+        if (error instanceof UploadValidationError) {
+            return NextResponse.json({ error: String(error.message) }, { status: 400 });
+        }
         console.error("Failed to import spreadsheet:", error);
         return NextResponse.json({ error: "Failed to import spreadsheet", details: String(error) }, { status: 500 });
     }
+}
+
+async function parseUploadedFile (file: File): Promise<Record<string, unknown>[]> {
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    
+    let workbook: xlsx.WorkBook;
+
+    try {
+        workbook = xlsx.read(buffer, { type: "buffer" });
+    } catch (err) {
+        throw new UploadValidationError(
+            `Could not parse uploaded file as a spreadsheet: ${String(err instanceof Error ? err.message : err)}`
+        );
+    }
+
+    const sheetName = workbook.SheetNames[0];
+    if (!sheetName) {
+        throw new UploadValidationError("Uploaded workbook contains no sheets");
+    }
+
+    const sheet = workbook.Sheets[sheetName];
+    const rawRows = xlsx.utils.sheet_to_json(sheet, { defval: null }) as Record<string, unknown>[];
+
+    return rawRows;
 }
