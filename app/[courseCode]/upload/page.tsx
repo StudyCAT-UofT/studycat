@@ -147,7 +147,6 @@ const UploadPageContent = () => {
                     message: `All required columns found. Ready to import ${rows.length} row(s).`
                 })
             }
-            
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Unknown error'
             setValidationStatus({
@@ -283,7 +282,7 @@ const UploadPageContent = () => {
                     autoClose: false,
                 })
             }
-            console.log(errors)
+            console.error(errors)
 
             if (skipped > 0) {
                 notifications.show({

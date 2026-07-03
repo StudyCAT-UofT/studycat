@@ -73,8 +73,6 @@ export async function POST(request: Request) {
         const courseId = String(courseIdRaw);
         const offeringId = String(offeringIdRaw);
 
-        const allowedQuestionTypes = new Set(["multiple_choice_question", "true_false_question"]);
-
         const rawRows = await parseUploadedFile(file);
 
         // helpers
@@ -116,6 +114,8 @@ export async function POST(request: Request) {
         const seenIds = new Set<string>(); // tracks seen question ids to prevent duplicates
         const seenQuestionContents = new Set<string>(); // tracks seen questions (question text, answer options, feedback) to prevent duplicates
 
+        const allowedQuestionTypes = new Set(["multiple_choice_question", "true_false_question"]);
+
         // process rows sequentially (keeps DB small-batch friendly and easy to reason about)
         for (const row of parsedRows) {
             try {
@@ -132,7 +132,7 @@ export async function POST(request: Request) {
 
                 const moduleName = row["lecture"];
                 const externalQuestionIdRaw = row["question_id"];
-                const bloomRaw = row["category"] ?? "REM";
+                const bloomRaw = row["category"] ?? "REC";
                 const stem = row["question"] ?? "";
                 const figure = row["question_figure"] ?? null;
                 // answer_figure is not yet stored — see GitHub issue #68
@@ -166,7 +166,7 @@ export async function POST(request: Request) {
                     continue;
                 }
 
-                const bloom = mapBloom(bloomRaw) ?? "REMEMBER"; // Default is set to "REMEMBER" for now
+                const bloom = mapBloom(bloomRaw);
                 if (!bloom) {
                     details.push({ externalQuestionId, status: "skipped: invalid bloom category" });
                     continue;
@@ -252,7 +252,7 @@ export async function POST(request: Request) {
                     return `(${option.text},${option.justification})`;
                 });
 
-                const questionContent = `${String(stem)},${String(figure)},${ansString.sort().join(",")}`;
+                const questionContent = `${String(stem)},${String(figure)},${ansString.join(",")}`;
 
                 if (seenQuestionContents.has(questionContent)) {
                     details.push({ externalQuestionId, status: "skipped: duplicate question content" });
@@ -572,28 +572,20 @@ export async function POST(request: Request) {
 async function parseUploadedFile (file: File): Promise<Record<string, unknown>[]> {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
-    const fileName = file.name?.toLowerCase() ?? "";
-
-    const isXlsxExt = (fileName.endsWith(".xlsx"));
-    const isXlsExt = (fileName.endsWith(".xls"));
-    const isCsvExt = (fileName.endsWith(".csv"));
-
-    const isXlsxZipMagicNum = buffer[0] === 0x50 && buffer[1] === 0x4B && buffer[2] === 0x03 && buffer[3] === 0x04;
-    const isXlsMagicNum  = buffer[0] === 0xD0 && buffer[1] === 0xCF && buffer[2] === 0x11 && buffer[3] === 0xE0;
-
-    const isCsvContent = !isXlsxZipMagicNum && !isXlsMagicNum;
-   
-    if (isXlsxExt && !isXlsxZipMagicNum) throw new UploadValidationError("File extension suggests XLSX format or a ZIP file but file content does not match.");
     
-    if (isXlsExt && !isXlsMagicNum) throw new UploadValidationError("File extension suggests XLS format but file content does not match.");
-    if (isXlsMagicNum && !isXlsExt) throw new UploadValidationError("File content suggests XLS format but file extension does not match.");
+    let workbook: xlsx.WorkBook;
 
-    if (isCsvExt && !isCsvContent) throw new UploadValidationError("File extension suggests CSV format but file content contains unexpected binary or XML data.");
+    try {
+        workbook = xlsx.read(buffer, { type: "buffer" });
+    } catch (err) {
+        throw new UploadValidationError(
+            `Could not parse uploaded file as a spreadsheet: ${String(err instanceof Error ? err.message : err)}`
+        );
+    }
 
-    const workbook = xlsx.read(buffer, { type: "buffer" });
     const sheetName = workbook.SheetNames[0];
     if (!sheetName) {
-        throw new Error("Uploaded workbook contains no sheets");
+        throw new UploadValidationError("Uploaded workbook contains no sheets");
     }
 
     const sheet = workbook.Sheets[sheetName];
