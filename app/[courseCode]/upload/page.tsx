@@ -281,8 +281,8 @@ const UploadPageContent = () => {
                     icon: <IconAlertCircle size={16} />,
                     autoClose: false,
                 })
+                console.error(errors)
             }
-            console.error(errors)
 
             if (skipped > 0) {
                 notifications.show({
