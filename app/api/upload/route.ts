@@ -158,12 +158,12 @@ export async function POST(request: Request) {
                 }
 
                 const hasInvalidNumbers = 
-                    (ptBi !== null && isNaN(ptBi)) ||
-                    (average !== null && isNaN(average)) ||
-                    (attemptsCount !== null && isNaN(attemptsCount)) ||
-                    isNaN(irtA) || 
-                    isNaN(irtB) || 
-                    (irtCRaw !== null && isNaN(irtCRaw));
+                    Number.isNaN(ptBi) ||
+                    Number.isNaN(average) ||
+                    Number.isNaN(attemptsCount) ||
+                    Number.isNaN(irtA) || 
+                    Number.isNaN(irtB) || 
+                    Number.isNaN(irtCRaw);
 
                 if (hasInvalidNumbers) {
                     details.push({ 
