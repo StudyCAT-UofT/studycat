@@ -1,3 +1,4 @@
+import requests
 import math
 import csv
 import canvasapi
@@ -63,6 +64,12 @@ def get_data(course_id, quiz_id, access_token):
         raise click.ClickException(
             f"You do not have permission to view Quiz {quiz_id}. "
             "Please ensure your Canvas API token has the correct access level."
+        )
+    
+    except requests.exceptions.RequestException:
+        raise click.ClickException(
+            f"Could not connect to Canvas at {API_URL}. "
+            "The Canvas server may be down or unreachable. Please try again later."
         )
 
     ds_quiz_questions = ds_quiz.get_questions();
