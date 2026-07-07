@@ -7,6 +7,73 @@ import scipy.stats as stats
 from bs4 import BeautifulSoup
 from canvasapi.exceptions import ResourceDoesNotExist, Unauthorized, Forbidden, InvalidAccessToken
 
+ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+
+def get_question(q, module, seen_question_ids, question_correctness, questions):
+    is_dict = isinstance(q, dict)
+
+    q_id = q.get('id') if is_dict else q.id
+    q_stem = q.get('question_text') if is_dict else q.question_text
+    q_question_type = q.get('question_type') if is_dict else q.question_type
+    answers = q.get('answers', []) if is_dict else q.answers
+
+    if q_id in seen_question_ids: # Ensures we don't pull duplicate questions from item banks 
+        return
+
+    seen_question_ids.add(q_id)
+    question_correctness[q_id] = {"num_correct": 0, "total": 0}
+
+    img_url = ""
+    img_alt = ""
+    
+    if q_stem:
+        q_stem_text = BeautifulSoup(q_stem, 'html.parser')
+        
+        img_tag = q_stem_text.find('img')
+        
+        if img_tag:
+            img_url = img_tag.get('src', '')
+            img_alt = img_tag.get('alt', '')
+
+            img_tag.decompose() 
+            
+            q_stem = str(q_stem_text)
+
+    questions[q_id] = {
+        "module_title": module,
+        "question_text": q_stem,
+        "question_type": q_question_type,
+        "question_img_url": img_url,
+        "question_img_alt": img_alt,
+        "correct_ans_id": "",
+        "correct_ans_letter": "",
+        "irt_a": 0,
+        "irt_b": 0,
+        "irt_c": 0,
+        "answers": []
+    }
+
+    answer_counter = 0
+
+    for a in answers:
+        ans_content = a.get('text') or a.get('html')
+        ans_feedback = a.get('comments') or a.get('comments_html')
+        
+        current_answer_dict = {
+            "ans_id": a.get('id'),
+            "ans_text": ans_content,
+            "ans_letter": ALPHABET[answer_counter],
+            "ans_justification": ans_feedback
+        }
+        
+        questions[q_id]["answers"].append(current_answer_dict)
+        
+        if a.get('weight') == 100:
+            questions[q_id]["correct_ans_id"] = a.get('id')
+            questions[q_id]["correct_ans_letter"] = ALPHABET[answer_counter]
+
+        answer_counter += 1
+
 @click.command()
 @click.option('--access_token', prompt='Canvas Access Token (For security, nothing will be displayed on the screen while you type or paste your token)', hide_input=True,
               help='Your access token from Canvas. Found in Quercus under Account -> Settings -> Approved Integrations. You may need to create a new access token if you don\'t have one already.')
@@ -16,8 +83,6 @@ from canvasapi.exceptions import ResourceDoesNotExist, Unauthorized, Forbidden, 
               help='The ID of the quiz on Canvas. Found in the browser URL: eg. https://q.utoronto.ca/courses/121212/quizzes/232323 has Quiz ID 232323')
 
 def get_data(course_id, quiz_id, access_token):
-    alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
-
     # The course ID for sandbox
     COURSE_ID = course_id
     DS_QUIZ_ID = quiz_id
@@ -51,6 +116,12 @@ def get_data(course_id, quiz_id, access_token):
             "Your Canvas access token is invalid or blank. Please check your token and try again."
         )
     
+    except requests.exceptions.RequestException:
+        raise click.ClickException(
+            f"Could not connect to Canvas at {API_URL}. "
+            "The Canvas server may be down or unreachable. Please try again later."
+        )
+    
     try:
         ds_quiz = course.get_quiz(DS_QUIZ_ID)
 
@@ -78,73 +149,8 @@ def get_data(course_id, quiz_id, access_token):
     seen_question_ids = set()
     questions = {}
 
-    def get_question(q, module):
-        is_dict = isinstance(q, dict)
-
-        q_id = q.get('id') if is_dict else q.id
-        q_stem = q.get('question_text') if is_dict else q.question_text
-        q_question_type = q.get('question_type') if is_dict else q.question_type
-        answers = q.get('answers', []) if is_dict else q.answers
-
-        if q_id in seen_question_ids: # Ensures we don't pull duplicate questions from item banks 
-            return
-
-        seen_question_ids.add(q_id)
-        question_correctness[q_id] = {"num_correct": 0, "total": 0}
-
-        img_url = ""
-        img_alt = ""
-        
-        if q_stem:
-            q_stem_text = BeautifulSoup(q_stem, 'html.parser')
-            
-            img_tag = q_stem_text.find('img')
-            
-            if img_tag:
-                img_url = img_tag.get('src', '')
-                img_alt = img_tag.get('alt', '')
-
-                img_tag.decompose() 
-                
-                q_stem = str(q_stem_text)
-
-        questions[q_id] = {
-            "module_title": module,
-            "question_text": q_stem,
-            "question_type": q_question_type,
-            "question_img_url": img_url,
-            "question_img_alt": img_alt,
-            "correct_ans_id": "",
-            "correct_ans_letter": "",
-            "irt_a": 0,
-            "irt_b": 0,
-            "irt_c": 0,
-            "answers": []
-        }
-
-        answer_counter = 0
-
-        for a in answers:
-            ans_content = a.get('text') or a.get('html')
-            ans_feedback = a.get('comments') or a.get('comments_html')
-            
-            current_answer_dict = {
-                "ans_id": a.get('id'),
-                "ans_text": ans_content,
-                "ans_letter": alphabet[answer_counter],
-                "ans_justification": ans_feedback
-            }
-            
-            questions[q_id]["answers"].append(current_answer_dict)
-            
-            if a.get('weight') == 100:
-                questions[q_id]["correct_ans_id"] = a.get('id')
-                questions[q_id]["correct_ans_letter"] = alphabet[answer_counter]
-
-            answer_counter += 1
-
     for q in ds_quiz_questions:
-        get_question(q, ds_quiz.title)
+        get_question(q, ds_quiz.title, seen_question_ids, question_correctness, questions)
 
     groups_response = ds_quiz._requester.request( # Gets a list of question groups in a quiz
         "GET",
@@ -176,7 +182,7 @@ def get_data(course_id, quiz_id, access_token):
         )
 
         for q in bank_questions.json():
-            get_question(q, bank_title)
+            get_question(q, bank_title, seen_question_ids, question_correctness, questions)
 
     # IRT DATA ---------------------------------------------------
 
@@ -256,7 +262,7 @@ def get_data(course_id, quiz_id, access_token):
     ]
 
     for i in range(max_answers):
-        letter = alphabet[i].lower() 
+        letter = ALPHABET[i].lower() 
         csv_headers.append(f"answer_{letter}")
         csv_headers.append(f"answer_justification_{letter}")
 
@@ -279,7 +285,7 @@ def get_data(course_id, quiz_id, access_token):
             }
 
             for i in range(max_answers):
-                letter = alphabet[i].lower()
+                letter = ALPHABET[i].lower()
                 ans_key = f"answer_{letter}"
                 just_key = f"answer_justification_{letter}"
 
