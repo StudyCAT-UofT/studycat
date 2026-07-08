@@ -74,87 +74,19 @@ def get_question(q, module, seen_question_ids, question_correctness, questions):
 
         answer_counter += 1
 
-@click.command()
-@click.option('--access_token', prompt='Canvas Access Token (For security, nothing will be displayed on the screen while you type or paste your token)', hide_input=True,
-              help='Your access token from Canvas. Found in Quercus under Account -> Settings -> Approved Integrations. You may need to create a new access token if you don\'t have one already.')
-@click.option('--course_id', prompt='Course ID', type=int,
-              help='The ID of the course on Canvas. Found in the browser URL: eg. https://q.utoronto.ca/courses/121212 has Course ID 121212')
-@click.option('--quiz_id', prompt='Quiz ID', type=int,
-              help='The ID of the quiz on Canvas. Found in the browser URL: eg. https://q.utoronto.ca/courses/121212/quizzes/232323 has Quiz ID 232323')
-
-def get_data(course_id, quiz_id, access_token):
-    # The course ID for sandbox
-    COURSE_ID = course_id
-    DS_QUIZ_ID = quiz_id
-
-    # Canvas API URL
-    API_URL = "https://q.utoronto.ca"
-
-    # Canvas API key
-    API_KEY = access_token
-
-    # Initialize a new Canvas object
-    canvas = canvasapi.Canvas(API_URL, API_KEY)
-
-    try:
-        course = canvas.get_course(COURSE_ID)
-
-    except ResourceDoesNotExist:
-        raise click.ClickException(
-            f"Could not find Course {course_id}. "
-            "Please double check the ID in your Canvas URL."
-        )
-        
-    except (Unauthorized, Forbidden):
-        raise click.ClickException(
-            f"You do not have permission to view Course {course_id}. "
-            "Please ensure your Canvas API token has the correct access level."
-        )
-    
-    except InvalidAccessToken:
-        raise click.ClickException(
-            "Your Canvas access token is invalid or blank. Please check your token and try again."
-        )
-    
-    except requests.exceptions.RequestException:
-        raise click.ClickException(
-            f"Could not connect to Canvas at {API_URL}. "
-            "The Canvas server may be down or unreachable. Please try again later."
-        )
-    
-    try:
-        ds_quiz = course.get_quiz(DS_QUIZ_ID)
-
-    except ResourceDoesNotExist:
-        raise click.ClickException(
-            f"Could not find Quiz {quiz_id}. "
-            "Please double check the ID in your Canvas URL."
-        )
-        
-    except (Unauthorized, Forbidden):
-        raise click.ClickException(
-            f"You do not have permission to view Quiz {quiz_id}. "
-            "Please ensure your Canvas API token has the correct access level."
-        )
-    
-    except requests.exceptions.RequestException:
-        raise click.ClickException(
-            f"Could not connect to Canvas at {API_URL}. "
-            "The Canvas server may be down or unreachable. Please try again later."
-        )
-
-    ds_quiz_questions = ds_quiz.get_questions();
+def fetch_quiz_data(course_id, quiz_id, course, quiz):
+    quiz_questions = quiz.get_questions();
 
     question_correctness = {}
     seen_question_ids = set()
     questions = {}
 
-    for q in ds_quiz_questions:
-        get_question(q, ds_quiz.title, seen_question_ids, question_correctness, questions)
+    for q in quiz_questions:
+        get_question(q, quiz.title, seen_question_ids, question_correctness, questions)
 
-    groups_response = ds_quiz._requester.request( # Gets a list of question groups in a quiz
+    groups_response = quiz._requester.request( # Gets a list of question groups in a quiz
         "GET",
-        f"courses/{COURSE_ID}/quizzes/{DS_QUIZ_ID}/groups"
+        f"courses/{course_id}/quizzes/{quiz_id}/groups"
     )
 
     question_groups = groups_response.json().get('quiz_groups')
@@ -169,14 +101,14 @@ def get_data(course_id, quiz_id, access_token):
         if item_bank_id is None: # Question groups within a canvas quiz have no item bank id, but its questions are still parsed normally so we can skip to the next iteration
             continue
 
-        item_bank = ds_quiz._requester.request( # Returns an assessment question bank object, which you can't get questions from, so you have to also make the next request
+        item_bank = quiz._requester.request( # Returns an assessment question bank object, which you can't get questions from, so you have to also make the next request
             "GET",
             f"question_banks/{item_bank_id}"
         )
         
         bank_title = item_bank.json().get('title')
 
-        bank_questions = ds_quiz._requester.request(
+        bank_questions = quiz._requester.request(
             "GET",
             f"question_banks/{item_bank_id}/questions"
         )
@@ -186,7 +118,7 @@ def get_data(course_id, quiz_id, access_token):
 
     # IRT DATA ---------------------------------------------------
 
-    assignment_id = ds_quiz.assignment_id
+    assignment_id = quiz.assignment_id
     quiz_assignment = course.get_assignment(assignment_id)
     all_submissions = quiz_assignment.get_submissions(include=['submission_history'])
 
@@ -242,11 +174,9 @@ def get_data(course_id, quiz_id, access_token):
         questions[q_id]["irt_b"] = irt_b
         questions[q_id]["irt_c"] = irt_c
 
-    max_answers = 0
-    for q_data in questions.values():
-        if len(q_data.get("answers", [])) > max_answers:
-            max_answers = len(q_data["answers"])
+    return questions, question_correctness
 
+def write_csv(quiz_id, max_answers, questions):
     output_filename = f"canvas_quiz_{quiz_id}_export.csv"
     csv_headers = [
         "lecture",
@@ -298,8 +228,80 @@ def get_data(course_id, quiz_id, access_token):
                     row[just_key] = ""
 
             writer.writerow(row)
+    
+    return output_filename
+
+
+@click.command()
+@click.option('--access_token', prompt='Canvas Access Token (For security, nothing will be displayed on the screen while you type or paste your token)', hide_input=True,
+              help='Your access token from Canvas. Found in Quercus under Account -> Settings -> Approved Integrations. You may need to create a new access token if you don\'t have one already.')
+@click.option('--course_id', prompt='Course ID', type=int,
+              help='The ID of the course on Canvas. Found in the browser URL: eg. https://q.utoronto.ca/courses/121212 has Course ID 121212')
+@click.option('--quiz_id', prompt='Quiz ID', type=int,
+              help='The ID of the quiz on Canvas. Found in the browser URL: eg. https://q.utoronto.ca/courses/121212/quizzes/232323 has Quiz ID 232323')
+
+def get_data(course_id, quiz_id, access_token):
+    API_URL = "https://q.utoronto.ca"
+
+    # Initialize a new Canvas object
+    canvas = canvasapi.Canvas(API_URL, access_token)
+
+    try:
+        course = canvas.get_course(course_id)
+
+    except ResourceDoesNotExist:
+        raise click.ClickException(
+            f"Could not find Course {course_id}. "
+            "Please double check the ID in your Canvas URL."
+        )
+        
+    except (Unauthorized, Forbidden):
+        raise click.ClickException(
+            f"You do not have permission to view Course {course_id}. "
+            "Please ensure your Canvas API token has the correct access level."
+        )
+    
+    except InvalidAccessToken:
+        raise click.ClickException(
+            "Your Canvas access token is invalid or blank. Please check your token and try again."
+        )
+    
+    except requests.exceptions.RequestException:
+        raise click.ClickException(
+            f"Could not connect to Canvas at {API_URL}. "
+            "The Canvas server may be down or unreachable. Please try again later."
+        )
+    
+    try:
+        quiz = course.get_quiz(quiz_id)
+
+    except ResourceDoesNotExist:
+        raise click.ClickException(
+            f"Could not find Quiz {quiz_id}. "
+            "Please double check the ID in your Canvas URL."
+        )
+        
+    except (Unauthorized, Forbidden):
+        raise click.ClickException(
+            f"You do not have permission to view Quiz {quiz_id}. "
+            "Please ensure your Canvas API token has the correct access level."
+        )
+    
+    except requests.exceptions.RequestException:
+        raise click.ClickException(
+            f"Could not connect to Canvas at {API_URL}. "
+            "The Canvas server may be down or unreachable. Please try again later."
+        )
+
+    questions, question_correctness = fetch_quiz_data(course_id, quiz_id, course, quiz)
+
+    max_answers = 0
+    for q_data in questions.values():
+        if len(q_data.get("answers", [])) > max_answers:
+            max_answers = len(q_data["answers"])
             
-        click.secho(message=f"Success! Quiz data successfully exported to {output_filename}", err=False, fg="green")
+    output_filename = write_csv(quiz_id, max_answers, questions)
+    click.secho(message=f"Success! Quiz data successfully exported to {output_filename}", err=False, fg="green")
 
 if __name__ == '__main__':
     get_data()
