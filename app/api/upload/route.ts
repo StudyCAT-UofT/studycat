@@ -157,6 +157,22 @@ export async function POST(request: Request) {
                     continue;
                 }
 
+                const hasInvalidNumbers = 
+                    Number.isNaN(ptBi) ||
+                    Number.isNaN(average) ||
+                    Number.isNaN(attemptsCount) ||
+                    Number.isNaN(irtA) || 
+                    Number.isNaN(irtB) || 
+                    Number.isNaN(irtCRaw);
+
+                if (hasInvalidNumbers) {
+                    details.push({ 
+                        externalQuestionId, 
+                        status: "skipped: invalid non-numeric text found in numeric metadata fields (IRT, biserial, average, or attempts)" 
+                    });
+                    continue;
+                }
+
                 // Always track seen IDs (even if not approved) so deactivation logic is correct
                 seenQuestionIds.push(externalQuestionId);
 
