@@ -142,18 +142,16 @@ def fetch_quiz_data(course_id, quiz_id, course, quiz):
                 
                 for response in attempt.get('submission_data', []):
                     q_id = response.get('question_id')
-                    is_correct = response.get('correct')
 
-                    # If this is an old/deleted question, initialize it in the dictionary
-                    if q_id not in question_correctness:
-                        question_correctness[q_id] = {"num_correct": 0, "total": 0}
+                    if (q_id not in questions):
+                        continue # Handles case where a student answers a question, but then the question has been deleted from the quiz
+
+                    is_correct = response.get('correct')
 
                     if is_correct: question_correctness[q_id]["num_correct"] += 1
                     question_correctness[q_id]["total"] += 1
                     
     for q_id, stats_dict in question_correctness.items():
-        if (q_id not in questions):
-            continue # Handles case where a student answers a question, but then the question is deleted from the quiz
         if stats_dict.get('total') == 0 or stats_dict.get('total') is None:
             continue
 
