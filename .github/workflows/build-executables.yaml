@@ -1,0 +1,56 @@
+name: Build Python Executables
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/canvasapi_script.py' 
+      - '.github/workflows/build-executables.yaml'
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            arch: x64
+            label: linux-x64
+          - os: windows-latest
+            arch: x64
+            label: windows-x64
+          - os: windows-latest
+            arch: x86
+            label: windows-x86
+          - os: macos-13
+            arch: x64
+            label: macos-intel
+          - os: macos-14
+            arch: arm64
+            label: macos-arm64
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          architecture: ${{ matrix.arch }}
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b # v8.1.0
+
+      - name: Install dependencies
+        run: uv pip install --system pyinstaller -r scripts/canvasapi_script.py
+
+      - name: Build executable
+        run: pyinstaller --onefile scripts/canvasapi_script.py
+
+      - name: Upload file
+        uses: actions/upload-artifact@v4
+        with:
+          name: py_executable_${{ matrix.label }}
+          path: dist/*
