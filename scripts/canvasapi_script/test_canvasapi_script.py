@@ -22,8 +22,7 @@ def test_invalid_course_id(MockCanvas, runner):
     result = runner.invoke(get_data, [
         '--course_id', '123', 
         '--quiz_id', '456', 
-        '--access_token', 'bad_token'
-    ])
+    ], input='bad_token\n')
 
     assert result.exit_code != 0
     assert "Could not find Course 123. Please double check the ID in your Canvas URL." in result.output
@@ -38,8 +37,7 @@ def test_invalid_quiz_id(MockCanvas, runner):
     result = runner.invoke(get_data, [
         '--course_id', '123', 
         '--quiz_id', '456', 
-        '--access_token', 'bad_token'
-    ])
+    ], input='bad_token\n')
 
     assert result.exit_code != 0
     assert "Could not find Quiz 456. Please double check the ID in your Canvas URL." in result.output
@@ -52,8 +50,7 @@ def test_invalid_access_token(MockCanvas, runner):
     result = runner.invoke(get_data, [
         '--course_id', '123', 
         '--quiz_id', '456', 
-        '--access_token', 'bad_token'
-    ])
+    ], input='bad_token\n')
 
     assert result.exit_code != 0
     assert "Your Canvas access token is invalid or blank. Please check your token and try again." in result.output
@@ -70,8 +67,7 @@ def test_restricted_course(MockCanvas, runner, error_type):
     result = runner.invoke(get_data, [
         '--course_id', '123', 
         '--quiz_id', '456', 
-        '--access_token', 'valid_token'
-    ])
+    ], input='valid_token\n')
 
     assert result.exit_code != 0
     assert "You do not have permission to view Course 123. Please ensure your Canvas API token has the correct access level." in result.output
@@ -90,8 +86,7 @@ def test_restricted_quiz(MockCanvas, runner, error_type):
     result = runner.invoke(get_data, [
         '--course_id', '123', 
         '--quiz_id', '456', 
-        '--access_token', 'token'
-    ])
+    ], input='valid_token\n')
 
     assert result.exit_code != 0
     assert "You do not have permission to view Quiz 456. Please ensure your Canvas API token has the correct access level." in result.output
@@ -104,8 +99,7 @@ def test_server_connection_error(MockCanvas, runner):
     result = runner.invoke(get_data, [
         '--course_id', '123', 
         '--quiz_id', '456', 
-        '--access_token', 'token'
-    ])
+    ], input='token\n')
 
     assert result.exit_code != 0
     assert "Could not connect to Canvas at https://q.utoronto.ca. The Canvas server may be down or unreachable. Please try again later." in result.output
@@ -414,10 +408,12 @@ def test_success_message_shown(MockDatetime, MockCanvas, runner):
     formatted_time = FIXED_NOW.strftime('%Y%m%d_%H%M%S')
 
     with runner.isolated_filesystem():
-        result = runner.invoke(get_data, ['--course_id', 123, '--quiz_id', 456, '--access_token', 'token' ])
+        result = runner.invoke(get_data, ['--course_id', 123, '--quiz_id', 456], input='token\n')
+
+        expected_full_path = os.path.abspath(f"canvas_quiz_456_export_{formatted_time}.csv")
 
         assert result.exit_code == 0, result.output
-        assert result.output.strip() == f"Success! Quiz data successfully exported to canvas_quiz_456_export_{formatted_time}.csv"
+        assert f"Success! Quiz data successfully exported to {expected_full_path}" in result.output.strip()
 
 @patch('canvasapi_script.canvasapi.Canvas')
 @patch('canvasapi_script.datetime')
@@ -435,7 +431,7 @@ def test_csv_file_created(MockDatetime, MockCanvas, runner):
     formatted_time = FIXED_NOW.strftime('%Y%m%d_%H%M%S')
  
     with runner.isolated_filesystem():
-        result = runner.invoke(get_data, ['--course_id', 123, '--quiz_id', 456, '--access_token', 'token' ])
+        result = runner.invoke(get_data, ['--course_id', 123, '--quiz_id', 456], input='token\n')
  
         assert result.exit_code == 0, result.output
         assert os.path.exists(f"canvas_quiz_456_export_{formatted_time}.csv")

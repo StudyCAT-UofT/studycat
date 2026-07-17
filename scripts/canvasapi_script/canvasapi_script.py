@@ -15,6 +15,7 @@ import logging
 import csv
 import canvasapi
 import click
+import os
 import scipy.stats as stats
 from canvasapi.course import Course
 from canvasapi.quiz import Quiz
@@ -363,14 +364,12 @@ def write_csv(output_filename: str, max_answers: int, questions: dict[int, dict[
             writer.writerow(row)
 
 @click.command()
-@click.option('--access_token', prompt='Canvas Access Token (For security, nothing will be displayed on the screen while you type or paste your token)', hide_input=True,
-              help='Your access token from Canvas. Found in Quercus under Account -> Settings -> Approved Integrations. You may need to create a new access token if you don\'t have one already.')
 @click.option('--course_id', prompt='Course ID', type=int,
               help='The ID of the course on Canvas. Found in the browser URL: eg. https://q.utoronto.ca/courses/121212 has Course ID 121212')
 @click.option('--quiz_id', prompt='Quiz ID', type=int,
               help='The ID of the quiz on Canvas. Found in the browser URL: eg. https://q.utoronto.ca/courses/121212/quizzes/232323 has Quiz ID 232323')
 
-def get_data(course_id: int, quiz_id: int, access_token: str) -> None:
+def get_data(course_id: int, quiz_id: int) -> None:
     """
     Main CLI entry point. Initializes a Canvas API connection, retrieves data for 
     the specified course and quiz, and exports the data to a CSV file.
@@ -388,6 +387,11 @@ def get_data(course_id: int, quiz_id: int, access_token: str) -> None:
         None
     """
     API_URL = "https://q.utoronto.ca"
+
+    access_token = click.prompt(
+        'Canvas Access Token (For security, nothing will be displayed on the screen while you type or paste your token)', 
+        hide_input=True
+    )
 
     # Initialize a new Canvas object
     canvas = canvasapi.Canvas(API_URL, access_token)
@@ -442,7 +446,10 @@ def get_data(course_id: int, quiz_id: int, access_token: str) -> None:
     output_filename = f"canvas_quiz_{quiz_id}_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
             
     write_csv(output_filename, max_answers, questions)
-    click.secho(message=f"Success! Quiz data successfully exported to {output_filename}", err=False, fg="green")
+
+    full_path = os.path.abspath(output_filename)
+
+    click.secho(message=f"Success! Quiz data successfully exported to {full_path}", err=False, fg="green")
 
 if __name__ == '__main__':
     get_data()
