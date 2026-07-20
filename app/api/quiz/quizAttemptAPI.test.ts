@@ -101,6 +101,9 @@ const mockItem = {
     options: [
         { id: 'opt-1', label: 'A', text: '4', isCorrect: true, justification: null },
         { id: 'opt-2', label: 'B', text: '3', isCorrect: false, justification: null },
+        { id: 'opt-3', label: 'C', text: '5', isCorrect: false, justification: null },
+        { id: 'opt-4', label: 'D', text: '22', isCorrect: false, justification: null },
+        { id: 'opt-5', label: 'E', text: '6', isCorrect: false, justification: null },
     ],
     moduleId: 'mod-1',
     module: { id: 'mod-1', name: 'Module 1' },
