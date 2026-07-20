@@ -169,10 +169,9 @@ export const POST = async (request: NextRequest) => {
 
 const generateOptionLabels = (count: number): string[] => {
   const labels: string[] = [];
-  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
   for (let i = 0; i < count; i++) {
-    const letter = alphabet[i];
+    const letter = String.fromCharCode(65 + i);
     labels.push(letter);
   }
 
