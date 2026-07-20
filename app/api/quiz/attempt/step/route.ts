@@ -63,16 +63,17 @@ export const POST = async (request: NextRequest) => {
       );
     }
 
-    // Map answer index to option label (0=A, 1=B, 2=C, 3=D)
-    const optionLabels = ['A', 'B', 'C', 'D'] as const;
-    const selectedLabel = optionLabels[answerIndex] as 'A' | 'B' | 'C' | 'D';
+    const numOptions = item.options.length;
+
+    // Map answer index to option label (eg. 0=A, 1=B, 2=C, 3=D, etc.)
+    const optionLabels = generateOptionLabels(numOptions);
+    const selectedLabel = optionLabels[answerIndex];
     const isCorrect = selectedLabel === correctOption.label;
 
     // Find the selected option
     const selectedOption = item.options.find(opt => opt.label === selectedLabel);
-    
-    // Find the correct answer index
-    const correctAnswerIndex = optionLabels.indexOf(correctOption.label as typeof optionLabels[number]);
+
+    const correctAnswerIndex = optionLabels.indexOf(correctOption.label);
     if (correctAnswerIndex === -1) {
       return NextResponse.json(
         { error: 'Invalid correct option label' },
@@ -164,4 +165,16 @@ export const POST = async (request: NextRequest) => {
       { status: 500 }
     );
   }
+};
+
+const generateOptionLabels = (count: number): string[] => {
+  const labels: string[] = [];
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+
+  for (let i = 0; i < count; i++) {
+    const letter = alphabet[i];
+    labels.push(letter);
+  }
+
+  return labels;
 };
