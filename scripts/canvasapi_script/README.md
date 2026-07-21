@@ -4,20 +4,20 @@ This tool is intended to allow you to export quiz data from an existing quiz on 
 #### Download the Script
 To download the script, navigate to the releases section on the right side of the main GitHub page. 
 - For Windows:
-	- windows-x64
+	- canvasapi-script-windows-x64
 - For macOS:
-	- macos-intel
-	- macos-arm64
+	- canvasapi-script-macos-intel
+	- canvasapi-script-macos-arm64
 - For Linux:
-	- linux-x64
+	- canvasapi-script-linux-x64
 #### Which File Do I Download?
 - Mac Users
 	1. Click the Apple logo () at the top left of your screen
 	2. Select **About This Mac**
-	3. Under your Mac information, if you see **Processor** followed by **Intel Core**, download the macos-intel file. If you see **Chip** followed by **Apple M1, M2, M3, etc**., download the macos-arm64 file.
+	3. Under your Mac information, if you see **Processor** followed by **Intel Core**, download the `canvasapi-script-macos-intel` file. If you see **Chip** followed by **Apple M1, M2, M3, etc**., download the `canvasapi-script-macos-arm64` file.
 #### Creating a Canvas Access Token
- You will need an access token to run the script. You can create an access token by going to Quercus. In Quercus, click **Account**, then **Settings**, then scroll to **Approved Integrations** and click **New Access Token**. You may need to create a new access token if you don\'t have one already.
- 
+ You will need an access token to run the script. You can create an access token by going to Quercus. In Quercus, click **Account**, then **Settings**, then scroll to **Approved Integrations** and click **New Access Token**. Choose a distinctive name, eg., StudyCAT Script.
+
 > [!WARNING]
 > Once your access token is on screen, copy it and save it somewhere secure, as once you exit the window, you will not be able to see this access token again. Do not share this access token with anybody.
 
@@ -27,7 +27,10 @@ Once you have the file downloaded onto your computer and you have your Canvas ac
 You can run the script by double clicking on the file you just downloaded.
 
 > [!IMPORTANT]
-> For MacOS users, a window may pop up saying `“macos-arm64” Not Opened`. To bypass this, click `Done`, and open your system settings by clicking on the Apple logo () at the top left of your screen and then selecting `System Settings`. On the sidebar, scroll down to `Privacy & Security`, and click on it. Scroll all the way down to `Security`, and next to the message `"macos-arm64" was blocked to protect your Mac.`, click `Open Anyway`. Another pop-up saying `Open "macos-arm64?` should appear. Click `Open Anyway`. 
+> For MacOS users, a window may pop up saying `“canvasapi-script-macos-arm64” Not Opened`. To bypass this, click `Done`, and open your system settings by clicking on the Apple logo () at the top left of your screen and then selecting `System Settings`. On the sidebar, scroll down to `Privacy & Security`, and click on it. Scroll all the way down to `Security`, and next to the message `"canvasapi-script-macos-arm64" was blocked to protect your Mac.`, click `Open Anyway`. Another pop-up saying `Open "canvasapi-script-macos-arm64?` should appear. Click `Open Anyway`. 
+
+> [!IMPORTANT]
+> For Windows users, a window may pop up saying `canvasapi-script-windows-x64.exe isn't commonly downloaded.` To bypass this, click the three dots in the bottom right corner, and click `Keep`. A second window may pop up saying `Make sure you trust canvasapi-script-windows-x64.exe before you open it.` Next to the `Delete` button, click the dropdown arrow, and select `Keep Anyway`.
 
 This will open a terminal window. After about 15–30 seconds, you should be prompted to enter your course ID.
 Next, you will be prompted to enter your quiz ID. To get both of these, you will need to navigate to the quiz on your browser. 
