@@ -16,7 +16,7 @@ To download the script, navigate to the releases section on the right side of th
 	2. Select **About This Mac**
 	3. Under your Mac information, if you see **Processor** followed by **Intel Core**, download the `canvasapi-script-macos-intel` file. If you see **Chip** followed by **Apple M1, M2, M3, etc**., download the `canvasapi-script-macos-arm64` file.
 #### Creating a Canvas Access Token
- You will need an access token to run the script. You can create an access token by going to Quercus. In Quercus, click **Account**, then **Settings**, then scroll to **Approved Integrations** and click **New Access Token**. Choose a distinctive name, eg., StudyCAT Script.
+ You will need an access token to run the script. You can create an access token by going to Quercus. In Quercus, click **Account**, then **Settings**, then scroll to **Approved Integrations** and click **New Access Token**. Choose a distinctive name, eg., StudyCAT Token.
 
 > [!WARNING]
 > Once your access token is on screen, copy it and save it somewhere secure, as once you exit the window, you will not be able to see this access token again. Do not share this access token with anybody.
