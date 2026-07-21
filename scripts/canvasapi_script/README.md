@@ -1,4 +1,4 @@
-Command-Line Interface Tool
+### Command-Line Interface Tool
 
 This tool is intended to allow you to export quiz data from an existing quiz on Quercus and import that data into StudyCAT. To import quiz questions from Quercus, first download the version of the script that matches your computer. If you aren't sure which file to download, see **Which File Do I Download?**
 #### Download the Script
@@ -12,19 +12,24 @@ To download the script, navigate to the releases section on the right side of th
 	- linux-x64
 #### Which File Do I Download?
 - Mac Users
-	1.  Click the Apple logo () at the top left of your screen
+	1. Click the Apple logo () at the top left of your screen
 	2. Select **About This Mac**
 	3. Under your Mac information, if you see **Processor** followed by **Intel Core**, download the macos-intel file. If you see **Chip** followed by **Apple M1, M2, M3, etc**., download the macos-arm64 file.
 #### Creating a Canvas Access Token
  You will need an access token to run the script. You can create an access token by going to Quercus. In Quercus, click **Account**, then **Settings**, then scroll to **Approved Integrations** and click **New Access Token**. You may need to create a new access token if you don\'t have one already.
  
-> [!warning] Warning
+> [!WARNING]
 > Once your access token is on screen, copy it and save it somewhere secure, as once you exit the window, you will not be able to see this access token again. Do not share this access token with anybody.
 
 #### Running the Script
 Once you have the file downloaded onto your computer and you have your Canvas access token, there are 2 ways to export your quiz data.
 ##### Option 1 - Opening the executable file
-You can run the script by double clicking on the file you just downloaded. It will open a terminal window. After about 15–30 seconds, you should be prompted to enter your course ID.
+You can run the script by double clicking on the file you just downloaded.
+
+> [!IMPORTANT]
+> For MacOS users, a window may pop up saying `“macos-arm64” Not Opened`. To bypass this, click `Done`, and open your system settings by clicking on the Apple logo () at the top left of your screen and then selecting `System Settings`. On the sidebar, scroll down to `Privacy & Security`, and click on it. Scroll all the way down to `Security`, and next to the message `"macos-arm64" was blocked to protect your Mac.`, click `Open Anyway`. Another pop-up saying `Open "macos-arm64?` should appear. Click `Open Anyway`. 
+
+This will open a terminal window. After about 15–30 seconds, you should be prompted to enter your course ID.
 Next, you will be prompted to enter your quiz ID. To get both of these, you will need to navigate to the quiz on your browser. 
 
 The browser address should begin with something like this: `https://q.utoronto.ca/courses/121212/quizzes/232323`. 
@@ -51,7 +56,7 @@ This method runs the script from the Terminal instead of by double-clicking it. 
 
 On Windows, open the Start Menu, and search for Terminal. On Mac, press Command + Spacebar to open Spotlight Search, and type in Terminal. The terminal should open in your personal folder on your computer.
 
-> [!info] Note
+> [!NOTE]
 > The Terminal works inside a folder on your computer. To see which folder it is currently using, type **pwd** and hit enter. If you see something like `/Users/your-username` or `/home/your-username` you are in your personal folder.
 
 If you downloaded the script into your **Downloads** folder, enter the following command:

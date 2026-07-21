@@ -46,7 +46,15 @@ jobs:
       - name: Build executable
         run: pyinstaller --onefile --name "${{ matrix.label }}" scripts/canvasapi_script/canvasapi_script.py
 
+      - name: Compress executable (macOS/Linux)
+        if: runner.os != 'Windows'
+        run: |
+          cd dist
+          zip "${{ matrix.label }}.zip" "${{ matrix.label }}"
+
       - name: Attach file to release
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/*
+          files: |
+            dist/*.zip
+            dist/*.exe
