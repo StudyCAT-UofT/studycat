@@ -10,7 +10,7 @@ const StudentQuizCard = ({ quiz }: { quiz: Quiz }) => {
     if (!selectedCourseOffering) return
     
     const handleTakeQuiz = () => {
-        router.push(`/${selectedCourseOffering.course.code}/quiz/${quiz.id}`)
+        router.push(`/${selectedCourseOffering.course.code}/${selectedCourseOffering.term.name.replace(/\s+/g, '-')}/quiz/${quiz.id}`)
     }
 
     return (

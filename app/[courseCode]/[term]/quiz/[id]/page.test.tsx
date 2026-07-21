@@ -110,7 +110,7 @@ async function renderPage() {
     await act(async () => {
         renderWithProviders(
             <Suspense fallback={<div>Suspense loading...</div>}>
-                <QuizPage params={Promise.resolve({ id: 'quiz-1' })} />
+                <QuizPage params={Promise.resolve({ id: 'quiz-1', courseCode: 'CSC494', term: 'Fall-2024' })} />
             </Suspense>
         )
     })

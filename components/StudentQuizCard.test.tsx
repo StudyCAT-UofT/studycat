@@ -23,6 +23,9 @@ describe('StudentQuizCard', () => {
       course: {
         code: 'CSC494',
       },
+      term: {
+        name: 'Fall 2024',
+      },
     },
     setSelectedCourseOffering: vi.fn(),
     })
@@ -46,6 +49,6 @@ describe('StudentQuizCard', () => {
     renderWithProviders(<StudentQuizCard quiz={quiz as never} />)
 
     await user.click(screen.getByRole('button', { name: /Take Quiz/i }))
-    expect(mockPush).toHaveBeenCalledWith('/CSC494/quiz/quiz-42')
+    expect(mockPush).toHaveBeenCalledWith('/CSC494/Fall-2024/quiz/quiz-42')
   })
 })
