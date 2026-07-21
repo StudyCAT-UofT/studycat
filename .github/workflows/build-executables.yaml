@@ -14,16 +14,16 @@ jobs:
         include:
           - os: ubuntu-latest
             arch: x64
-            label: linux-x64
+            label: canvasapi-script-linux-x64
           - os: windows-latest
             arch: x64
-            label: windows-x64
+            label: canvasapi-script-windows-x64
           - os: macos-13
             arch: x64
-            label: macos-intel
+            label: canvasapi-script-macos-intel
           - os: macos-14
             arch: arm64
-            label: macos-arm64
+            label: canvasapi-script-macos-arm64
 
     runs-on: ${{ matrix.os }}
 
@@ -46,7 +46,15 @@ jobs:
       - name: Build executable
         run: pyinstaller --onefile --name "${{ matrix.label }}" scripts/canvasapi_script/canvasapi_script.py
 
+      - name: Compress executable (macOS/Linux)
+        if: runner.os != 'Windows'
+        run: |
+          cd dist
+          zip "${{ matrix.label }}.zip" "${{ matrix.label }}"
+
       - name: Attach file to release
         uses: softprops/action-gh-release@v2
         with:
-          files: dist/*
+          files: |
+            dist/*.zip
+            dist/*.exe

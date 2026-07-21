@@ -452,4 +452,11 @@ def get_data(course_id: int, quiz_id: int) -> None:
     click.secho(message=f"Success! Quiz data successfully exported to {full_path}", err=False, fg="green")
 
 if __name__ == '__main__':
-    get_data()
+        try:
+            get_data(standalone_mode=False)
+            input('\nPress Enter to exit')
+        except click.ClickException as e:
+            click.secho(f"Error: {e.format_message()}", fg="red")
+            input('\nPress Enter to exit.')
+        except click.Abort:
+            click.secho(f"Aborted!", fg="yellow")
