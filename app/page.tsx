@@ -17,9 +17,10 @@ const CourseSelectionContent = () => {
         const selectedOffering = courseOfferings.find(co => co.id === courseOfferingId)
         if (!selectedOffering) return
         const courseCode = selectedOffering.course.code 
+        const term = selectedOffering.term.name
         
         setSelectedCourseOffering(selectedOffering)
-        router.push(`/${courseCode}/quiz`)
+        router.push(`/${courseCode}/${term.replace(/\s+/g, '-')}/quiz`)
     }
 
     // Loading state

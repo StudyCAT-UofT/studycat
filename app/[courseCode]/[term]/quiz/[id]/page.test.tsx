@@ -110,7 +110,7 @@ async function renderPage() {
     await act(async () => {
         renderWithProviders(
             <Suspense fallback={<div>Suspense loading...</div>}>
-                <QuizPage params={Promise.resolve({ id: 'quiz-1' })} />
+                <QuizPage params={Promise.resolve({ id: 'quiz-1', courseCode: 'CSC494', term: 'Fall-2024' })} />
             </Suspense>
         )
     })
@@ -237,7 +237,7 @@ describe('app/quiz/[id]/page.tsx', () => {
         await screen.findByTestId('quiz-feedback')
         await userEvent.click(screen.getByRole('button', { name: 'Return to Dashboard' }))
 
-        expect(mockPush).toHaveBeenCalledWith('/CSC494/quiz')
+        expect(mockPush).toHaveBeenCalledWith('/CSC494/Fall-2024/quiz')
     })
 
     // ── Error handling ──────────────────────────────────────────────────────

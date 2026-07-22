@@ -330,7 +330,8 @@ const UploadPageContent = () => {
             }
 
             setView('done')
-            setTimeout(() => router.push(`/${selectedCourseOffering?.course.code}/question-bank`), 2000)
+            if (!selectedCourseOffering) return;
+            setTimeout(() => router.push(`/${selectedCourseOffering.course.code}/${selectedCourseOffering.term.name.replace(/\s+/g, '-')}//question-bank`), 2000)
 
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : 'Failed to upload spreadsheet'
@@ -715,7 +716,11 @@ const UploadPageContent = () => {
                             <Button
                                 variant="subtle"
                                 color='dark'
-                                onClick={() => router.push(`/${selectedCourseOffering?.course.code}/question-bank`)}
+                                onClick={() => {
+                                    if (selectedCourseOffering) {
+                                        router.push(`/${selectedCourseOffering.course.code}/${selectedCourseOffering.term.name.replace(/\s+/g, '-')}/question-bank`)
+                                    }
+                                }}
                                 disabled={loading}
                             >
                                 Cancel

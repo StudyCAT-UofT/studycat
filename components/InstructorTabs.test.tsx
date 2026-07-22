@@ -35,8 +35,7 @@ describe('InstructorTabs', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockUsePathname.mockReturnValue('/quiz')
-    mockUseParams.mockReturnValue({ courseCode: 'CSC207' })
-  })
+    mockUseParams.mockReturnValue({ courseCode: 'CSC207', term: 'Fall-2024' })  })
 
   it('renders all tabs for an INSTRUCTOR', () => {
     mockUseCourse.mockReturnValue(
@@ -183,7 +182,7 @@ describe('InstructorTabs', () => {
     renderWithProviders(<InstructorTabs>{children}</InstructorTabs>)
 
     await user.click(screen.getByRole('tab', { name: 'Quizzes' }))
-    expect(mockPush).toHaveBeenCalledWith('/CSC207/quizzes')
+    expect(mockPush).toHaveBeenCalledWith('/CSC207/Fall-2024/quizzes')
   })
 
   it('sets the Dashboard tab as active when pathname is /quiz', () => {

@@ -218,7 +218,8 @@ const QuizContent = ({ quizId }: { quizId: string }) => {
     }
 
     const handleReturnToDashboard = () => {
-        router.push(`/${selectedCourseOffering?.course.code}/quiz`)
+        if (!selectedCourseOffering) return;
+        router.push(`/${selectedCourseOffering.course.code}/${selectedCourseOffering.term.name.replace(/\s+/g, '-')}/quiz`)
     }
 
     if (quizState.loading) {

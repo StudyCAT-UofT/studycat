@@ -83,7 +83,8 @@ export const Navbar = () => {
                                     setSelectedCourseOffering(offering || null)
                                     
                                     const newCourseCode = offering.course.code
-                                    const newPath = pathname.replace(/^\/[^/]+/, `/${newCourseCode}`)
+                                    const newTerm = offering.term.name.replace(/\s+/g, '-')
+                                    const newPath = pathname.replace(/^\/[^/]+\/[^/]+/, `/${newCourseCode}/${newTerm}`)
                                     router.push(newPath)
                                 }}
                                 data={courseOfferings.map(offering => ({

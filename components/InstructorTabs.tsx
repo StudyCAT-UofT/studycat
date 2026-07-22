@@ -63,7 +63,7 @@ export const InstructorTabs = ({ children }: InstructorTabsProps) => {
     const router = useRouter()
     const pathname = usePathname()
     const { selectedCourseOffering, loading } = useCourse()
-    const { courseCode } = useParams<{ courseCode: string }>()
+    const { courseCode, term } = useParams<{ courseCode: string; term: string }>()
 
     // Check if current user has instructor or TA role for the selected course offering
     const isInstructorOrTA = selectedCourseOffering?.role === 'INSTRUCTOR' || selectedCourseOffering?.role === 'TA'
@@ -84,7 +84,7 @@ export const InstructorTabs = ({ children }: InstructorTabsProps) => {
      */
     const getCurrentTab = (): string => {
         // Special case: if pathname is exactly '/quiz', return dashboard
-        if (pathname === `/${courseCode}/quiz`) {
+        if (pathname === `/${courseCode}/${term}/quiz`) {
             return TAB_CONFIGS[0]?.value || 'dashboard'
         }
 
@@ -114,10 +114,10 @@ export const InstructorTabs = ({ children }: InstructorTabsProps) => {
         const selectedTab = TAB_CONFIGS.find(tab => tab.value === value)
 
         if (selectedTab) {
-            router.push(`/${courseCode}${selectedTab.route}`)
+            router.push(`/${courseCode}/${selectedCourseOffering.term.name.replace(/\s+/g, '-')}${selectedTab.route}`)
         } else {
             // Fallback to dashboard if tab not found
-            router.push(`/${courseCode}/quiz`)
+            router.push(`/${courseCode}/${selectedCourseOffering.term.name.replace(/\s+/g, '-')}/quiz`)
         }
     }
 
