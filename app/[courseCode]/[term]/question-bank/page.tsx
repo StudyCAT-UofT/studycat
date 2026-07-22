@@ -312,9 +312,9 @@ const QuestionBankContent = () => {
                             leftSection={<IconUpload size={16} />}
                             onClick={() => {
                                 if (selectedCourseOffering){
-                                    router.push(`/${selectedCourseOffering.course.code}/${selectedCourseOffering.term.name.replace(/\s+/g, '-')}/upload`)}
+                                    router.push(`/${selectedCourseOffering.course.code}/${selectedCourseOffering.term.name.replace(/\s+/g, '-')}/upload`)
                                 }
-                            }
+                            }}
                             disabled={!selectedCourseOffering?.course?.id}
                         >
                             Upload Questions
