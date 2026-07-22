@@ -69,6 +69,7 @@ const UploadPageContent = () => {
     } | null>(null)
     const [validating, setValidating] = useState(false)
     const [deactivateMissing, setDeactivateMissing] = useState(false)
+    const [isDragging, setIsDragging] = useState(false)
 
     // Dry-run / confirmation state
     const [view, setView] = useState<UploadView>('form')
@@ -164,6 +165,27 @@ const UploadPageContent = () => {
 
         if (selectedFile) {
             validateSpreadsheet(selectedFile)
+        }
+    }
+
+    const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+        e.preventDefault()
+        setIsDragging(true)
+    }
+
+    const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+        e.preventDefault()
+        setIsDragging(false)
+    }
+
+    const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+        e.preventDefault()
+        setIsDragging(false)
+        
+        if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+            const droppedFile = e.dataTransfer.files[0]
+            handleFileChange(droppedFile)
+            e.dataTransfer.clearData()
         }
     }
 
@@ -565,11 +587,14 @@ const UploadPageContent = () => {
 
                                 <Box
                                     onClick={() => fileInputRef.current?.click()}
+                                    onDragOver={handleDragOver}
+                                    onDragLeave={handleDragLeave}
+                                    onDrop={handleDrop}
                                     style={{
-                                        border: '2px dashed #228be6',
+                                        border: `2px dashed ${isDragging ? '#044f95' : '#228be6'}`,
                                         borderRadius: '12px',
                                         padding: '3rem 2rem',
-                                        backgroundColor: '#f1f8ff',
+                                        backgroundColor: isDragging ? '#dbeefb' : '#f1f8ff',
                                         cursor: 'pointer',
                                         transition: 'all 0.2s ease',
                                         textAlign: 'center'
