@@ -65,15 +65,15 @@ On Windows, open the Start Menu, and search for Terminal. On Mac, press Command 
 If you downloaded the script into your **Downloads** folder, enter the following command:
 
 ```
-./Downloads/canvasapi_script
+./Downloads/canvasapi-script-windows-x64.exe
 ```
 
-The `./Downloads/` part tells the Terminal where to find the script. If you saved the script somewhere else, replace `Downloads` with the name of that folder/path. 
+The `./Downloads/` part tells the Terminal where to find the script. If you saved the script somewhere else, replace `Downloads` with the name of that folder/path. The `canvasapi-script-windows-x64.exe` part is the filename, so replace it with the name of your downloaded file.
 
 The script will then prompt you for your course ID, quiz ID, and canvas access token, which you can get by following the same steps in option 1.
 
 If you prefer to directly provide the course and quiz IDs when starting the script you can do that by running this command then pressing enter: 
 ```
-./Downloads/canvasapi_script --course_id 121212 --quiz_id 232323
+./Downloads/canvasapi-script-windows-x64.exe --course_id 121212 --quiz_id 232323
 ```
-In the command above, replace `Downloads` with the folder where you saved the script, if it is not in your Downloads folder. Also replace `121212` with your own course ID and replace `232323` with your own quiz ID. After pressing Enter, the script will ask for your Canvas access token. Paste your access token and press Enter again. When the export is complete, you will see a message showing where the CSV file was saved, similar to Option 1. You can then upload that file into StudyCAT.
+In the command above, replace `Downloads` with the folder where you saved the script, and replace `canvasapi-script-windows-x64.exe` with the name of your file. Also replace `121212` with your own course ID and replace `232323` with your own quiz ID. After pressing Enter, the script will ask for your Canvas access token. Paste your access token and press Enter again. When the export is complete, you will see a message showing where the CSV file was saved, similar to Option 1. You can then upload that file into StudyCAT.
