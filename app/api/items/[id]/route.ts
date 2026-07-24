@@ -281,27 +281,52 @@ export async function PUT(
         }
       })
 
-      // Delete existing options (needed for update - onDelete: Cascade only applies when parent is deleted)
-      await tx.itemOption.deleteMany({
-        where: { itemId: id }
-      })
+      // Get IDs of options sent in the request
+      const incomingOptionIds = options
+        .map(opt => opt.id)
+        .filter(id => id !== undefined && id !== null && id !== '')
 
-      // Create new options
-      const newOptions = await Promise.all(
-        options.map(option => 
-          tx.itemOption.create({
-            data: {
-              itemId: id,
-              label: option.label,
-              text: option.text,
-              justification: option.justification || null,
-              isCorrect: option.isCorrect
-            }
-          })
-        )
+      const optionsToDelete = existingItem.options.filter(
+        dbOpt => !incomingOptionIds.includes(dbOpt.id)
       )
 
-      return { ...item, options: newOptions }
+      // Delete existing options (needed for update - onDelete: Cascade only applies when parent is deleted)
+      if (optionsToDelete.length > 0) {
+        await tx.itemOption.deleteMany({
+          where: {
+            id: { in: optionsToDelete.map(opt => opt.id) }
+          }
+        })
+      }
+
+      // Update options
+      const updatedOptions = await Promise.all(
+        options.map(option => {
+          if (option.id) {
+            return tx.itemOption.update({
+              where: { id: option.id },
+              data: {
+                label: option.label,
+                text: option.text,
+                justification: option.justification || null,
+                isCorrect: option.isCorrect
+              }
+            })
+          } else {
+            return tx.itemOption.create({
+              data: {
+                itemId: id,
+                label: option.label,
+                text: option.text,
+                justification: option.justification || null,
+                isCorrect: option.isCorrect
+              }
+            })
+          }
+        })
+      )
+
+      return { ...item, options: updatedOptions }
     })
 
     return NextResponse.json({ item: updatedItem })
