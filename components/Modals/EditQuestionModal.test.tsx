@@ -15,6 +15,8 @@ vi.mock('@mantine/notifications', () => ({
   notifications: { show: vi.fn() },
 }))
 
+window.HTMLElement.prototype.scrollIntoView = vi.fn()
+
 const { default: EditQuestionModal } = await import('./EditQuestionModal')
 
 beforeAll(() => server.listen())
@@ -92,6 +94,112 @@ describe('EditQuestionModal', () => {
         screen.getByRole('button', { name: /Save Changes/i })
       ).toBeInTheDocument()
     })
+  })
+
+  it('adds a new option and labels it correctly', async () => {
+    renderWithProviders(
+      <EditQuestionModal
+        opened={true}
+        onClose={vi.fn()}
+        isCreating={true}
+        item={null}
+        onSave={vi.fn()}
+      />
+    )
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('Option D')
+      ).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /Add Option/i }))
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('Option E')
+      ).toBeInTheDocument()
+    })
+  })
+
+  it('re-labels options correctly when one is removed', async () => {
+    renderWithProviders(
+      <EditQuestionModal
+        opened={true}
+        onClose={vi.fn()}
+        isCreating={true}
+        item={null}
+        onSave={vi.fn()}
+      />
+    )
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('Option D')
+      ).toBeInTheDocument()
+    })
+
+    const removeButtons = screen.getAllByRole('button', { name: /Remove/i })
+    
+    fireEvent.click(removeButtons[1])
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('Option C')
+      ).toBeInTheDocument()
+      expect(
+        screen.queryByText('Option D')
+      ).not.toBeInTheDocument()
+    })
+  })
+
+  it('disables remove buttons when only 2 options remain', async () => {
+    renderWithProviders(
+      <EditQuestionModal
+        opened={true}
+        onClose={vi.fn()}
+        isCreating={true}
+        item={null}
+        onSave={vi.fn()}
+      />
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText('Option D')).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getAllByRole('button', { name: /Remove/i })[0])
+    fireEvent.click(screen.getAllByRole('button', { name: /Remove/i })[1])
+
+    await waitFor(() => {
+      const remainingButtons = screen.getAllByRole('button', { name: /Remove/i })
+      expect(remainingButtons[0]).toBeDisabled()
+      expect(remainingButtons[1]).toBeDisabled()
+    })
+  })
+
+  it('disables the add option button when the 26 option limit is reached', async () => {
+    renderWithProviders(
+      <EditQuestionModal
+        opened={true}
+        onClose={vi.fn()}
+        isCreating={true}
+        item={null}
+        onSave={vi.fn()}
+      />
+    )
+
+    const addButton = await screen.findByRole('button', { name: /Add Option/i })
+
+    for (let i = 0; i < 22; i++) {
+      fireEvent.click(addButton)
+    }
+
+    await waitFor(() => {
+      expect(screen.getByText('Option Z')).toBeInTheDocument()
+    })
+
+    expect(addButton).toBeDisabled()
   })
 
   it('does NOT show active/inactive toggle in create mode', async () => {

@@ -260,7 +260,6 @@ export async function PUT(
       )
     }
 
-    const irtC = options.filter(opt => opt.isCorrect).length / options.length
     // Use a transaction to update the item and its options
     const updatedItem = await prisma.$transaction(async (tx) => {
       // Update the item
@@ -273,7 +272,12 @@ export async function PUT(
           stem,
           reference: reference || null,
           figureUrl: figureUrl || null,
-          irtC
+          irtA: body.irtA,
+          irtB: body.irtB,
+          irtC: body.irtC,
+          ptBi: body.ptBi,
+          average: body.average,
+          attemptsCount: body.attemptsCount,
         }
       })
 

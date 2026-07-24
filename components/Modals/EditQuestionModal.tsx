@@ -1,7 +1,7 @@
 import { Box, Text, Button, Checkbox, Divider, Group, Modal, Select, Stack, Textarea, TextInput, Alert, Badge } from "@mantine/core"
 import { Item } from "@/types"
-import { useState, useEffect, useCallback } from "react"
-import { IconAlertCircle, IconCheck } from "@tabler/icons-react"
+import { useState, useEffect, useRef, useCallback } from "react"
+import { IconAlertCircle, IconCheck, IconPlus } from "@tabler/icons-react"
 import { useCourse } from "@/lib/course-context"
 import { notifications } from "@mantine/notifications"
 
@@ -26,6 +26,12 @@ const EditQuestionModal = ({
         stem: '',
         reference: '',
         figureUrl: '',
+        irtA: '' as string,
+        irtB: '' as string,
+        irtC: '' as string,
+        ptBi: '' as string,
+        average: '' as string,
+        attemptsCount: '' as string,
         options: [] as Array<{
             id: string
             label: string
@@ -38,7 +44,15 @@ const EditQuestionModal = ({
     const [error, setError] = useState<string | null>(null)
     const [success, setSuccess] = useState(false)
     const [availableModules, setAvailableModules] = useState<Array<{ id: string, name: string }>>([])
+    const topRef = useRef<HTMLDivElement>(null);
+    const nextOptionId = useRef(0)
     const { selectedCourseOffering } = useCourse()
+
+    useEffect(() => {
+        if (error) {
+            topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }, [error]);
 
     // Load available modules for the course
     const loadModules = useCallback(async () => {
@@ -77,6 +91,12 @@ const EditQuestionModal = ({
                     stem: '',
                     reference: '',
                     figureUrl: '',
+                    irtA: '',
+                    irtB: '',
+                    irtC: '',
+                    ptBi: '',
+                    average: '',
+                    attemptsCount: '',
                     options: [
                         { id: 'temp-1', label: 'A', text: '', justification: '', isCorrect: false },
                         { id: 'temp-2', label: 'B', text: '', justification: '', isCorrect: false },
@@ -84,6 +104,7 @@ const EditQuestionModal = ({
                         { id: 'temp-4', label: 'D', text: '', justification: '', isCorrect: false }
                     ]
                 })
+                nextOptionId.current = 5
                 loadModules()
             } else if (item) {
                 setFormData({
@@ -93,15 +114,25 @@ const EditQuestionModal = ({
                     stem: item.stem,
                     reference: item.reference || '',
                     figureUrl: item.figureUrl || '',
+                    irtA: item.irtA != null ? String(item.irtA) : '',
+                    irtB: item.irtB != null ? String(item.irtB) : '',
+                    irtC: item.irtC != null ? String(item.irtC) : '',
+                    ptBi: item.ptBi  != null ? String(item.ptBi) : '',
+                    average: item.average  != null ? String(item.average) : '',
+                    attemptsCount: item.attemptsCount  != null ? String(item.attemptsCount) : '',
                     options: item.options.map(opt => ({
                         ...opt,
                         justification: opt.justification || ''
                     }))
                 })
+                nextOptionId.current = 0
                 loadModules()
             }
         }
     }, [opened, isCreating, item, loadModules])
+
+    const isValidNumberInput = (value: string) => /^-?\d*\.?\d*$/.test(value)
+    const isValidIntegerInput = (value: string) => /^-?\d*$/.test(value)
 
     const handleSave = async () => {
         if (!isCreating && !item) return
@@ -123,8 +154,24 @@ const EditQuestionModal = ({
             setError('Question stem is required')
             return
         }
-        if (formData.options.length === 0) {
-            setError('At least one option is required')
+        if (formData.options.length < 2 || formData.options.length > 26) {
+            setError('Questions must have between 2 and 26 answer options')
+            return
+        }
+
+        const numberFields = [
+            formData.irtA,
+            formData.irtB,
+            formData.irtC,
+            formData.ptBi,
+            formData.average,
+        ];
+
+        const hasInvalidNumbers = numberFields.some((val) => val !== '' && !isValidNumberInput(val)) ||
+            (formData.attemptsCount !== '' && !isValidIntegerInput(formData.attemptsCount));
+
+        if (hasInvalidNumbers) {
+            setError("Please fix the invalid number fields (marked in red) before saving.");
             return
         }
 
@@ -147,6 +194,17 @@ const EditQuestionModal = ({
         setSuccess(false)
 
         try {
+            const numOptions = formData.options.length;
+            const formattedData = {
+                ...formData,
+                irtA: formData.irtA === '' ? 1 :  Number(formData.irtA),
+                irtB: formData.irtB === '' ? 0 : Number(formData.irtB),
+                irtC: formData.irtC === '' ? (1 / numOptions) : Number(formData.irtC),
+                ptBi: formData.ptBi === '' ? null : Number(formData.ptBi),
+                average: formData.average === '' ? null : Number(formData.average),
+                attemptsCount: formData.attemptsCount === '' ? null : Number(formData.attemptsCount),
+            }
+            
             let response: Response
 
             if (isCreating) {
@@ -163,7 +221,7 @@ const EditQuestionModal = ({
                     credentials: 'include',
                     body: JSON.stringify({
                         courseId: selectedCourseOffering.course.id,
-                        ...formData
+                        ...formattedData
                     }),
                 })
             } else {
@@ -174,7 +232,7 @@ const EditQuestionModal = ({
                         'Content-Type': 'application/json',
                     },
                     credentials: 'include',
-                    body: JSON.stringify(formData),
+                    body: JSON.stringify(formattedData),
                 })
             }
 
@@ -206,6 +264,35 @@ const EditQuestionModal = ({
         newOptions[index] = { ...newOptions[index], [field]: value }
         setFormData({ ...formData, options: newOptions })
     }
+
+    const handleAddOption = () => {
+        if (formData.options.length >= 26) return;
+        
+        const nextLabel = String.fromCharCode(65 + formData.options.length);
+        const newId = `temp-${nextOptionId.current++}`
+        setFormData(prev => ({
+            ...prev,
+            options: [
+                ...prev.options,
+                { id: newId, label: nextLabel, text: '', justification: '', isCorrect: false }
+            ]
+        }))
+    }
+
+    const handleRemoveOption = (indexToRemove: number) => {
+    if (formData.options.length <= 2) return;
+
+    setFormData(prev => {
+        const newOptions = prev.options
+            .filter((_, index) => index !== indexToRemove)
+            .map((opt, index) => ({
+                ...opt,
+                label: String.fromCharCode(65 + index)
+            }));
+            
+        return { ...prev, options: newOptions }
+    })
+}
 
     const [togglingActive, setTogglingActive] = useState(false)
 
@@ -270,16 +357,18 @@ const EditQuestionModal = ({
                     </Group>
                 )}
 
-                {error && (
-                    <Alert
-                        icon={<IconAlertCircle size={16} />}
-                        title="Error"
-                        color="red"
-                        variant="light"
-                    >
-                        {error}
-                    </Alert>
-                )}
+                <div ref={topRef}>
+                    {error && (
+                        <Alert
+                            icon={<IconAlertCircle size={16} />}
+                            title="Error"
+                            color="red"
+                            variant="light"
+                        >
+                            {error}
+                        </Alert>
+                    )}
+                </div>
 
                 {success && (
                     <Alert
@@ -297,6 +386,7 @@ const EditQuestionModal = ({
                         label="Question ID"
                         value={formData.externalQuestionId}
                         onChange={(e) => setFormData({ ...formData, externalQuestionId: e.target.value })}
+                        required
                     />
                     <Select
                         label="Module"
@@ -323,6 +413,7 @@ const EditQuestionModal = ({
                         { value: 'EVALUATE', label: 'Evaluate' },
                         { value: 'CREATE', label: 'Create' }
                     ]}
+                    required
                 />
 
                 <Textarea
@@ -330,6 +421,7 @@ const EditQuestionModal = ({
                     value={formData.stem}
                     onChange={(e) => setFormData({ ...formData, stem: e.target.value })}
                     minRows={3}
+                    required
                 />
 
                 <Group grow>
@@ -345,18 +437,71 @@ const EditQuestionModal = ({
                     />
                 </Group>
 
+                <Group grow>
+                    <TextInput
+                        label="IRT a"
+                        value={formData.irtA}
+                        onChange={(e) => setFormData({ ...formData, irtA: e.target.value })}
+                        error={formData.irtA !== '' && !isValidNumberInput(formData.irtA) ? "Must be a valid number" : null}
+                    />
+                    <TextInput
+                        label="IRT b"
+                        value={formData.irtB}
+                        onChange={(e) => setFormData({ ...formData, irtB: e.target.value })}
+                        error={formData.irtB !== '' && !isValidNumberInput(formData.irtB) ? "Must be a valid number" : null}
+                    />
+                    <TextInput
+                        label="IRT c"
+                        value={formData.irtC}
+                        onChange={(e) => setFormData({ ...formData, irtC: e.target.value })}
+                        error={formData.irtC !== '' && !isValidNumberInput(formData.irtC) ? "Must be a valid number" : null}
+                    />
+                </Group>
+
+                <Group grow>
+                    <TextInput
+                        label="Biserial"
+                        value={formData.ptBi}
+                        onChange={(e) => setFormData({ ...formData, ptBi: e.target.value })}
+                        error={formData.ptBi !== '' && !isValidNumberInput(formData.ptBi) ? "Must be a valid number" : null}
+                    />
+                    <TextInput
+                        label="Average"
+                        value={formData.average}
+                        onChange={(e) => setFormData({ ...formData, average: e.target.value })}
+                        error={formData.average !== '' && !isValidNumberInput(formData.average) ? "Must be a valid number" : null}
+                    />
+                    <TextInput
+                        label="Attempts"
+                        value={formData.attemptsCount}
+                        onChange={(e) => setFormData({ ...formData, attemptsCount: e.target.value })}
+                        error={formData.attemptsCount !== '' && !isValidIntegerInput(formData.attemptsCount) ? "Must be a valid integer" : null}
+                    />
+                </Group>
+
                 <Divider label="Options" labelPosition="left" />
 
                 {formData.options.map((option, index) => (
                     <Box key={option.id} p="md" style={{ border: '1px solid #e9ecef', borderRadius: '8px' }}>
-                        <Group mb="sm">
-                            <Text fw={500}>Option {option.label}</Text>
-                            <Checkbox
-                                label="Correct Answer"
-                                checked={option.isCorrect}
-                                onChange={(e) => updateOption(index, 'isCorrect', e.currentTarget.checked)}
-                                description="Multiple answers can be correct"
-                            />
+                        <Group justify="space-between" align="flex-start" w="100%" mb="sm">
+                            <Group>
+                                <Text fw={500}>Option {option.label}</Text>
+                                <Checkbox
+                                    label="Correct Answer"
+                                    checked={option.isCorrect}
+                                    onChange={(e) => updateOption(index, 'isCorrect', e.currentTarget.checked)}
+                                    description="Multiple answers can be correct"
+                                />
+                            </Group>
+                            <Button
+                                size="xs"
+                                variant="outline"
+                                color="red"
+                                onClick={() => handleRemoveOption(index)}
+                                disabled={formData.options.length <= 2}
+                            >
+                                Remove
+                            </Button>
                         </Group>
                         <Textarea
                             label="Option Text"
@@ -373,6 +518,17 @@ const EditQuestionModal = ({
                         />
                     </Box>
                 ))}
+
+                <Button 
+                    variant="light"
+                    color="blue"
+                    leftSection={<IconPlus size={16} />}
+                    onClick={handleAddOption}
+                    disabled={formData.options.length >= 26}
+                    fullWidth
+                >
+                    Add Option
+                </Button>
 
                 <Group justify="flex-end" mt="md">
                     <Button variant="outline" onClick={onClose} disabled={loading} color="dark">
