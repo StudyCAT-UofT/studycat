@@ -54,7 +54,12 @@ export default function QuizFeedback({ feedbackData, onContinue, onReturnToDashb
 
     // Render question option with styling
     const renderOption = (question: DetailedQuestionReview, optionIndex: number, justificationVisible: boolean) => {
-        const option = question.options[optionIndex]
+        const option = question.options?.[optionIndex]
+
+        if (!option) {
+            return null; 
+        }
+
         const isSelected = optionIndex === question.selectedAnswerIndex
         const isCorrect = option.isCorrect
 

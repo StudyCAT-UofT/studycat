@@ -177,6 +177,10 @@ const QuizContent = ({ quizId }: { quizId: string }) => {
                 feedback: null,
                 nextItem: undefined
             }))
+            
+            if (quizState.currentItem?.item_id === quizState.nextItem?.item_id) {
+                console.warn("The quiz will not progress past the current question.")
+            }
         }
     }
 
@@ -299,6 +303,7 @@ const QuizContent = ({ quizId }: { quizId: string }) => {
                 </Group>
 
                 <QuizQuestion
+                    key={quizState.currentItem.item_id}
                     item={quizState.currentItem}
                     onAnswer={handleAnswer}
                     onNext={handleNext}
