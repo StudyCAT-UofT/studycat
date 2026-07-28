@@ -16,6 +16,7 @@ import { IconEdit } from '@tabler/icons-react'
 import { EditQuestionModal } from '@/components/Modals'
 import { getBloomColor } from '@/utils/getBloomColor'
 import { Item } from '@/types'
+import DOMPurify from 'dompurify'
 
 
 interface QuestionBankTableProps {
@@ -139,9 +140,7 @@ export const QuestionBankTable = ({ items, loading, error, onRefresh, selectedRe
             sortable: true,
             width: 300,
             render: (item: Item) => (
-                <Text size="sm" lineClamp={2} style={{ maxWidth: 300 }}>
-                    {item.stem}
-                </Text>
+                <Text size="sm" lineClamp={2} style={{ maxWidth: 300 }} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(item.stem) }} />
             )
         },
         {
@@ -216,11 +215,9 @@ export const QuestionBankTable = ({ items, loading, error, onRefresh, selectedRe
                                 )}
                             </Group>
                         </Group>
-                        <Text size="sm" mb="xs">{option.text}</Text>
+                        <Text size="sm" mb="xs" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(option.text) }} />
                         {option.justification && (
-                            <Text size="xs" fs="italic">
-                                Justification: {option.justification}
-                            </Text>
+                            <Text size="xs" fs="italic" dangerouslySetInnerHTML={{ __html: `Justification: ${DOMPurify.sanitize(option.justification)}` }} />
                         )}
                     </Box>
                 ))}

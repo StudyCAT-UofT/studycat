@@ -4,6 +4,7 @@ import { QuizItem, Feedback, FeedbackLevel, feedbackLevels } from '@/types'
 import { Card, Stack, Title, Button, Radio, Text, Paper, Image, Flex, Group, VisuallyHidden } from '@mantine/core'
 import { IconCheck, IconX } from '@tabler/icons-react'
 import { useState, useEffect } from 'react'
+import DOMPurify from 'dompurify'
 
 interface QuizQuestionProps {
     item: QuizItem
@@ -83,7 +84,7 @@ const QuizQuestion = ({ item, onAnswer, onNext, feedback, shuffled, feedbackVisi
     return (
         <Card withBorder padding="lg" radius="md">
             <Stack gap="md">
-                <Title order={2} id={stemId}>{item.stem}</Title>
+                <Title order={2} id={stemId} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(item.stem) }} />
 
                 {figureUrl && (
                     <Flex mah="500px" justify="center">
@@ -129,7 +130,7 @@ const QuizQuestion = ({ item, onAnswer, onNext, feedback, shuffled, feedbackVisi
                                     <Group justify="space-between" align="center">
                                         <Group align="center" gap="sm">
                                             <Radio value={displayIndex.toString()} size="md" disabled={isFeedbackMode} style={{ flex: 1 }} />
-                                            <span>{option}</span>
+                                            <span dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(option)}} />
                                         </Group>
                                         {isCorrectOption && <IconCheck size={20} color="#22c55e" />}
                                         {isWrongSelected && <IconX size={20} color="#ef4444" />}
@@ -150,7 +151,7 @@ const QuizQuestion = ({ item, onAnswer, onNext, feedback, shuffled, feedbackVisi
                                             <Text size="sm" fw={500}>
                                                 Feedback:
                                             </Text>
-                                            <Text size="sm">{feedback.justification}</Text>
+                                            <Text size="sm" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(feedback.justification) }} />
                                         </>
                                     )}
 
@@ -159,7 +160,7 @@ const QuizQuestion = ({ item, onAnswer, onNext, feedback, shuffled, feedbackVisi
                                             <Text size="sm" fw={500}>
                                                 Reference:
                                             </Text>
-                                            <Text size="sm">{reference}</Text>
+                                            <Text size="sm" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(reference) }} />
                                         </>
                                     )}
                                 </>
