@@ -31,10 +31,10 @@
     "@tabler/icons-react": "^3.35.0",
     "clsx": "^2.1.1",
     "dompurify": "^3.4.12",
-    "js-cookie": "^3.0.5",
+    "js-cookie": "^3.0.7",
     "jsonwebtoken": "^9.0.2",
     "mantine-datatable": "^8.2.0",
-    "next": "^15.5.22",
+    "next": "^16.2.12",
     "papaparse": "^5.5.3",
     "react": "19.2.8",
     "react-dom": "19.2.8",
@@ -59,7 +59,7 @@
     "eslint-config-next": "15.5.4",
     "jsdom": "^27.2.0",
     "msw": "^2.12.14",
-    "postcss": "^8.5.6",
+    "postcss": "^8.5.18",
     "postcss-preset-mantine": "^1.18.0",
     "postcss-simple-vars": "^7.0.1",
     "prisma": "^6.16.2",
@@ -67,6 +67,6 @@
     "stylelint-config-standard": "^40.0.0",
     "tsx": "^4.19.2",
     "typescript": "^5",
-    "vitest": "^4.0.10"
+    "vitest": "^4.1.0"
   }
 }
