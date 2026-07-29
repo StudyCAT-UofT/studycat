@@ -66,8 +66,8 @@ export const ModulePerformanceRadarChart = ({ questions }: ModulePerformanceRada
                             axisLine={false}
                         />
                         <Tooltip
-                            formatter={(value: number) => [`${value.toFixed(1)}%`, '% Correct']}
-                            labelFormatter={(label: string) => `Module: ${label}`}
+                            formatter={(value) => [`${Number(value).toFixed(1)}%`, '% Correct']}
+                            labelFormatter={(label) => `Module: ${label}`}
                         />
                         <Radar
                             name="% Correct"

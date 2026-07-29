@@ -1,7 +1,6 @@
 import React from 'react'
-import { describe, it, expect, beforeAll, afterAll, afterEach, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { screen, waitFor } from '@testing-library/react'
-import { server } from '@/mocks/server'
 import { renderWithProviders, makeDefaultCourseValue } from '@/test-utils'
 
 const mockUseCourse = vi.fn()
@@ -15,10 +14,6 @@ vi.mock('@mantine/notifications', () => ({
 }))
 
 const { default: AddStudentsModal } = await import('./AddStudentsModal')
-
-beforeAll(() => server.listen())
-afterAll(() => server.close())
-afterEach(() => server.resetHandlers())
 
 describe('AddStudentsModal', () => {
   beforeEach(() => {

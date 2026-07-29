@@ -1,0 +1,12 @@
+allowBuilds:
+  '@prisma/client': true
+  '@prisma/engines': true
+  esbuild: true
+  msw: true
+  prisma: true
+  sharp: true
+  unrs-resolver: true
+
+# Minimum age (in minutes) a package version must have before pnpm will
+# install it, to guard against newly published/compromised releases.
+minimumReleaseAge: 2880 # 2 days
