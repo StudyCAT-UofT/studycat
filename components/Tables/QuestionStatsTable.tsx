@@ -4,6 +4,7 @@ import { Paper, Title, Group, Badge, Text, Box, Flex } from '@mantine/core'
 import { DataTable, DataTableSortStatus } from 'mantine-datatable'
 import { useMemo, useState, useEffect } from 'react'
 import { QuestionData } from '@/types'
+import DOMPurify from 'dompurify'
 
 interface QuestionStatsTableProps {
     questions: QuestionData[]
@@ -111,7 +112,7 @@ export const QuestionStatsTable = ({ questions, selectedQuizId }: QuestionStatsT
                                         {percentage.toFixed(1)}%
                                     </Badge>
                                 </Group>
-                                <Text size="sm" mb="xs">{option.text}</Text>
+                                <Text size="sm" mb="xs" dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(option.text) }} />
                             </Box>
                         )
                     })}
@@ -134,9 +135,7 @@ export const QuestionStatsTable = ({ questions, selectedQuizId }: QuestionStatsT
             sortable: true,
             width: 300,
             render: (question: QuestionData) => (
-                <Text size="sm" lineClamp={2} style={{ maxWidth: 300 }}>
-                    {question.stem}
-                </Text>
+                <Text size="sm" lineClamp={2} style={{ maxWidth: 300 }} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(question.stem) }} />
             )
         },
         {
