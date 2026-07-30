@@ -1,5 +1,5 @@
 import React from 'react'
-import { describe, it, expect, beforeAll, afterAll, afterEach, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { screen, waitFor } from '@testing-library/react'
 import { http, HttpResponse } from 'msw'
 import { server } from '@/mocks/server'
@@ -21,10 +21,6 @@ vi.mock('@/components/StudentQuizCard', () => ({
 
 // Dynamic import so mocks are registered before the module loads
 const { default: StudentDashboard } = await import('./StudentDashboard')
-
-beforeAll(() => server.listen())
-afterAll(() => server.close())
-afterEach(() => server.resetHandlers())
 
 describe('StudentDashboard', () => {
   beforeEach(() => {
