@@ -33,6 +33,10 @@ export const runtime = "nodejs";
  * - 500: server error
  */
 export async function POST(request: Request) {
+    const MAX_QUESTION_STEM_CHARS = 16161
+    const MAX_ANSWER_OPTION_CHARS = 5000
+    const MAX_ANSWER_JUSTIFICATION_CHARS = 16384
+
     try {
         // Ensure Content-Type is form-data
         const contentType = request.headers.get("content-type") || "";
@@ -157,6 +161,11 @@ export async function POST(request: Request) {
                     continue;
                 }
 
+                if (String(stem).length > MAX_QUESTION_STEM_CHARS) {
+                    details.push({ externalQuestionId, status: "skipped: question stem exceeds allowed character limit" });
+                    continue;
+                }
+
                 const hasInvalidNumbers = 
                     Number.isNaN(ptBi) ||
                     Number.isNaN(average) ||
@@ -239,6 +248,16 @@ export async function POST(request: Request) {
                         justification: justification ? String(justification) : null,
                         isCorrect,
                     });
+                }
+
+                const invalidCharCountOption = optionsToCreate.find(
+                    opt => opt.text.length > MAX_ANSWER_OPTION_CHARS || (opt.justification && opt.justification.length > MAX_ANSWER_JUSTIFICATION_CHARS)
+                )
+                if (invalidCharCountOption) {
+                    const field = invalidCharCountOption.text.length > MAX_ANSWER_OPTION_CHARS ? 'text' : 'justification'
+                    const max = field === 'text' ? MAX_ANSWER_OPTION_CHARS : MAX_ANSWER_JUSTIFICATION_CHARS
+                    details.push({ externalQuestionId, status: `skipped: option ${invalidCharCountOption.label} ${field} exceeds the allowed character limit (${max} characters)` })
+                    continue;
                 }
 
                 const seenAnswerTexts = new Set<string>();

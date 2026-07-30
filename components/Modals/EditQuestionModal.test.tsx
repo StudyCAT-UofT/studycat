@@ -281,6 +281,146 @@ describe('EditQuestionModal', () => {
     })
   })
 
+  // ─── Character Limit Validation ────────────────────────
+
+  it('shows an error when the question stem exceeds the allowed character limit', async () => {
+    renderWithProviders(
+      <EditQuestionModal
+        opened={true}
+        onClose={vi.fn()}
+        isCreating={false}
+        item={makeItem()}
+        onSave={vi.fn()}
+      />
+    )
+
+    const STEM_MAX = 16161
+    fireEvent.change(screen.getByRole('textbox', { name: /Question Stem/i }), {
+      target: { value: 'A'.repeat(STEM_MAX + 1) },
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /Save Changes/i }))
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toBeInTheDocument()
+    })
+  })
+
+  it('allows saving when the question stem is at the allowed character limit', async () => {
+    renderWithProviders(
+      <EditQuestionModal
+        opened={true}
+        onClose={vi.fn()}
+        isCreating={false}
+        item={makeItem()}
+        onSave={vi.fn()}
+      />
+    )
+
+    const STEM_MAX = 16161
+    fireEvent.change(screen.getByRole('textbox', { name: /Question Stem/i }), {
+      target: { value: 'A'.repeat(STEM_MAX) },
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /Save Changes/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText(/updated successfully/i)).toBeInTheDocument()
+    })
+  })
+
+  it('shows an error when an answer option\'s text exceeds the allowed character limit', async () => {
+    renderWithProviders(
+      <EditQuestionModal
+        opened={true}
+        onClose={vi.fn()}
+        isCreating={false}
+        item={makeItem()}
+        onSave={vi.fn()}
+      />
+    )
+
+    const OPTION_TEXT_MAX = 5000
+    fireEvent.change(screen.getAllByRole('textbox', { name: /Option Text/i })[0], {
+      target: { value: 'A'.repeat(OPTION_TEXT_MAX + 1) },
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /Save Changes/i }))
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toBeInTheDocument()
+    })
+  })
+
+  it('allows saving when an answer option\'s text is at the allowed character limit', async () => {
+    renderWithProviders(
+      <EditQuestionModal
+        opened={true}
+        onClose={vi.fn()}
+        isCreating={false}
+        item={makeItem()}
+        onSave={vi.fn()}
+      />
+    )
+
+    const OPTION_TEXT_MAX = 5000
+    fireEvent.change(screen.getAllByRole('textbox', { name: /Option Text/i })[0], {
+      target: { value: 'A'.repeat(OPTION_TEXT_MAX) },
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /Save Changes/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText(/updated successfully/i)).toBeInTheDocument()
+    })
+  })
+
+  it('shows an error when an answer option\'s justification exceeds the allowed character limit', async () => {
+    renderWithProviders(
+      <EditQuestionModal
+        opened={true}
+        onClose={vi.fn()}
+        isCreating={false}
+        item={makeItem()}
+        onSave={vi.fn()}
+      />
+    )
+
+    const JUSTIFICATION_MAX = 16384
+    fireEvent.change(screen.getAllByRole('textbox', { name: /Justification/i })[0], {
+      target: { value: 'A'.repeat(JUSTIFICATION_MAX + 1) },
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /Save Changes/i }))
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toBeInTheDocument()
+    })
+  })
+
+  it('allows saving when an answer option\'s justification is at the allowed character limit', async () => {
+    renderWithProviders(
+      <EditQuestionModal
+        opened={true}
+        onClose={vi.fn()}
+        isCreating={false}
+        item={makeItem()}
+        onSave={vi.fn()}
+      />
+    )
+
+    const JUSTIFICATION_MAX = 16384
+    fireEvent.change(screen.getAllByRole('textbox', { name: /Justification/i })[0], {
+      target: { value: 'A'.repeat(JUSTIFICATION_MAX) },
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /Save Changes/i }))
+
+    await waitFor(() => {
+      expect(screen.getByText(/updated successfully/i)).toBeInTheDocument()
+    })
+  })
+
   // ─── Save flows (edit mode — item pre-fills the form) ────────────────────────
 
   it('calls PUT /api/items/:id in edit mode and shows success alert', async () => {
