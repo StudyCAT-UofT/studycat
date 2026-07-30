@@ -19,8 +19,3 @@ updates:
     directory: "/" # Scans .github/workflows
     schedule:
       interval: "monthly"
-    cooldown:
-      default-days: 2
-      semver-major-days: 2
-      semver-minor-days: 1
-      semver-patch-days: 1
