@@ -8,7 +8,7 @@ import type { InitAttemptRequest } from '@/types';
 export const POST = async (request: NextRequest) => {
   try {
     const body: InitAttemptRequest = await request.json();
-    const { quizId, concepts, priorMu, priorSigma2 } = body;
+    const { quizId, offeringId, concepts, priorMu, priorSigma2 } = body;
 
     // Get user from session
     const session = await getSession();
@@ -27,6 +27,13 @@ export const POST = async (request: NextRequest) => {
         { error: 'quizId is required' },
         { status: 400 }
       );
+    }
+    
+    if (!offeringId) {
+      return NextResponse.json(
+        { error: 'offeringId is required' },
+        { status: 400 }
+      )
     }
 
     // Verify quiz exists and is active
@@ -54,6 +61,13 @@ export const POST = async (request: NextRequest) => {
     if (!quiz) {
       return NextResponse.json(
         { error: 'Quiz not found or inactive' },
+        { status: 404 }
+      );
+    }
+
+    if (quiz.offeringId !== offeringId) {
+      return NextResponse.json(
+        { error: 'Quiz does not belong to this course offering', code: 'QUIZ_OFFERING_MISMATCH' },
         { status: 404 }
       );
     }

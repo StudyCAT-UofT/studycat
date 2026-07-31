@@ -77,6 +77,7 @@ export interface Feedback {
 
 export interface InitAttemptRequest {
     quizId: string
+    offeringId: string
     concepts?: string[]
     priorMu?: number
     priorSigma2?: number

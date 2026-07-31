@@ -24,7 +24,9 @@ export class QuizClient {
 
     if (!response.ok) {
       const errorData = await response.json();
-      throw new Error(errorData.error || 'Failed to initialize quiz attempt');
+      const err = new Error(errorData.error || 'Failed to initialize quiz attempt') as Error & {code?: string};
+      err.code = errorData.code;
+      throw err
     }
 
     return response.json();
