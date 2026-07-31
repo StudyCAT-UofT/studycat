@@ -167,8 +167,6 @@ export async function POST(request: Request) {
                 }
 
                 const hasInvalidNumbers = 
-                    Number.isNaN(average) ||
-                    Number.isNaN(attemptsCount) ||
                     Number.isNaN(irtA) || 
                     Number.isNaN(irtB) || 
                     Number.isNaN(irtCRaw);
