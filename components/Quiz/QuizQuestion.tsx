@@ -128,7 +128,7 @@ const QuizQuestion = ({ item, onAnswer, onNext, feedback, shuffled, feedbackVisi
                                     }}
                                 >
                                     <Group justify="space-between" align="center">
-                                        <Group align="center" gap="sm">
+                                        <Group align="center" gap="sm" wrap="nowrap">
                                             <Radio value={displayIndex.toString()} size="md" disabled={isFeedbackMode} style={{ flex: 1 }} />
                                             <span dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(option)}} />
                                         </Group>

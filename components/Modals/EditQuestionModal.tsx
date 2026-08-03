@@ -48,6 +48,10 @@ const EditQuestionModal = ({
     const nextOptionId = useRef(0)
     const { selectedCourseOffering } = useCourse()
 
+    const MAX_QUESTION_STEM_CHARS = 16161
+    const MAX_ANSWER_OPTION_CHARS = 5000
+    const MAX_ANSWER_JUSTIFICATION_CHARS = 16384
+
     useEffect(() => {
         if (error) {
             topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -186,6 +190,21 @@ const EditQuestionModal = ({
         const emptyOptions = formData.options.filter(opt => !opt.text.trim())
         if (emptyOptions.length > 0) {
             setError('All options must have text')
+            return
+        }
+
+        if (formData.stem.length > MAX_QUESTION_STEM_CHARS) {
+            setError(`Question stem exceeds the allowed character limit (16161 characters)`)
+            return
+        }
+
+        const invalidCharCountOption = formData.options.find(
+            opt => opt.text.length > MAX_ANSWER_OPTION_CHARS || opt.justification.length > MAX_ANSWER_JUSTIFICATION_CHARS
+        )
+        if (invalidCharCountOption) {
+            const field = invalidCharCountOption.text.length > MAX_ANSWER_OPTION_CHARS ? 'text' : 'justification'
+            const max = field === 'text' ? MAX_ANSWER_OPTION_CHARS : MAX_ANSWER_JUSTIFICATION_CHARS
+            setError(`Option ${invalidCharCountOption.label} ${field} exceeds the allowed character limit (${max} characters)`)
             return
         }
 
