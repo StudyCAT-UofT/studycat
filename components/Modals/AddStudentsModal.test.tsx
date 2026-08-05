@@ -86,7 +86,10 @@ describe('AddStudentsModal', () => {
       fileInput.dispatchEvent(changeEvent)
 
       await waitFor(() => {
-        expect(screen.getByText(/Valid Format/i)).toBeInTheDocument()
+        // Use an exact match: a case-insensitive regex also matches the
+        // alert's message body ("Valid format. Ready to import..."),
+        // making getByText ambiguous.
+        expect(screen.getByText('Valid Format')).toBeInTheDocument()
       })
     }
   })
