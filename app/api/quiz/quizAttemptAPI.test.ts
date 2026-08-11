@@ -133,7 +133,7 @@ describe('POST /api/quiz/attempt/init', () => {
     it('returns 404 when quiz is not found or inactive', async () => {
         asAuthenticated()
         vi.mocked(prisma.quiz.findFirst).mockResolvedValue(null)
-        const res = await initRoute(makeRequest({ quizId: 'quiz-1' }))
+        const res = await initRoute(makeRequest({ quizId: 'quiz-1', offeringId: 'o1' }))
         expect(res.status).toBe(404)
     })
 
@@ -141,7 +141,7 @@ describe('POST /api/quiz/attempt/init', () => {
         asAuthenticated()
         vi.mocked(prisma.quiz.findFirst).mockResolvedValue(mockQuiz as never)
         vi.mocked(prisma.enrollment.findFirst).mockResolvedValue(null)
-        const res = await initRoute(makeRequest({ quizId: 'quiz-1' }))
+        const res = await initRoute(makeRequest({ quizId: 'quiz-1', offeringId: 'o1' }))
         expect(res.status).toBe(403)
     })
 
@@ -157,7 +157,7 @@ describe('POST /api/quiz/attempt/init', () => {
             next_item: { item_id: 'item-1', skill: 'mod-1', stem: 'Test?', options: [] },
             next_action: 'CONTINUE',
         })
-        const res = await initRoute(makeRequest({ quizId: 'quiz-1' }))
+        const res = await initRoute(makeRequest({ quizId: 'quiz-1', offeringId: 'o1' }))
         expect(res.status).toBe(200)
         const data = await res.json()
         expect(data.attemptId).toBe('attempt-1')
@@ -176,7 +176,7 @@ describe('POST /api/quiz/attempt/init', () => {
             next_item: { item_id: 'item-1', skill: 'mod-1', stem: 'Test?', options: [] },
             next_action: 'CONTINUE',
         })
-        const res = await initRoute(makeRequest({ quizId: 'quiz-1' }))
+        const res = await initRoute(makeRequest({ quizId: 'quiz-1', offeringId: 'o1' }))
         expect(res.status).toBe(200)
         expect(prisma.attempt.create).toHaveBeenCalled()
     })
@@ -189,7 +189,7 @@ describe('POST /api/quiz/attempt/init', () => {
         vi.mocked(prisma.attempt.create).mockResolvedValue(mockAttempt as never)
         vi.mocked(fastApiClient.initAttempt).mockRejectedValue(new Error('FastAPI down'))
         vi.mocked(prisma.attempt.delete).mockResolvedValue(mockAttempt as never)
-        const res = await initRoute(makeRequest({ quizId: 'quiz-1' }))
+        const res = await initRoute(makeRequest({ quizId: 'quiz-1', offeringId: 'o1' }))
         expect(res.status).toBe(500)
         expect(prisma.attempt.delete).toHaveBeenCalledWith({ where: { id: 'attempt-1' } })
     })

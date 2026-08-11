@@ -97,6 +97,7 @@ const QuizContent = ({ quizId }: { quizId: string }) => {
 
                 const response = await quizClient.initAttempt({
                     quizId,
+                    offeringId: selectedCourseOffering.id,
                 })
 
                 if (response.nextAction === "FINISH") {
@@ -124,7 +125,14 @@ const QuizContent = ({ quizId }: { quizId: string }) => {
                     feedbackVisibility: response.feedbackVisibility,
                 })
                 setIsInitialized(true) // Mark as initializing to prevent duplicate calls
-            } catch (error) {
+            } catch (error) {                
+                const isOfferingMismatch = error instanceof Error && (error as Error & { code?: string }).code === 'QUIZ_OFFERING_MISMATCH'
+
+                if (isOfferingMismatch) {
+                    router.replace(`/${selectedCourseOffering.course.code}/${selectedCourseOffering.term.name.replace(/\s+/g, '-')}/quiz`)
+                    return
+                }
+                
                 console.error('Quiz initialization failed:', error)
                 setQuizState(prev => ({
                     ...prev,
@@ -138,7 +146,7 @@ const QuizContent = ({ quizId }: { quizId: string }) => {
         }
 
         initQuiz()
-    }, [quizId, selectedCourseOffering?.id, user?.userId, isInitialized, showFeedbackScreen])
+    }, [quizId, selectedCourseOffering?.id, selectedCourseOffering?.course.code, selectedCourseOffering?.term.name, user?.userId, isInitialized, showFeedbackScreen, router])
 
     const handleAnswer = async (answerIndex: number) => {
         if (!quizState.attemptId || !quizState.currentItem) return
