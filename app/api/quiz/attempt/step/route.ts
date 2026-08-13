@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { fastApiClient, type FastAPIStepRequest } from '@/lib/fastapi-client';
 import type { StepAttemptRequest } from '@/types';
+import { logger } from '@/lib/logger';
 
 
 export const POST = async (request: NextRequest) => {
@@ -159,7 +160,7 @@ export const POST = async (request: NextRequest) => {
     });
 
   } catch (error) {
-    console.error('Error processing quiz step:', error);
+    logger.error({ err: error }, 'Error processing quiz step');
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

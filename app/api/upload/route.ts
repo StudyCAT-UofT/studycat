@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import * as xlsx from "xlsx";
 import { BloomCategory } from '@/types'
+import { logger } from '@/lib/logger'
 
 class UploadValidationError extends Error {}
 
@@ -260,7 +261,7 @@ export async function POST(request: Request) {
                 const seenAnswerTexts = new Set<string>();
                 for (const opt of optionsToCreate) {
                     if (seenAnswerTexts.has(opt.text)) {
-                        console.log(`[SKIP] ${externalQuestionId} — duplicate answer option text: "${opt.text}"`);
+                        logger.debug({ externalQuestionId, optionText: opt.text }, 'Skipped duplicate answer option');
                         details.push({ externalQuestionId, status: "skipped: duplicate answer options" });
                         break;
                     }
@@ -537,7 +538,7 @@ export async function POST(request: Request) {
                 });
             } catch (rowErr) {
                 // Row-level failure — record and continue
-                console.error("Row import failed:", rowErr);
+                logger.error({ err: rowErr }, 'Row import failed');
                 details.push({ status: "error", error: String(rowErr) });
             }
         } // end rows loop
@@ -590,13 +591,13 @@ export async function POST(request: Request) {
                 }
             }
         }
-        console.log(details.filter(d => 'status' in d && d.status.startsWith('skipped')));
+        logger.debug({ skipped: details.filter(d => 'status' in d && d.status.startsWith('skipped')) }, 'Upload skipped rows summary');
         return NextResponse.json({ importedCount: details.length, details }, { status: 200 });
     } catch (error) {
         if (error instanceof UploadValidationError) {
             return NextResponse.json({ error: String(error.message) }, { status: 400 });
         }
-        console.error("Failed to import spreadsheet:", error);
+        logger.error({ err: error }, 'Failed to import spreadsheet');
         return NextResponse.json({ error: "Failed to import spreadsheet", details: String(error) }, { status: 500 });
     }
 }

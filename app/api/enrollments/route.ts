@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { logger } from '@/lib/logger'
 
 /**
  * GET /api/enrollments
@@ -70,7 +71,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ courseOfferings })
   } catch (error) {
     // Log error for debugging while keeping client response generic
-    console.error('Error fetching enrollments:', error)
+    logger.error({ err: error }, 'Error fetching enrollments')
     return NextResponse.json(
       { error: 'Failed to fetch enrollments' },
       { status: 500 }
@@ -133,7 +134,7 @@ export async function DELETE(request: NextRequest) {
     })
   } catch (error) {
     // Log error for debugging while keeping client response generic
-    console.error('Error deleting enrollments:', error)
+    logger.error({ err: error }, 'Error deleting enrollments')
     return NextResponse.json(
       { error: 'Failed to delete enrollments' },
       { status: 500 }
@@ -194,7 +195,7 @@ export async function PATCH(request: NextRequest) {
 
     return NextResponse.json({ success: true, updatedCount: result.count })
   } catch (error) {
-    console.error('Error updating enrollment hidden status:', error)
+    logger.error({ err: error }, 'Error updating enrollment hidden status')
     return NextResponse.json(
       { error: 'Failed to update enrollment hidden status' },
       { status: 500 }

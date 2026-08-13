@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import * as xlsx from "xlsx";
+import { logger } from "@/lib/logger";
 
 export const runtime = "nodejs";
 
@@ -149,7 +150,7 @@ export async function GET(request: Request) {
             },
         });
     } catch (error) {
-        console.error("Failed to export items:", error);
+        logger.error({ err: error }, "Failed to export items");
         return NextResponse.json(
             { error: "Failed to export items" },
             { status: 500 }

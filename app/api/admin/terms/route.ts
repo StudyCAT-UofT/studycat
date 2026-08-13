@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { getSession, requireAdmin } from '@/lib/auth'
 import { NextResponse } from 'next/server'
+import { logger } from '@/lib/logger'
 
 /**
  * GET /api/admin/terms
@@ -30,7 +31,7 @@ export async function GET() {
 
         return NextResponse.json({ terms }, { status: 200 })
     } catch (error) {
-        console.error('Failed to fetch terms:', error)
+        logger.error({ err: error }, 'Failed to fetch terms')
         return NextResponse.json({ error: 'Failed to fetch terms' }, { status: 500 })
     }
 }
@@ -79,7 +80,7 @@ export async function POST(req: Request) {
 
         return NextResponse.json({ term }, { status: 201 })
     } catch (error) {
-        console.error('Failed to create term:', error)
+        logger.error({ err: error }, 'Failed to create term')
         return NextResponse.json({ error: 'Failed to create term' }, { status: 500 })
     }
 }

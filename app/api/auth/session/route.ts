@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { getSession } from '@/lib/auth'
+import { logger } from '@/lib/logger'
 
 export const runtime = 'nodejs'
 
@@ -13,7 +14,7 @@ export async function GET() {
 
     return NextResponse.json({ user: session })
   } catch (error) {
-    console.error('Session validation error:', error)
+    logger.error({ err: error }, 'Session validation error')
     return NextResponse.json({ error: 'Session validation failed' }, { status: 500 })
   }
 }

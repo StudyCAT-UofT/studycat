@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { logger } from '@/lib/logger'
 
 export const runtime = 'nodejs'
 
@@ -116,7 +117,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ students })
   } catch (error) {
     // Log error for debugging while keeping client response generic
-    console.error('Error fetching students:', error)
+    logger.error({ err: error }, 'Error fetching students')
     return NextResponse.json(
       { error: 'Failed to fetch students' },
       { status: 500 }
@@ -265,7 +266,7 @@ export async function POST(request: NextRequest) {
       } catch (error) {
         // Handle individual student errors with detailed logging
         const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-        console.error(`Error processing student ${student.username}:`, error)
+        logger.error({ err: error, username: student.username }, 'Error processing student')
         results.errors.push({ username: student.username, error: errorMessage })
       }
     }
@@ -273,7 +274,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ results }, { status: 201 })
   } catch (error) {
     // Log error for debugging while keeping client response generic
-    console.error('Error creating students:', error)
+    logger.error({ err: error }, 'Error creating students')
     return NextResponse.json(
       { error: 'Failed to create students' },
       { status: 500 }

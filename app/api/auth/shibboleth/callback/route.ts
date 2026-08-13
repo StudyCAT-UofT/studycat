@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { signToken } from '@/lib/jwt';
+import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
   try {
@@ -21,15 +22,15 @@ export async function GET(request: NextRequest) {
         request.headers.get('remote_user')?.split('@')[0] ||
         request.headers.get('eppn')?.split('@')[0] || null;
 
-      console.log('Real Shibboleth authentication:', {
-        utorid,
-      });
-      console.log('All headers:', Object.fromEntries(request.headers.entries()));
+      logger.debug(
+        { utorid, headers: Object.fromEntries(request.headers.entries()) },
+        'Real Shibboleth authentication'
+      );
     }
 
     // Validate UTORid exists
     if (!utorid) {
-      console.error('Missing UTORid from Shibboleth');
+      logger.error('Missing UTORid from Shibboleth');
       return NextResponse.redirect(
         new URL('/login?error=missing_utorid', request.url)
       );
@@ -43,7 +44,7 @@ export async function GET(request: NextRequest) {
     });
 
     if (!user) {
-      console.error('User not found:', utorid);
+      logger.error({ utorid }, 'User not found');
       return NextResponse.redirect(
         new URL('/login?error=user_not_found', request.url)
       );
@@ -80,7 +81,7 @@ export async function GET(request: NextRequest) {
     return response;
 
   } catch (error) {
-    console.error('Shibboleth callback error:', error);
+    logger.error({ err: error }, 'Shibboleth callback error');
     return NextResponse.redirect(
       new URL('/login?error=authentication_failed', request.url)
     );

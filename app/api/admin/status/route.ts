@@ -1,5 +1,6 @@
 import { getSession, requireAdmin } from '@/lib/auth'
 import { NextResponse } from 'next/server'
+import { logger } from '@/lib/logger'
 
 /**
  * GET /api/admin/status
@@ -28,7 +29,7 @@ export async function GET() {
 
         return NextResponse.json({ admin: isAdmin }, { status: 200 })
     } catch (error) {
-        console.error('Failed to get admin status:', error)
+        logger.error({ err: error }, 'Failed to get admin status')
         return NextResponse.json({ admin: false }, { status: 500 })
     }
 }

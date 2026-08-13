@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { BloomCategory, bloomCategories } from '@/types'
+import { logger } from '@/lib/logger'
 
 export const runtime = 'nodejs'
 
@@ -43,7 +44,7 @@ export async function DELETE(
 
     return NextResponse.json({ message: 'Item deleted successfully' })
   } catch (error) {
-    console.error('Failed to delete item:', error)
+    logger.error({ err: error }, 'Failed to delete item')
     return NextResponse.json(
       { error: 'Failed to delete item' },
       { status: 500 }
@@ -106,7 +107,7 @@ export async function PATCH(
 
     return NextResponse.json({ item: updatedItem })
   } catch (error) {
-    console.error('Failed to update item active status:', error)
+    logger.error({ err: error }, 'Failed to update item active status')
     return NextResponse.json(
       { error: 'Failed to update item' },
       { status: 500 }
@@ -306,7 +307,7 @@ export async function PUT(
 
     return NextResponse.json({ item: updatedItem })
   } catch (error) {
-    console.error('Failed to update item:', error)
+    logger.error({ err: error }, 'Failed to update item')
     return NextResponse.json(
       { error: 'Failed to update item' },
       { status: 500 }

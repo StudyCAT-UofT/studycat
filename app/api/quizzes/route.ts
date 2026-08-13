@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { Prisma } from '@prisma/client'
 import { feedbackLevels } from '@/types'
+import { logger } from '@/lib/logger'
 
 export const runtime = 'nodejs'
 
@@ -157,7 +158,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ quizzes: quizzesWithStats })
   } catch (error) {
     // Log error for debugging while keeping client response generic
-    console.error('Failed to fetch quizzes:', error)
+    logger.error({ err: error }, 'Failed to fetch quizzes')
     return NextResponse.json({ error: 'Failed to fetch quizzes' }, { status: 500 })
   }
 }
@@ -272,7 +273,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ quiz }, { status: 201 })
   } catch (error) {
-    console.error('Failed to create quiz:', error)
+    logger.error({ err: error }, 'Failed to create quiz')
     return NextResponse.json({ error: 'Failed to create quiz' }, { status: 500 })
   }
 }
@@ -322,7 +323,7 @@ export async function DELETE(request: Request) {
 
     return NextResponse.json({ success: true, deletedCount: ids.length })
   } catch (error) {
-    console.error('Failed to delete quizzes:', error)
+    logger.error({ err: error }, 'Failed to delete quizzes')
     return NextResponse.json({ error: 'Failed to delete quizzes' }, { status: 500 })
   }
 }
