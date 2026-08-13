@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { PrismaClient } from '@prisma/client'
 import { OptionLabel, optionLabels } from '@/types'
+import { logger } from '@/lib/logger'
 
 export const runtime = 'nodejs'
 
@@ -236,7 +237,7 @@ export async function GET(request: Request) {
 
     } catch (error) {
         // Log error for debugging while keeping client response generic
-        console.error('Failed to fetch questions:', error)
+        logger.error({ err: error }, 'Failed to fetch questions')
         return NextResponse.json({ error: 'Failed to fetch questions' }, { status: 500 })
     }
 }

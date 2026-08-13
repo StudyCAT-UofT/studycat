@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { logger } from '@/lib/logger'
 
 export const runtime = 'nodejs'
 
@@ -22,7 +23,7 @@ export async function GET() {
     return NextResponse.json({ users })
   } catch (error) {
     // Log error for debugging while keeping client response generic
-    console.error('Failed to fetch users:', error)
+    logger.error({ err: error }, 'Failed to fetch users')
     return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 })
   }
 }
@@ -61,7 +62,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ user }, { status: 201 })
   } catch (error) {
     // Log error for debugging while keeping client response generic
-    console.error('Failed to create user:', error)
+    logger.error({ err: error }, 'Failed to create user')
     return NextResponse.json({ error: 'Failed to create user' }, { status: 500 })
   }
 }

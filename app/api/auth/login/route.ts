@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createToken, setSessionCookie } from '@/lib/auth'
+import { logger } from '@/lib/logger'
 
 export const runtime = 'nodejs'
 
@@ -37,7 +38,7 @@ export async function POST(request: NextRequest) {
       }
     })
   } catch (error) {
-    console.error('Login error:', error)
+    logger.error({ err: error }, 'Login error')
     return NextResponse.json({ error: 'Login failed' }, { status: 500 })
   }
 }

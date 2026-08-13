@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { logger } from '@/lib/logger'
 
 export const runtime = 'nodejs'
 
@@ -44,7 +45,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ modules })
   } catch (error) {
     // Log error for debugging while keeping client response generic
-    console.error('Failed to fetch modules:', error)
+    logger.error({ err: error }, 'Failed to fetch modules')
     return NextResponse.json({ error: 'Failed to fetch modules' }, { status: 500 })
   }
 }

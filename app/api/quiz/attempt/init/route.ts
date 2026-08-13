@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { fastApiClient, type FastAPIInitRequest } from '@/lib/fastapi-client';
 import { getSession } from '@/lib/auth';
 import type { InitAttemptRequest } from '@/types';
+import { logger } from '@/lib/logger';
 
 
 export const POST = async (request: NextRequest) => {
@@ -168,7 +169,7 @@ export const POST = async (request: NextRequest) => {
     });
 
   } catch (error) {
-    console.error('Error initializing quiz attempt:', error);
+    logger.error({ err: error }, 'Error initializing quiz attempt');
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

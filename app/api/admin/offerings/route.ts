@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { getSession, requireAdmin } from '@/lib/auth'
 import { NextResponse } from 'next/server'
+import { logger } from '@/lib/logger'
 
 /**
  * GET /api/admin/offerings
@@ -34,7 +35,7 @@ export async function GET() {
 
         return NextResponse.json({ offerings }, { status: 200 })
     } catch (error) {
-        console.error('Failed to fetch offerings:', error)
+        logger.error({ err: error }, 'Failed to fetch offerings')
         return NextResponse.json({ error: 'Failed to fetch offerings' }, { status: 500 })
     }
 }
@@ -83,7 +84,7 @@ export async function POST(req: Request) {
 
         return NextResponse.json({ offering }, { status: 201 })
     } catch (error) {
-        console.error('Failed to create offering:', error)
+        logger.error({ err: error }, 'Failed to create offering')
         return NextResponse.json({ error: 'Failed to create offering' }, { status: 500 })
     }
 }

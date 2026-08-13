@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { BloomCategory, bloomCategories } from '@/types'
+import { logger } from '@/lib/logger'
 
 export const runtime = 'nodejs'
 
@@ -58,7 +59,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ items })
   } catch (error) {
     // Log error for debugging while keeping client response generic
-    console.error('Failed to fetch items:', error)
+    logger.error({ err: error }, 'Failed to fetch items')
     return NextResponse.json({ error: 'Failed to fetch items' }, { status: 500 })
   }
 }
@@ -241,7 +242,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ item: newItem }, { status: 201 })
   } catch (error) {
-    console.error('Failed to create item:', error)
+    logger.error({ err: error }, 'Failed to create item')
     return NextResponse.json(
       { error: 'Failed to create item' },
       { status: 500 }
@@ -299,7 +300,7 @@ export async function PATCH(request: Request) {
       count: result.count
     })
   } catch (error) {
-    console.error('Failed to update items:', error)
+    logger.error({ err: error }, 'Failed to update items')
     return NextResponse.json(
       { error: 'Failed to update items' },
       { status: 500 }
@@ -350,7 +351,7 @@ export async function DELETE(request: Request) {
       message: `Successfully deleted ${result.count} item(s)` 
     })
   } catch (error) {
-    console.error('Failed to delete items:', error)
+    logger.error({ err: error }, 'Failed to delete items')
     return NextResponse.json(
       { error: 'Failed to delete items' },
       { status: 500 }

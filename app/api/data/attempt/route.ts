@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { logger } from '@/lib/logger'
 
 export const runtime = 'nodejs'
 
@@ -134,7 +135,7 @@ export async function GET(request: Request) {
         )
     } catch (error) {
         // Log error for debugging while keeping client response generic
-        console.error('Failed to fetch attempts:', error)
+        logger.error({ err: error }, 'Failed to fetch attempts')
         return NextResponse.json({ error: 'Failed to fetch attempts' }, { status: 500 })
     }
 }

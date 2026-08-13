@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { getSession, requireAdmin } from '@/lib/auth'
 import { NextResponse } from 'next/server'
+import { logger } from '@/lib/logger'
 
 /**
  * GET /api/admin/enrollments?offeringId=xxx
@@ -51,7 +52,7 @@ export async function GET(req: Request) {
 
     return NextResponse.json({ enrollments }, { status: 200 })
   } catch (error) {
-    console.error('Failed to fetch enrollments:', error)
+    logger.error({ err: error }, 'Failed to fetch enrollments')
     return NextResponse.json(
       { error: 'Failed to fetch enrollments' },
       { status: 500 }
@@ -103,7 +104,7 @@ export async function POST(req: Request) {
 
         return NextResponse.json({ enrollment }, { status: 201 })
     } catch (error) {
-        console.error('Failed to create enrollment:', error)
+        logger.error({ err: error }, 'Failed to create enrollment')
         return NextResponse.json({ error: 'Failed to create enrollment' }, { status: 500 })
     }
 }
@@ -170,7 +171,7 @@ export async function DELETE(req: Request) {
         return NextResponse.json({ message: 'Enrollment deleted' }, { status: 200 })
 
     } catch (error) {
-        console.error('Failed to delete enrollment:', error)
+        logger.error({ err: error }, 'Failed to delete enrollment')
         return NextResponse.json({ error: 'Failed to delete enrollment' }, { status: 500 })
     }
 }

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
+import { logger } from '@/lib/logger'
 
 export const runtime = 'nodejs'
 
@@ -102,7 +103,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 
     return NextResponse.json({ quiz: updatedQuiz })
   } catch (error) {
-    console.error('Failed to update quiz:', error)
+    logger.error({ err: error }, 'Failed to update quiz')
     return NextResponse.json({ error: 'Failed to update quiz' }, { status: 500 })
   }
 }
@@ -143,7 +144,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Failed to delete quiz:', error)
+    logger.error({ err: error }, 'Failed to delete quiz')
     return NextResponse.json({ error: 'Failed to delete quiz' }, { status: 500 })
   }
 }

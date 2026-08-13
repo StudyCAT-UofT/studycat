@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { getSession, requireAdmin } from '@/lib/auth'
 import { NextResponse } from 'next/server'
+import { logger } from '@/lib/logger'
 
 /**
  * GET /api/admin/users
@@ -29,7 +30,7 @@ export async function GET() {
 
         return NextResponse.json({ users }, { status: 200 })
     } catch (error) {
-        console.error('Failed to fetch users:', error)
+        logger.error({ err: error }, 'Failed to fetch users')
     return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 })
     }
 }
@@ -73,7 +74,7 @@ export async function POST(req: Request) {
 
         return NextResponse.json({ user }, { status: 201 })
     } catch (error) {
-        console.error('Failed to create user:', error)
+        logger.error({ err: error }, 'Failed to create user')
         return NextResponse.json({ error: 'Failed to create user' }, { status: 500 })
     }
 }

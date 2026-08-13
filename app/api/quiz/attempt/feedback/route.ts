@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { getSession } from '@/lib/auth';
 import { thetaToPerformance } from '@/utils/thetaToPerformance';
 import type { FeedbackData, ModulePerformance, DetailedQuestionReview } from '@/types';
+import { logger } from '@/lib/logger';
 
 export const POST = async (request: NextRequest) => {
   try {
@@ -250,7 +251,7 @@ export const POST = async (request: NextRequest) => {
     return NextResponse.json(feedbackData);
 
   } catch (error) {
-    console.error('Error fetching attempt feedback:', error);
+    logger.error({ err: error }, 'Error fetching attempt feedback');
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

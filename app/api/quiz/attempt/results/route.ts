@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { logger } from '@/lib/logger';
 
 export const POST = async (request: NextRequest) => {
   try {
@@ -55,7 +56,7 @@ export const POST = async (request: NextRequest) => {
     });
 
   } catch (error) {
-    console.error('Error fetching attempt results:', error);
+    logger.error({ err: error }, 'Error fetching attempt results');
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

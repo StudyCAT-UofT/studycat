@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { getSession, requireAdmin } from '@/lib/auth'
 import { NextResponse } from 'next/server'
+import { logger } from '@/lib/logger'
 
 /**
  * GET /api/admin/courses
@@ -30,7 +31,7 @@ export async function GET() {
 
         return NextResponse.json({ courses }, { status: 200 })
     } catch (error) {
-        console.error('Failed to fetch courses:', error)
+        logger.error({ err: error }, 'Failed to fetch courses')
         return NextResponse.json({ error: 'Failed to fetch courses' }, { status: 500 })
     }
 }
@@ -83,7 +84,7 @@ export async function POST(req: Request) {
 
         return NextResponse.json({ course }, { status: 201 })
     } catch (error) {
-        console.error('Failed to create course:', error)
+        logger.error({ err: error }, 'Failed to create course')
         return NextResponse.json({ error: 'Failed to create course' }, { status: 500 })
     }
 }
