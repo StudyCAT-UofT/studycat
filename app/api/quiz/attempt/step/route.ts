@@ -85,7 +85,7 @@ export const POST = async (request: NextRequest) => {
     // Create response record
     const response = await prisma.response.create({
       data: {
-        attemptId: attemptId,
+        attemptId: attempt.id,
         itemId: itemId,
         selectedLabel: selectedLabel,
         itemOptionId: selectedOption?.id,
@@ -98,7 +98,7 @@ export const POST = async (request: NextRequest) => {
 
     // Prepare request for FastAPI service
     const fastApiRequest: FastAPIStepRequest = {
-      attempt_id: attemptId,
+      attempt_id: attempt.id,
       response_id: response.id,
       item_id: itemId,
       answer_index: answerIndex,
