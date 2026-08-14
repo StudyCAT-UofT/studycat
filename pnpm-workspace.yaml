@@ -10,3 +10,6 @@ allowBuilds:
 # Minimum age (in minutes) a package version must have before pnpm will
 # install it, to guard against newly published/compromised releases.
 minimumReleaseAge: 2880 # 2 days
+
+overrides:
+  postcss: '>=8.5.26'
