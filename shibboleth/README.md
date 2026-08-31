@@ -1,4 +1,4 @@
-# StudyCAT Shibboleth SSO
+# Catalyze Shibboleth SSO
 
 **Status**: Complete
 
@@ -234,7 +234,7 @@ docker compose --profile shibboleth up -d --force-recreate sp
 
 | URL | Purpose |
 |-----|---------|
-| `https://sp.studycat.local/` | StudyCAT via SSO |
+| `https://sp.studycat.local/` | Catalyze via SSO |
 | `https://sp.studycat.local/Shibboleth.sso/Login` | Initiate login |
 | `https://sp.studycat.local/Shibboleth.sso/Logout` | Logout |
 | `https://sp.studycat.local/Shibboleth.sso/Session` | View session |

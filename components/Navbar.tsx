@@ -56,7 +56,7 @@ export const Navbar = () => {
     return (
         <AppShell.Header>
             <Group h="100%" px="md" justify="space-between">
-                {/* Left side - StudyCAT branding (clickable to go to dashboard) */}
+                {/* Left side - Catalyze branding (clickable to go to dashboard) */}
                 <Group>
                     <Text
                         size="xl"
@@ -64,7 +64,7 @@ export const Navbar = () => {
                         style={{ cursor: 'pointer' }}
                         onClick={() => router.push('/')}
                     >
-                        StudyCAT
+                        Catalyze
                     </Text>
                 </Group>
 

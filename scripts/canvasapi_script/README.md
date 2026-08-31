@@ -1,6 +1,6 @@
 ### Command-Line Interface Tool
 
-This tool is intended to allow you to export quiz data from an existing quiz on Quercus and import that data into StudyCAT. To import quiz questions from Quercus, first download the version of the script that matches your computer. If you aren't sure which file to download, see **Which File Do I Download?**
+This tool is intended to allow you to export quiz data from an existing quiz on Quercus and import that data into Catalyze. To import quiz questions from Quercus, first download the version of the script that matches your computer. If you aren't sure which file to download, see **Which File Do I Download?**
 #### Download the Script
 To download the script, navigate to the releases section on the right side of the main GitHub page. 
 - For Windows:
@@ -16,7 +16,7 @@ To download the script, navigate to the releases section on the right side of th
 	2. Select **About This Mac**
 	3. Under your Mac information, if you see **Processor** followed by **Intel Core**, download the `canvasapi-script-macos-intel` file. If you see **Chip** followed by **Apple M1, M2, M3, etc**., download the `canvasapi-script-macos-arm64` file.
 #### Creating a Canvas Access Token
- You will need an access token to run the script. You can create an access token by going to Quercus. In Quercus, click **Account**, then **Settings**, then scroll to **Approved Integrations** and click **New Access Token**. Choose a distinctive name, eg., StudyCAT Token.
+ You will need an access token to run the script. You can create an access token by going to Quercus. In Quercus, click **Account**, then **Settings**, then scroll to **Approved Integrations** and click **New Access Token**. Choose a distinctive name, eg., Catalyze Token.
 
 > [!WARNING]
 > Once your access token is on screen, copy it and save it somewhere secure, as once you exit the window, you will not be able to see this access token again. Do not share this access token with anybody.
@@ -53,7 +53,7 @@ Success! Quiz data successfully exported to /Users/JaneDoe/canvas_quiz_518767_ex
 
 The message includes the location where the CSV file was saved. In the example above, the file was saved in the **JaneDoe** folder inside **Users**. Here you'll find your CSV file named `canvas_quiz_518767_export_20260716_154226.csv`.
 
-You can now upload this CSV file into your StudyCAT course question bank.
+You can now upload this CSV file into your Catalyze course question bank.
 ##### Option 2 - Running the File Directly from the Terminal
 This method runs the script from the Terminal instead of by double-clicking it. You may prefer this option for efficiency's sake if you want to provide the course and quiz IDs when starting the script instead of waiting for the program to prompt you.
 
@@ -76,4 +76,4 @@ If you prefer to directly provide the course and quiz IDs when starting the scri
 ```
 ./Downloads/canvasapi-script-windows-x64.exe --course_id 121212 --quiz_id 232323
 ```
-In the command above, replace `Downloads` with the folder where you saved the script, and replace `canvasapi-script-windows-x64.exe` with the name of your file. Also replace `121212` with your own course ID and replace `232323` with your own quiz ID. After pressing Enter, the script will ask for your Canvas access token. Paste your access token and press Enter again. When the export is complete, you will see a message showing where the CSV file was saved, similar to Option 1. You can then upload that file into StudyCAT.
+In the command above, replace `Downloads` with the folder where you saved the script, and replace `canvasapi-script-windows-x64.exe` with the name of your file. Also replace `121212` with your own course ID and replace `232323` with your own quiz ID. After pressing Enter, the script will ask for your Canvas access token. Paste your access token and press Enter again. When the export is complete, you will see a message showing where the CSV file was saved, similar to Option 1. You can then upload that file into Catalyze.

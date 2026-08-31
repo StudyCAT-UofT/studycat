@@ -1,10 +1,10 @@
-# StudyCAT
+# Catalyze
 
-StudyCAT is a computer-adaptive practice tool for large university classes. It is a web application that allows students to take quizzes that use Item Response Theory (IRT)-based Computerized Adaptive Testing (CAT) and allows instructors to manage the quizzes and students.
+Catalyze is a computer-adaptive practice tool for large university classes. It is a web application that allows students to take quizzes that use Item Response Theory (IRT)-based Computerized Adaptive Testing (CAT) and allows instructors to manage the quizzes and students.
 
 ## Architecture
 
-The StudyCAT web application is built with:
+The Catalyze web application is built with:
 
 - [Next.js App Router](https://nextjs.org)
 - [Mantine](https://mantine.dev)
@@ -14,7 +14,7 @@ The StudyCAT web application is built with:
 
 The core backend routes can be found in the `app/api` directory.
 
-The StudyCAT quiz engine service can be found in the [studycat-service](https://github.com/StudyCAT-UofT/studycat-service) repository. **The quiz engine must be running alongside the web application for adaptive quizzes to function.**
+The Catalyze quiz engine service can be found in the [studycat-service](https://github.com/StudyCAT-UofT/studycat-service) repository. **The quiz engine must be running alongside the web application for adaptive quizzes to function.**
 
 ## Application Overview
 
@@ -103,7 +103,7 @@ The StudyCAT quiz engine service can be found in the [studycat-service](https://
     pnpm dev
     ```
 
-10. Open <http://localhost:3000> with your browser to visit StudyCAT!
+10. Open <http://localhost:3000> with your browser to visit Catalyze!
 
     You can login as the `instructor` or `student` users. For a full list of users, see `scripts/seed.ts`.
     If using Shibboleth authentication, supply the password `password`.
@@ -174,7 +174,7 @@ The following pnpm scripts are available for working with the database:
 
 ### Working with the Schema Submodule
 
-The Prisma schema and migrations are located in a submodule at `external/studycat-schema/`. This allows for a single source of truth for the database schema across multiple StudyCAT repositories.
+The Prisma schema and migrations are located in a submodule at `external/studycat-schema/`. This allows for a single source of truth for the database schema across multiple Catalyze repositories.
 
 To make changes to the schema, refer to the guide in the [studycat-schema README](https://github.com/StudyCAT-UofT/studycat-schema#implementing-changes-requiring-schema-changes).
 

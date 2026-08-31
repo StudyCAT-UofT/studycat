@@ -21,7 +21,7 @@ export default async function AdminLayout({
   }
 
   const links = [
-    { label: 'StudyCAT Home', href: '/' },
+    { label: 'Catalyze Home', href: '/' },
     { label: 'Dashboard', href: '/admin' },
     { label: 'Users', href: '/admin/users' },
     { label: 'Terms', href: '/admin/terms' },

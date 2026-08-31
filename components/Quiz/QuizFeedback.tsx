@@ -256,7 +256,7 @@ export default function QuizFeedback({ feedbackData, onContinue, onReturnToDashb
                                     <strong>Why are there more questions from certain modules than others?</strong>
                                 </Text>
                                 <Text size="sm">
-                                    StudyCAT is a computerized adaptive testing platform, meaning quizzes adapt to every individual student.
+                                    Catalyze is a computerized adaptive testing platform, meaning quizzes adapt to every individual student.
                                     Questions from modules where your mastery value is lowest are prioritized, while questions from modules you&apos;ve already mastered won&apos;t be shown.
                                 </Text>
                             </Alert>
