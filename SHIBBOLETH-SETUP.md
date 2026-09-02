@@ -1,6 +1,6 @@
-# Shibboleth SSO Setup Guide for StudyCAT
+# Shibboleth SSO Setup Guide for Catalyze
 
-This guide provides step-by-step instructions for setting up Shibboleth Single Sign-On (SSO) authentication for the StudyCAT application in a development environment.
+This guide provides step-by-step instructions for setting up Shibboleth Single Sign-On (SSO) authentication for the Catalyze application in a development environment.
 
 ## Table of Contents
 
@@ -38,7 +38,7 @@ This guide provides step-by-step instructions for setting up Shibboleth Single S
 - **Identity Provider (IdP)**: Authenticates users via OpenLDAP, issues SAML assertions
 - **Service Provider (SP)**: Apache with [`mod_shib`](https://shibboleth.atlassian.net/wiki/spaces/SP3/pages/2065335062/Apache), protects the application, validates SAML assertions
 - **OpenLDAP**: Directory server storing test user credentials
-- **Next.js Application**: The StudyCAT application backend
+- **Next.js Application**: The Catalyze application backend
 - **SQL Server Database**: Stores user and application data
 
 ---
@@ -427,7 +427,7 @@ With the services and Next.js app running, you can that the Shibboleth authentic
    - Password: `password`
 
 If the authentication is successful, you'll be redirected back to <https://sp.studycat.local/>.
-You should now see the StudyCAT application homepage and your name/role should appear in the UI.
+You should now see the Catalyze application homepage and your name/role should appear in the UI.
 
 #### Additional check: Shibboleth Attributes
 
@@ -851,7 +851,7 @@ While the IdP releases affiliation attributes and the SP forwards them as header
 
 ### Logout Behavior
 
-StudyCAT implements **local logout only**—when a user logs out, only the application's JWT session is cleared while the Shibboleth IdP session remains active. This replicates the behavior of other university applications like MarkUs, since users typically don't expect logging out of a single application to sign them out of all university services. If a user logs out and clicks "Login" again, they will be automatically re-authenticated without entering credentials (until their IdP session expires).
+Catalyze implements **local logout only**—when a user logs out, only the application's JWT session is cleared while the Shibboleth IdP session remains active. This replicates the behavior of other university applications like MarkUs, since users typically don't expect logging out of a single application to sign them out of all university services. If a user logs out and clicks "Login" again, they will be automatically re-authenticated without entering credentials (until their IdP session expires).
 
 ### Key Files
 

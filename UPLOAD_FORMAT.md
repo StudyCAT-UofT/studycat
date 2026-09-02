@@ -58,7 +58,7 @@ This document describes the expected format for the spreadsheet file used to imp
 
 ### Optional IRT Parameters
 
-These columns allow you to supply pre-calibrated IRT parameters. If omitted or blank, StudyCAT applies defaults (see [IRT_Help.md](IRT_Help.md#default-parameter-values-in-studycat) for details).
+These columns allow you to supply pre-calibrated IRT parameters. If omitted or blank, Catalyze applies defaults (see [IRT_Help.md](IRT_Help.md#default-parameter-values-in-catalyze) for details).
 
 | Column | IRT Parameter | Default |
 |--------|--------------|---------|
@@ -70,7 +70,7 @@ These columns allow you to supply pre-calibrated IRT parameters. If omitted or b
 
 ### Optional Historical Statistics
 
-These columns store pre-existing statistics from a previous question bank. They are stored as-is and are not computed by StudyCAT.
+These columns store pre-existing statistics from a previous question bank. They are stored as-is and are not computed by Catalyze.
 
 | Column | Description |
 |--------|-------------|

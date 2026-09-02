@@ -63,10 +63,10 @@ describe('Navbar', () => {
     vi.clearAllMocks()
   })
 
-  it('renders the StudyCAT brand', async () => {
+  it('renders the Catalyze brand', async () => {
     setupMocks()
     renderWithProviders(<Navbar />)
-    expect(screen.getByText('StudyCAT')).toBeInTheDocument()
+    expect(screen.getByText('Catalyze')).toBeInTheDocument()
   })
 
   it('renders the logged-in username', async () => {
@@ -118,12 +118,12 @@ describe('Navbar', () => {
     })
   })
 
-  it('navigates to / when StudyCAT brand is clicked', async () => {
+  it('navigates to / when Catalyze brand is clicked', async () => {
     const user = userEvent.setup()
     setupMocks('/quizzes')
     renderWithProviders(<Navbar />)
 
-    await user.click(screen.getByText('StudyCAT'))
+    await user.click(screen.getByText('Catalyze'))
     expect(mockPush).toHaveBeenCalledWith('/')
   })
 

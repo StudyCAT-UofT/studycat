@@ -73,7 +73,7 @@ export default function LoginPage() {
             <main>
                 <Container size="sm" py="xl">
                     <Stack gap="lg">
-                        <Title order={1}>StudyCAT Login</Title>
+                        <Title order={1}>Catalyze Login</Title>
 
                         {error && (
                             <Alert color="red" title="Error">
@@ -113,7 +113,7 @@ export default function LoginPage() {
         <main>
             <Container size="sm" py="xl">
                 <Stack gap="lg">
-                    <Title order={1}>StudyCAT Login</Title>
+                    <Title order={1}>Catalyze Login</Title>
 
                     {error && (
                         <Alert color="red" title="Error">

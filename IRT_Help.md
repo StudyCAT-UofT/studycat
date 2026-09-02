@@ -41,9 +41,9 @@ These parameters enable adaptive testing that:
 - Focuses on questions that provide the most information about student knowledge
 - Provides more accurate ability estimates with fewer questions
 
-## Default Parameter Values in StudyCAT
+## Default Parameter Values in Catalyze
 
-When importing questions via the spreadsheet upload (see [UPLOAD_FORMAT.md](UPLOAD_FORMAT.md)), IRT parameters can be provided in the `irt_a`, `irt_b`, and `irt_c` columns. If these columns are omitted or left blank, StudyCAT assigns the following defaults:
+When importing questions via the spreadsheet upload (see [UPLOAD_FORMAT.md](UPLOAD_FORMAT.md)), IRT parameters can be provided in the `irt_a`, `irt_b`, and `irt_c` columns. If these columns are omitted or left blank, Catalyze assigns the following defaults:
 
 | Parameter | Default Value | Notes |
 |-----------|--------------|-------|

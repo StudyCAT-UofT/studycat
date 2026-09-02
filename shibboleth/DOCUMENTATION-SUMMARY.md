@@ -26,7 +26,7 @@ docker compose --profile shibboleth up -d
 - IdP Metadata: `https://idp.studycat.local:4443/idp/shibboleth`
 - SP Metadata: `https://sp.studycat.local/Shibboleth.sso/Metadata`
 - SP Session: `https://sp.studycat.local/Shibboleth.sso/Session`
-- StudyCAT: `https://sp.studycat.local/`
+- Catalyze: `https://sp.studycat.local/`
 
 ### Troubleshooting
 ```bash

@@ -10,8 +10,8 @@ import { AuthProvider } from '@/lib/auth-context';
 import { CourseProvider } from '@/lib/course-context';
 
 export const metadata = {
-    title: 'StudyCAT',
-    description: 'StudyCAT is an educational quiz application using computerized adaptive testing (CAT).',
+    title: 'Catalyze',
+    description: 'Catalyze is an educational quiz application using computerized adaptive testing (CAT).',
 };
 
 export default function RootLayout({

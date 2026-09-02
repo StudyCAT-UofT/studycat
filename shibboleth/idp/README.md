@@ -1,10 +1,10 @@
-# StudyCAT Shibboleth Identity Provider (IdP)
+# Catalyze Shibboleth Identity Provider (IdP)
 
 This directory contains the configuration for a mock Shibboleth Identity Provider used for local development and testing.
 
 ## Overview
 
-The IdP authenticates users against OpenLDAP and issues SAML assertions to the Service Provider (SP). It provides user attributes that the SP forwards to the StudyCAT application.
+The IdP authenticates users against OpenLDAP and issues SAML assertions to the Service Provider (SP). It provides user attributes that the SP forwards to the Catalyze application.
 
 ```
 User Browser
@@ -13,7 +13,7 @@ User Browser
 Service Provider (SP)  ◄──SAML──►  Identity Provider (IdP)
      │                                      │
      ↓                                      ↓
-StudyCAT App                           OpenLDAP
+Catalyze App                           OpenLDAP
 (port 3000)                            (port 389)
 ```
 
