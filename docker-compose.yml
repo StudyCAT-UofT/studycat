@@ -49,11 +49,11 @@ services:
   web:
     image: studycat-web-dev:latest
     container_name: studycat_web
-    # Uses webpack with polling rather than `pnpm dev` (Turbopack), since Turbopack's
-    # file watcher does not detect host edits through a Docker Desktop bind mount.
+    # Uses webpack (--webpack) with polling rather than `pnpm dev` (Turbopack), since
+    # Turbopack's file watcher does not detect host edits through a Docker Desktop bind mount.
     # No -H flag: next dev already listens on all interfaces, and setting -H 0.0.0.0
     # makes Next.js use 0.0.0.0 as the host in redirect URLs.
-    command: pnpm exec next dev -p 3001
+    command: pnpm exec next dev --webpack -p 3001
     environment:
       <<: *web-env
       WATCHPACK_POLLING: "true"
