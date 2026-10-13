@@ -1,3 +1,6 @@
+# Database connection string used by the containers (the `mssql` service on the compose network)
+x-database-url: &database-url "sqlserver://mssql:1433;database=studycat;user=sa;password=studycatPassword123!;encrypt=true;trustServerCertificate=true"
+
 services:
   mssql:
     image: mcr.microsoft.com/mssql/server:2022-latest
@@ -10,6 +13,91 @@ services:
       MSSQL_PID: "Developer"
     volumes:
       - mssql_data:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P \"$$SA_PASSWORD\" -C -Q 'SELECT 1' -b -o /dev/null"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+    restart: unless-stopped
+
+  # One-off job run before `web`, `studio`, and `service` start: installs Node dependencies,
+  # generates the Prisma client, and applies any pending database migrations.
+  setup:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    image: studycat-web-dev:latest
+    command: >-
+      sh -c "pnpm install --frozen-lockfile --store-dir /pnpm-store
+      && pnpm db:generate
+      && pnpm db:migrate:deploy"
+    environment: &web-env
+      DATABASE_URL: *database-url
+      FASTAPI_BASE_URL: "http://service:8000/v1"
+    volumes: &web-volumes
+      - .:/app
+      - web_node_modules:/app/node_modules
+      - web_next:/app/.next
+      - pnpm_store:/pnpm-store
+    depends_on:
+      mssql:
+        condition: service_healthy
+
+  # Next.js web app (http://localhost:3001).
+  # Runs on 3001 inside the container too, since Next.js builds redirect URLs from its own port.
+  web:
+    image: studycat-web-dev:latest
+    container_name: studycat_web
+    # Uses webpack with polling rather than `pnpm dev` (Turbopack), since Turbopack's
+    # file watcher does not detect host edits through a Docker Desktop bind mount.
+    # No -H flag: next dev already listens on all interfaces, and setting -H 0.0.0.0
+    # makes Next.js use 0.0.0.0 as the host in redirect URLs.
+    command: pnpm exec next dev -p 3001
+    environment:
+      <<: *web-env
+      WATCHPACK_POLLING: "true"
+    ports:
+      - "3001:3001"
+    volumes: *web-volumes
+    depends_on:
+      setup:
+        condition: service_completed_successfully
+      service:
+        condition: service_started
+    restart: unless-stopped
+
+  # Prisma Studio database browser (http://localhost:5555)
+  studio:
+    image: studycat-web-dev:latest
+    container_name: studycat_studio
+    command: pnpm db:studio --hostname 0.0.0.0 --port 5555 --browser none
+    ports:
+      - "5555:5555"
+    environment: *web-env
+    volumes: *web-volumes
+    depends_on:
+      setup:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+  # Quiz engine service (http://localhost:8000/docs), built from a sibling checkout
+  # of studycat-service. Set STUDYCAT_SERVICE_DIR to use a different location.
+  service:
+    build:
+      context: ${STUDYCAT_SERVICE_DIR:-../studycat-service}
+      dockerfile: Dockerfile.dev
+    image: studycat-service-dev:latest
+    container_name: studycat_service
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: *database-url
+    volumes:
+      - ${STUDYCAT_SERVICE_DIR:-../studycat-service}/src:/app/src
+    depends_on:
+      setup:
+        condition: service_completed_successfully
     restart: unless-stopped
 
   # OpenLDAP Directory Server (for Shibboleth IdP authentication)
@@ -72,7 +160,7 @@ services:
     environment:
       HOSTNAME: sp.studycat.local
       SERVICE_TO_PROTECT: host.docker.internal
-      SERVICE_PORT: "3000"
+      SERVICE_PORT: "3001"
       IDP_ENTITY_ID: https://idp.studycat.local/idp/shibboleth
       IDP_METADATA_URL: https://idp.studycat.local:4443/idp/shibboleth
       SUPPORT_EMAIL: admin@studycat.local
@@ -95,5 +183,8 @@ services:
 
 volumes:
   mssql_data:
+  web_node_modules:
+  web_next:
+  pnpm_store:
   ldap_data:
   ldap_config:

@@ -30,7 +30,7 @@ This guide provides step-by-step instructions for setting up Shibboleth Single S
                                  ┌──────────────┐
                                  │   Next.js    │
                                  │  Application │
-                                 │  (port 3000) │
+                                 │  (port 3001) │
                                  └──────────────┘
 ```
 
@@ -47,14 +47,13 @@ This guide provides step-by-step instructions for setting up Shibboleth Single S
 
 ### Required Software
 - **Docker & Docker Compose** (v2.0+)
-- **Node.js** (v18+) and **pnpm**
 - **OpenSSL** (for certificate generation)
 - **Python 3** (for automated XML edits)
 - **A text editor** for configuration files
 
 ### Required Permissions
 - Ability to modify `/etc/hosts` file (requires sudo)
-- Ports 3000, 1433, 4443, and 9443 available
+- Ports 80, 443, 1433, 3001, 4443, 5555, 8000, and 8443 available
 
 ---
 
@@ -394,23 +393,25 @@ SHIBBOLETH_LOGIN_URL=https://sp.studycat.local/Shibboleth.sso/Login
 SHIBBOLETH_LOGOUT_URL=https://sp.studycat.local/Shibboleth.sso/Logout
 ```
 
+If the web container is already running, restart it so it picks up the new values:
+
+```bash
+docker compose restart web
+```
+
 ---
 
 ## Starting the App (run each time)
 
 ```bash
-# Start SQL Server database
-docker compose up -d
+# Start the database, web app (port 3001), and quiz engine service
+docker compose up -d --build
 
 # Start IdP, SP, and OpenLDAP
 docker compose --profile shibboleth up -d --build
-
-# Start quiz engine service (required for adaptive quizzes — in a separate terminal)
-cd ../studycat-service && make run && cd ../studycat
-
-# Start Next.js development server
-pnpm dev
 ```
+
+See "Getting Started with Docker" in [README.md](README.md) for first-time setup (seeding the database, etc.).
 
 ### Test End-to-End Login
 
@@ -480,17 +481,17 @@ You should see a JSON response of the form
 1. Check `apache-studycat.conf` has `ProxyPass /Shibboleth.sso !`
 2. Restart SP: `docker compose restart sp`
 
-### Issue 2: Port Conflict (3000 vs 3001)
+### Issue 2: SP Cannot Reach Next.js
 
-**Symptom:** `sp.studycat.local` fails to load, but `localhost:3001` works.
+**Symptom:** `sp.studycat.local` returns a 503 or fails to load.
 
-**Cause:** Port 3000 is occupied by another process (often Docker Desktop itself or a zombie node process), so Next.js falls back to port 3001. The SP is hardcoded to forward to port 3000.
+**Cause:** The SP forwards to port 3001 on the host, where the Docker `web` container runs. If `web` is not running (or you are running `pnpm dev` outside Docker, which uses port 3000), the SP has nothing to forward to.
 
 **Fix:**
-1. Find the process using port 3000: `lsof -i :3000`
-2. Kill it: `kill -9 <PID>`
-3. Restart development server: `pnpm dev`
-4. Ensure it says "Ready on port 3000"
+1. Check that `web` is running and bound to port 3001: `docker compose ps web`
+2. If not, recreate it: `docker compose up -d web`
+3. Check its logs: `docker compose logs -f web`
+4. To use `pnpm dev` outside Docker instead, stop the container (`docker compose stop web`) and run `pnpm dev -p 3001`
 
 ### Issue 3: "Access Denied" After Login
 
@@ -503,7 +504,7 @@ You should see a JSON response of the form
 
 **Fix:**
 1. Check browser cookies - should see `session-token` for `sp.studycat.local`
-2. Check Next.js logs for "Creating JWT token" message
+2. Check the web app logs (`docker compose logs -f web`): a successful callback shows `GET /api/auth/shibboleth/callback 307`, and failures log `Missing UTORid from Shibboleth` or `User not found`
 3. Verify redirect URL in logs: should be `https://sp.studycat.local/`
 4. Clear Shibboleth session: `https://sp.studycat.local/Shibboleth.sso/Logout`
 5. Try login again
@@ -521,12 +522,12 @@ You should see a JSON response of the form
 2. Verify LDAP is running: `docker compose ps ldap`
 3. Test LDAP connection:
    ```bash
-   docker exec ldap ldapsearch -x -H ldap://localhost -b "dc=studycat,dc=local" -D "cn=admin,dc=studycat,dc=local" -w admin123
+   docker compose exec ldap ldapsearch -x -H ldap://localhost -b "dc=studycat,dc=local" -D "cn=admin,dc=studycat,dc=local" -w admin123
    ```
 
 ### Issue 5: Callback Not Executing
 
-**Symptom:** No logs appear in Next.js terminal after IdP login
+**Symptom:** No logs appear in the web app logs (`docker compose logs -f web`) after IdP login
 
 **Causes:**
 1. Wrong redirect URL after authentication
@@ -549,7 +550,7 @@ You should see a JSON response of the form
 **Fix:**
 1. Check LDAP users:
    ```bash
-   docker exec ldap ldapsearch -x -H ldap://localhost -b "ou=people,dc=studycat,dc=local" -D "cn=admin,dc=studycat,dc=local" -w admin123 uid
+   docker compose exec ldap ldapsearch -x -H ldap://localhost -b "ou=people,dc=studycat,dc=local" -D "cn=admin,dc=studycat,dc=local" -w admin123 uid
    ```
 2. If empty, re-bootstrap LDAP:
    ```bash

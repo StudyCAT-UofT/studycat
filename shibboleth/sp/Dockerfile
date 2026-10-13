@@ -7,9 +7,9 @@ LABEL description="Shibboleth Service Provider for StudyCAT - Extends jefferyb/s
 ENV HOSTNAME="sp.studycat.local"
 
 ####### APACHE SECTION #######
-# The Next.js app runs on host.docker.internal:3000
+# The Next.js app runs on host.docker.internal:3001 (the web container in docker-compose.yml)
 ENV SERVICE_TO_PROTECT="host.docker.internal"
-ENV SERVICE_PORT="3000"
+ENV SERVICE_PORT="3001"
 
 ####### SHIBBOLETH SECTION #######
 ENV IDP_ENTITY_ID="https://idp.studycat.local/idp/shibboleth"
