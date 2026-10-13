@@ -14,7 +14,7 @@ Service Provider (SP)  ◄──SAML──►  Identity Provider (IdP)
      │                                      │
      ↓                                      ↓
 Catalyze App                           OpenLDAP
-(port 3000)                            (port 389)
+(port 3001)                            (port 389)
 ```
 
 ## Directory Structure

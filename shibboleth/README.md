@@ -27,7 +27,7 @@ Browser
 ┌──────────┐    ┌──────────────────┐
 │ Next.js  │    │ Identity Provider│
 │ App      │    │ (IdP)            │
-│ :3000    │    │ idp.studycat.local│
+│ :3001    │    │ idp.studycat.local│
 └──────────┘    │ :4443            │
                 └────────┬─────────┘
                          ↓
@@ -205,8 +205,8 @@ Expected behavior - self-signed certificates for development.
 
 This means authentication succeeded but Next.js is not running:
 ```bash
-# Start Next.js
-pnpm dev
+# Start the web app (and its dependencies)
+docker compose up -d web
 
 # Then visit https://sp.studycat.local/
 ```
@@ -240,7 +240,7 @@ docker compose --profile shibboleth up -d --force-recreate sp
 | `https://sp.studycat.local/Shibboleth.sso/Session` | View session |
 | `https://sp.studycat.local/Shibboleth.sso/Metadata` | SP metadata |
 | `https://idp.studycat.local:4443/idp/shibboleth` | IdP metadata |
-| `http://localhost:3000` | Direct access (no SSO) |
+| `http://localhost:3001` | Direct access (no SSO) |
 
 ## Security Notice
 

@@ -61,9 +61,9 @@ export async function GET(request: NextRequest) {
     // Create redirect response using the forwarded host (sp.studycat.local)
     // NOT the internal host (host.docker.internal)
     // Always use HTTPS since the browser is on HTTPS (Apache forwards as http in dev)
-    const forwardedHost = request.headers.get('x-forwarded-host') || 'localhost:3000';
-    const protocol = forwardedHost == 'localhost:3000' ? 'http' : 'https';
-    const redirectUrl = `${protocol}://${forwardedHost}/`;
+    // Without a proxy (e.g. mock mode), redirect to the app's own origin
+    const forwardedHost = request.headers.get('x-forwarded-host');
+    const redirectUrl = forwardedHost ? `https://${forwardedHost}/` : new URL('/', request.url);
 
     const response = NextResponse.redirect(redirectUrl);
 

@@ -42,132 +42,126 @@ The Catalyze quiz engine service can be found in the [studycat-service](https://
 ## Prerequisites
 
 - [Docker](https://www.docker.com)
-- [Node.js](https://nodejs.org) (v18+)
-- [pnpm](https://pnpm.io)
-- [Python 3.12+](https://www.python.org) (for the quiz engine service)
+- [Git](https://git-scm.com)
 
-## Getting Started
+Optionally, [Node.js](https://nodejs.org) (v18+) and [pnpm](https://pnpm.io) on your machine for editor tooling (e.g. TypeScript and ESLint integration). Everything else runs in Docker.
 
-1. Clone the repository:
+## Getting Started with Docker
+
+The whole development stack (database, web app, and quiz engine service) runs in Docker. Only Docker and Git are required on your machine.
+
+1. Clone this repository and the [studycat-service](https://github.com/StudyCAT-UofT/studycat-service) repository **side by side** in the same parent directory, and initialize both submodules:
 
     ```bash
-    git clone https://github.com/StudyCAT-UofT/studycat.git
+    git clone --recurse-submodules https://github.com/StudyCAT-UofT/studycat.git
+    git clone --recurse-submodules https://github.com/StudyCAT-UofT/studycat-service.git
     cd studycat
     ```
 
-2. Initialize the `studycat-schema` submodule:
+    If `studycat-service` is checked out somewhere else, set `STUDYCAT_SERVICE_DIR` to its path (in your shell or in a `.env` file next to `docker-compose.yml`).
 
-    ```bash
-    git submodule update --init
-    ```
-
-3. Install the project dependencies:
-
-    ```bash
-    pnpm install
-    ```
-
-4. Create an `.env` file in the project root directory and copy the contents of the `.env.example` file into it:
+2. Create the `.env` file (see [Environment Variables](#environment-variables)):
 
     ```bash
     cp .env.example .env
     ```
 
-5. Then, start the local SQL Server database container:
+    `DATABASE_URL` and `FASTAPI_BASE_URL` are overridden by `docker-compose.yml` to use the container network, so the values in `.env` are ignored inside Docker.
+
+3. Build and start everything:
 
     ```bash
-    docker compose up -d mssql
+    docker compose up -d --build
     ```
 
-6. Migrate the database and generate the Prisma client:
+    On every start, a one-off `setup` container installs dependencies, generates the Prisma client, and applies any pending migrations before `web` and `service` start.
+
+4. Seed the database (first time only):
 
     ```bash
-    pnpm db:migrate
+    docker compose exec web pnpm db:seed
     ```
 
-7. Generate the Javascript Prisma client:
-
-    ```bash
-    pnpm db:generate
-    ```
-
-8. Seed the database:
-
-    ```bash
-    pnpm db:seed
-    ```
-
-9. Then, run the development server:
-
-    ```bash
-    pnpm dev
-    ```
-
-10. Open <http://localhost:3000> with your browser to visit Catalyze!
+5. Open <http://localhost:3001> with your browser to visit Catalyze! The quiz engine's API docs are at <http://localhost:8000/docs>, and Prisma Studio (a database browser) is at <http://localhost:5555>.
 
     You can login as the `instructor` or `student` users. For a full list of users, see `scripts/seed.ts`.
     If using Shibboleth authentication, supply the password `password`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Both apps hot-reload when you edit source files on your machine. Useful commands:
+
+| Command | Description |
+|---------|-------------|
+| `docker compose logs -f web service studio` | Follow app logs |
+| `docker compose exec web pnpm <script>` | Run any `package.json` script (e.g. `db:seed`, `test:run`) in the web container |
+| `docker compose run --rm setup && docker compose restart web` | Re-run setup after pulling new dependencies or migrations |
+| `docker compose up -d --build service` | Rebuild the quiz engine after its dependencies or schema submodule change |
+| `docker compose down` | Stop everything (add `-v` to also delete the database and dependency volumes) |
+
+Notes:
+
+- Creating new migrations (`pnpm db:migrate --name ...`) works the same way via `docker compose exec web`.
 
 ## Environment Variables
 
-The following environment variables are required in your `.env` file:
+The following environment variables are read from your `.env` file. After changing `.env`, restart the web container (`docker compose restart web`) so the change takes effect.
 
 | Variable | Description | Example |
 |----------|-------------|---------|
-| `DATABASE_URL` | SQL Server connection string | `sqlserver://localhost:1433;database=studycat;user=sa;password=...` |
+| `DATABASE_URL` | SQL Server connection string. Overridden by `docker-compose.yml` inside Docker. | `sqlserver://localhost:1433;database=studycat;user=sa;password=...` |
 | `AUTH_MODE` | Authentication mode. Use `shibboleth` for SSO or `simple` for username-only local login. **Defaults to `simple` if not set.** | `shibboleth` |
-| `PUBLIC_NEXT_AUTH_MODE` | Authentication mode (for client-side authentication detection) | `shibboleth` |
+| `NEXT_PUBLIC_AUTH_MODE` | Authentication mode (for client-side authentication detection) | `shibboleth` |
 | `JWT_SECRET` | Secret key used to sign session tokens. **Must be set to a strong, random value in any non-trivial environment.** Falls back to an insecure placeholder if omitted. | `change-me-to-a-long-random-string` |
 | `JWT_EXPIRES_IN` | How long a session token remains valid. Defaults to `7d` if not set. | `7d` |
 | `ENABLE_MOCK_SHIBBOLETH` | Set to `true` to enable the `/mock-shibboleth` login page for local development without the full Shibboleth stack | `true` |
 | `SHIBBOLETH_SP_URL` | Base URL of the Shibboleth Service Provider | `https://sp.studycat.local` |
 | `SHIBBOLETH_LOGIN_URL` | Shibboleth SP login endpoint | `https://sp.studycat.local/Shibboleth.sso/Login` |
 | `SHIBBOLETH_LOGOUT_URL` | Shibboleth SP logout endpoint | `https://sp.studycat.local/Shibboleth.sso/Logout` |
-| `FASTAPI_BASE_URL` | Base URL of the quiz engine service. Defaults to `http://localhost:8000/v1` if not set | `http://localhost:8000/v1` |
+| `FASTAPI_BASE_URL` | Base URL of the quiz engine service. Defaults to `http://localhost:8000/v1` if not set. | `http://localhost:8000/v1` |
 
-> **Note:** `SHIBBOLETH_*` and `ENABLE_MOCK_SHIBBOLETH` variables are only required when `AUTH_MODE=shibboleth`. `FASTAPI_BASE_URL` only needs to be set if the quiz engine is running on a non-default port or host.
+> **Note:** `SHIBBOLETH_*` and `ENABLE_MOCK_SHIBBOLETH` variables are only required when `AUTH_MODE=shibboleth`. `DATABASE_URL` and `FASTAPI_BASE_URL` only matter when running the app outside Docker.
 
 ## Database
 
-The database is a SQL Server instance running in Docker. The credentials are stored in the `.env` file.
+The database is a SQL Server instance running in the `mssql` Docker container, with its data stored in the `mssql_data` volume.
 
-When the server is running, you can view the database and the tables using Prisma Studio:
+### Prisma Studio
 
-```bash
-pnpm db:studio
-```
-
-Open [http://localhost:5555](http://localhost:5555) with your browser to see the result.
+[Prisma Studio](https://www.prisma.io/studio) runs automatically in the `studio` container. Open <http://localhost:5555> to browse and edit the database tables.
 
 ### Migrations
 
-When making changes to the database schema, you need to create a new migration file for the changes and give it a descriptive name. This is done using the `prisma` CLI:
+Pending migrations are applied automatically by the `setup` container (`pnpm db:migrate:deploy`) every time you run `docker compose up`. After pulling changes that include new migrations, re-run setup to apply them:
 
 ```bash
-pnpm db:migrate --name <descriptive_name>
+docker compose run --rm setup
 ```
 
-This creates a new migration file in the `external/studycat-schema/migrations` directory, which you commit to the repository. Do not manually modify any existing migration files.
-
-When pulling changes from the repository that have new migrations, you need to apply the migrations to the database:
+When making changes to the database schema, create a new migration file for the changes and give it a descriptive name:
 
 ```bash
-pnpm db:migrate
+docker compose exec web pnpm db:migrate --name <descriptive_name>
+```
+
+This creates a new migration file in the `external/studycat-schema/migrations` directory and applies it to your database. Commit the migration to the schema repository (see [Working with the Schema Submodule](#working-with-the-schema-submodule)). Do not manually modify any existing migration files.
+
+Then regenerate the Prisma client and restart the containers that use it:
+
+```bash
+docker compose exec web pnpm db:generate
+docker compose restart web studio
 ```
 
 ### Available Database Scripts
 
-The following pnpm scripts are available for working with the database:
+The following pnpm scripts are available for working with the database. Run them in the `web` container with `docker compose exec web pnpm <script>`:
 
 | Script | Description |
 |--------|-------------|
 | `pnpm db:generate` | Generate the Prisma client |
 | `pnpm db:migrate` | Run migrations in development mode |
-| `pnpm db:migrate:deploy` | Deploy migrations in production |
+| `pnpm db:migrate:deploy` | Apply pending migrations without creating new ones (run automatically by the `setup` container; also used in production) |
 | `pnpm db:migrate:reset` | Reset the database and run all migrations |
-| `pnpm db:studio` | Open Prisma Studio |
+| `pnpm db:studio` | Open Prisma Studio (runs automatically in the `studio` container) |
 | `pnpm db:status` | Check migration status |
 | `pnpm db:seed` | Seed the database with full test data (users, courses, questions, quizzes, and mock responses). User credentials match the Shibboleth IdP test accounts. |
 | `pnpm db:seed:basic` | Seed the database with a minimal dataset (users, a course, and modules only). Useful for manual testing without pre-existing quiz data. |
@@ -199,32 +193,27 @@ git commit -m "chore: update schema submodule to v0.2.0"
 
 The adaptive quiz engine is a separate FastAPI service that handles IRT-based question selection and ability estimation. **It must be running for students to take quizzes.**
 
-The full setup guide is in the [studycat-service repository](https://github.com/StudyCAT-UofT/studycat-service). The short version for local development:
+It runs automatically in the `service` container, built from the `studycat-service` checkout next to this repository (see [Getting Started with Docker](#getting-started-with-docker)). Its source is bind-mounted, so edits to `studycat-service/src` hot-reload.
+
+The service runs on <http://localhost:8000>. You can verify it is healthy at <http://localhost:8000/v1/health>, and view its API docs at <http://localhost:8000/docs>. The web app reaches it inside Docker at <http://service:8000/v1>.
+
+After changing the service's dependencies or its schema submodule, rebuild the image:
 
 ```bash
-# In a separate terminal, clone and set up the service
-git clone https://github.com/StudyCAT-UofT/studycat-service.git
-cd studycat-service
-make venv install
-make submodule-update
-make db-generate
-cp .env.example .env   # configure DATABASE_URL to match studycat's .env
-make run
+docker compose up -d --build service
 ```
 
-The service runs on `http://localhost:8000` by default. You can verify it is healthy at `http://localhost:8000/v1/health`.
-
-> **Note:** Both the web application and the quiz engine connect to the **same database**. Ensure `DATABASE_URL` in both `.env` files points to the same SQL Server instance.
+To run the service outside Docker instead, see the setup guide in the [studycat-service repository](https://github.com/StudyCAT-UofT/studycat-service).
 
 ## Testing
 
-Run the full test suite:
+Run the full test suite in the web container:
 
 ```bash
-pnpm test
+docker compose exec web pnpm test
 ```
 
-Other testing commands:
+Other testing commands (run the same way, with `docker compose exec web`):
 
 | Command | Description |
 |---------|-------------|
@@ -235,6 +224,8 @@ Other testing commands:
 Tests are also run automatically in CI on every push and pull request to `main` (see `.github/workflows/ci.yml`).
 
 ## Linting
+
+Run these in the web container with `docker compose exec web`, as with the testing commands.
 
 ```bash
 pnpm lint
@@ -273,7 +264,7 @@ Both authentication modes require the user's account to exist in the database be
 - **Simple mode:** The username entered must match an existing `User` record. Returns a `404` if not found.
 - **Shibboleth mode:** The UTORid from the SAML assertion must match an existing `User` record. Returns a `404` if not found.
 
-For local development, running `pnpm db:seed` creates the test accounts (`instructor`, `student`) that match the Shibboleth IdP credentials (password is `password` for both users). In production, users must be added in advance via the Students management page (`/students`) or by an administrator directly.
+For local development, running `docker compose exec web pnpm db:seed` creates the test accounts (`instructor`, `student`) that match the Shibboleth IdP credentials (password is `password` for both users). In production, users must be added in advance via the Students management page (`/students`) or by an administrator directly.
 
 ### Mock Shibboleth Login (Development Shortcut)
 
@@ -285,4 +276,4 @@ NEXT_PUBLIC_AUTH_MODE=shibboleth
 ENABLE_MOCK_SHIBBOLETH=true
 ```
 
-Then navigate to `http://localhost:3000/mock-shibboleth` to log in as any seeded user (e.g. `instructor` or `student`) without starting the Shibboleth Docker stack.
+Then restart the web container (`docker compose restart web`) and navigate to <http://localhost:3001/mock-shibboleth> to log in as any seeded user (e.g. `instructor` or `student`) without starting the Shibboleth Docker stack.

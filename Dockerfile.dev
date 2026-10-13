@@ -1,0 +1,17 @@
+# Development image for the StudyCAT Next.js app.
+
+FROM node:24-bookworm-slim
+
+# Prisma's query engine needs OpenSSL
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends openssl ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+ARG PNPM_VERSION=11.21.0
+RUN npm install -g pnpm@${PNPM_VERSION}
+
+ENV NEXT_TELEMETRY_DISABLED=1
+
+WORKDIR /app
+
+EXPOSE 3001
