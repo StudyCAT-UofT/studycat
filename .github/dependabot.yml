@@ -14,6 +14,18 @@ updates:
       semver-major-days: 7
       semver-minor-days: 2
       semver-patch-days: 2
+    groups:
+      # Keep vitest and its @vitest/* packages in lockstep
+      vitest:
+        applies-to: version-updates
+        patterns:
+          - "vitest"
+          - "@vitest/*"
+      vitest-security:
+        applies-to: security-updates
+        patterns:
+          - "vitest"
+          - "@vitest/*"
 
   - package-ecosystem: "github-actions"
     directory: "/" # Scans .github/workflows
