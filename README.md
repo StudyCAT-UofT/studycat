@@ -9,7 +9,7 @@ The Catalyze web application is built with:
 - [Next.js App Router](https://nextjs.org)
 - [Mantine](https://mantine.dev)
 - [Prisma](https://prisma.io)
-- [Microsoft SQL Server](https://www.microsoft.com/en-ca/sql-server)
+- [PostgreSQL](https://www.postgresql.org)
 - [Docker](https://www.docker.com)
 
 The core backend routes can be found in the `app/api` directory.
@@ -107,7 +107,7 @@ The following environment variables are read from your `.env` file. After changi
 
 | Variable | Description | Example |
 |----------|-------------|---------|
-| `DATABASE_URL` | SQL Server connection string. Overridden by `docker-compose.yml` inside Docker. | `sqlserver://localhost:1433;database=studycat;user=sa;password=...` |
+| `DATABASE_URL` | PostgreSQL connection string. Overridden by `docker-compose.yml` inside Docker. | `postgresql://studycat:...@localhost:5432/studycat?schema=public` |
 | `AUTH_MODE` | Authentication mode. Use `shibboleth` for SSO or `simple` for username-only local login. **Defaults to `simple` if not set.** | `shibboleth` |
 | `NEXT_PUBLIC_AUTH_MODE` | Authentication mode (for client-side authentication detection) | `shibboleth` |
 | `JWT_SECRET` | Secret key used to sign session tokens. **Must be set to a strong, random value in any non-trivial environment.** Falls back to an insecure placeholder if omitted. | `change-me-to-a-long-random-string` |
@@ -122,7 +122,7 @@ The following environment variables are read from your `.env` file. After changi
 
 ## Database
 
-The database is a SQL Server instance running in the `mssql` Docker container, with its data stored in the `mssql_data` volume.
+The database is a PostgreSQL instance running in the `postgres` Docker container, with its data stored in the `postgres_data` volume.
 
 ### Prisma Studio
 

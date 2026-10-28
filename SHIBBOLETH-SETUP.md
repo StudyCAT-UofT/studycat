@@ -39,7 +39,7 @@ This guide provides step-by-step instructions for setting up Shibboleth Single S
 - **Service Provider (SP)**: Apache with [`mod_shib`](https://shibboleth.atlassian.net/wiki/spaces/SP3/pages/2065335062/Apache), protects the application, validates SAML assertions
 - **OpenLDAP**: Directory server storing test user credentials
 - **Next.js Application**: The Catalyze application backend
-- **SQL Server Database**: Stores user and application data
+- **PostgreSQL Database**: Stores user and application data
 
 ---
 
@@ -53,7 +53,7 @@ This guide provides step-by-step instructions for setting up Shibboleth Single S
 
 ### Required Permissions
 - Ability to modify `/etc/hosts` file (requires sudo)
-- Ports 80, 443, 1433, 3001, 4443, 5555, 8000, and 8443 available
+- Ports 80, 443, 3001, 4443, 5432, 5555, 8000, and 8443 available
 
 ---
 
@@ -939,7 +939,7 @@ Catalyze implements **local logout only**—when a user logs out, only the appli
    - Configure clustered session storage
 
 3. **Database:**
-   - Use a managed SQL Server instance (e.g. Azure SQL Database, Amazon RDS for SQL Server)
+   - Use a managed PostgreSQL instance (e.g. Amazon RDS for PostgreSQL, Azure Database for PostgreSQL)
    - Configure connection pooling
    - Enable SSL for database connections
 
