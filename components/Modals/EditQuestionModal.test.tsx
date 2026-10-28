@@ -174,6 +174,8 @@ describe('EditQuestionModal', () => {
     })
   })
 
+  // Adding 22 options re-renders the growing form on every click, which takes ~4-6s under a
+  // full parallel test run, so this test needs more than the default 5s timeout
   it('disables the add option button when the 26 option limit is reached', async () => {
     renderWithProviders(
       <EditQuestionModal
@@ -196,7 +198,7 @@ describe('EditQuestionModal', () => {
     })
 
     expect(addButton).toBeDisabled()
-  })
+  }, 15_000)
 
   it('does NOT show active/inactive toggle in create mode', async () => {
     renderWithProviders(

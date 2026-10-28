@@ -109,8 +109,10 @@ export const makeDefaultCourseValue = (overrides = {}) => ({
 
 // ─── renderWithProviders ──────────────────────────────────────────────────────
 
+// env="test" disables Mantine transitions and portals, so no transition timer can
+// fire after a test's jsdom environment has been torn down
 function AllProviders({ children }: { children: React.ReactNode }) {
-  return <MantineProvider>{children}</MantineProvider>
+  return <MantineProvider env="test">{children}</MantineProvider>
 }
 
 /**
