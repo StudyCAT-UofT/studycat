@@ -107,7 +107,7 @@ The following environment variables are read from your `.env` file. After changi
 
 | Variable | Description | Example |
 |----------|-------------|---------|
-| `DATABASE_URL` | PostgreSQL connection string. Overridden by `docker-compose.yml` inside Docker. | `postgresql://studycat:...@localhost:5432/studycat?schema=public` |
+| `DATABASE_URL` | PostgreSQL connection string. Overridden by `docker-compose.yml` inside Docker. | `postgresql://catalyze:...@localhost:5432/catalyze?schema=public` |
 | `AUTH_MODE` | Authentication mode. Use `shibboleth` for SSO or `simple` for username-only local login. **Defaults to `simple` if not set.** | `shibboleth` |
 | `NEXT_PUBLIC_AUTH_MODE` | Authentication mode (for client-side authentication detection) | `shibboleth` |
 | `JWT_SECRET` | Secret key used to sign session tokens. **Must be set to a strong, random value in any non-trivial environment.** Falls back to an insecure placeholder if omitted. | `change-me-to-a-long-random-string` |

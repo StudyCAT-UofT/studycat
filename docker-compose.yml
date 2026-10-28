@@ -1,5 +1,5 @@
 # Database connection string used by the containers (the `postgres` service on the compose network)
-x-database-url: &database-url "postgresql://studycat:studycatPassword123!@postgres:5432/studycat?schema=public"
+x-database-url: &database-url "postgresql://catalyze:catalyzePassword123!@postgres:5432/catalyze?schema=public"
 
 services:
   postgres:
@@ -8,9 +8,9 @@ services:
     ports:
       - "5432:5432"
     environment:
-      POSTGRES_USER: studycat
-      POSTGRES_PASSWORD: "studycatPassword123!"
-      POSTGRES_DB: studycat
+      POSTGRES_USER: catalyze
+      POSTGRES_PASSWORD: "catalyzePassword123!"
+      POSTGRES_DB: catalyze
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
