@@ -387,11 +387,9 @@ Update your `.env` file with the following values.
 AUTH_MODE=shibboleth
 NEXT_PUBLIC_AUTH_MODE=shibboleth
 ENABLE_MOCK_SHIBBOLETH=false
-
-SHIBBOLETH_SP_URL=https://sp.studycat.local
-SHIBBOLETH_LOGIN_URL=https://sp.studycat.local/Shibboleth.sso/Login
-SHIBBOLETH_LOGOUT_URL=https://sp.studycat.local/Shibboleth.sso/Logout
 ```
+
+`NEXT_PUBLIC_AUTH_MODE` is baked into the browser code at build time, so it must be set when the app is built (the dev container reads it on startup).
 
 If the web container is already running, restart it so it picks up the new values:
 
@@ -429,6 +427,8 @@ With the services and Next.js app running, you can that the Shibboleth authentic
 
 If the authentication is successful, you'll be redirected back to <https://sp.studycat.local/>.
 You should now see the Catalyze application homepage and your name/role should appear in the UI.
+
+> **Develop through <https://sp.studycat.local>, not <http://localhost:3001>.** The SP proxies the Next.js dev server, including its hot-reload websocket (see `shibboleth/sp/config/dev-websocket.conf`), so hot reload works there. The app's session cookie belongs to `sp.studycat.local`, so after a Shibboleth login you are not logged in at `localhost:3001`. If the dev page at `sp.studycat.local` stays on "Checking session...", your SP image predates the websocket proxy; rebuild it with `docker compose --profile shibboleth up -d --build`.
 
 #### Additional check: Shibboleth Attributes
 
