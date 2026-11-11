@@ -110,12 +110,13 @@ The following environment variables are read from your `.env` file. After changi
 | `DATABASE_URL` | PostgreSQL connection string. Overridden by `docker-compose.yml` inside Docker. | `postgresql://catalyze:...@localhost:5432/catalyze?schema=public` |
 | `AUTH_MODE` | Authentication mode. Use `shibboleth` for SSO or `simple` for username-only local login. **Defaults to `simple` if not set.** | `shibboleth` |
 | `NEXT_PUBLIC_AUTH_MODE` | Authentication mode (for client-side authentication detection). **Read at build time:** `next build` bakes it into the browser code, so set it in the build environment and rebuild after changing it. Setting it only at runtime (e.g. in a systemd unit) has no effect. | `shibboleth` |
+| `NEXT_PUBLIC_SHIBBOLETH_SP_URL` | Base URL of the Shibboleth SP, used for the login/logout links. **Leave unset** when Apache/mod_shib serves the app on the same host (e.g. production): the app then uses relative `/Shibboleth.sso/...` paths. Set it in local development if you open the dev server directly at `http://localhost:3001`. Read at build time, like `NEXT_PUBLIC_AUTH_MODE`. | `https://sp.studycat.local` |
 | `JWT_SECRET` | Secret key used to sign session tokens. **Must be set to a strong, random value in any non-trivial environment.** Falls back to an insecure placeholder if omitted. | `change-me-to-a-long-random-string` |
 | `JWT_EXPIRES_IN` | How long a session token remains valid. Defaults to `7d` if not set. | `7d` |
 | `ENABLE_MOCK_SHIBBOLETH` | Set to `true` to enable the `/mock-shibboleth` login page for local development without the full Shibboleth stack | `true` |
 | `FASTAPI_BASE_URL` | Base URL of the quiz engine service. Defaults to `http://localhost:8000/v1` if not set. | `http://localhost:8000/v1` |
 
-> **Note:** `ENABLE_MOCK_SHIBBOLETH` only matters when `AUTH_MODE=shibboleth`. The app reaches the Shibboleth SP through the relative path `/Shibboleth.sso/...`, so no SP URL needs to be configured; the SP must serve that path on the same host as the app. `DATABASE_URL` and `FASTAPI_BASE_URL` only matter when running the app outside Docker.
+> **Note:** `ENABLE_MOCK_SHIBBOLETH` only matters when `AUTH_MODE=shibboleth`. By default the app reaches the Shibboleth SP through the relative path `/Shibboleth.sso/...`, so the SP must serve that path on the same host as the app; set `NEXT_PUBLIC_SHIBBOLETH_SP_URL` only when it doesn't (e.g. the dev server at `localhost:3001`). `DATABASE_URL` and `FASTAPI_BASE_URL` only matter when running the app outside Docker.
 
 ## Database
 

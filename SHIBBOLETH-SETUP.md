@@ -387,9 +387,10 @@ Update your `.env` file with the following values.
 AUTH_MODE=shibboleth
 NEXT_PUBLIC_AUTH_MODE=shibboleth
 ENABLE_MOCK_SHIBBOLETH=false
+NEXT_PUBLIC_SHIBBOLETH_SP_URL=https://sp.studycat.local
 ```
 
-`NEXT_PUBLIC_AUTH_MODE` is baked into the browser code at build time, so it must be set when the app is built (the dev container reads it on startup).
+`NEXT_PUBLIC_AUTH_MODE` and `NEXT_PUBLIC_SHIBBOLETH_SP_URL` are baked into the browser code at build time, so they must be set when the app is built (the dev container reads them on startup). `NEXT_PUBLIC_SHIBBOLETH_SP_URL` makes the login button work when you open the dev server directly at `http://localhost:3001`; in production, where Apache serves the app, leave it unset.
 
 If the web container is already running, restart it so it picks up the new values:
 
