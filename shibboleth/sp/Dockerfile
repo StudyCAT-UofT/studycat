@@ -38,6 +38,8 @@ COPY config/attribute-map.xml /etc/shibboleth/attribute-map.xml
 # Copy protected routes config
 COPY config/protected-routes.conf /etc/apache2/conf-available/protected-routes.conf
 COPY config/shibboleth-headers.conf /etc/apache2/conf-available/shibboleth-headers.conf
+# Proxy the Next.js dev server's hot-reload websocket
+COPY config/dev-websocket.conf /etc/apache2/conf-available/dev-websocket.conf
 
 # Set proper permissions
 USER root
@@ -49,7 +51,8 @@ RUN chmod 644 /etc/apache2/ssl/ssl.crt && \
     chmod 644 /etc/shibboleth/shibboleth2.xml && \
     chmod 644 /etc/shibboleth/attribute-map.xml && \
     chmod 644 /etc/apache2/conf-available/protected-routes.conf && \
-    chmod 644 /etc/apache2/conf-available/shibboleth-headers.conf
+    chmod 644 /etc/apache2/conf-available/shibboleth-headers.conf && \
+    chmod 644 /etc/apache2/conf-available/dev-websocket.conf
 
 # Expose ports (80 for HTTP, 443 for HTTPS)
 EXPOSE 80 443
@@ -62,4 +65,5 @@ EXPOSE 80 443
 # 5. Allow public access on root path
 # 6. Include protected routes config
 # 7. Include headers mapping config
-CMD ["/bin/sh", "-c", "ansible-playbook /opt/playbooks/shibboleth-playbook.yaml --diff && a2enmod headers && sed -i '/ProxyPass \\/ http/i ProxyPass /Shibboleth.sso !' /etc/apache2/sites-enabled/000-default.conf && sed -i 's/ProxyPreserveHost Off/ProxyPreserveHost On/' /etc/apache2/sites-enabled/000-default.conf && sed -i '/<Location \\/>/,/<\\/Location>/ s/AuthType shibboleth/AuthType None/' /etc/apache2/sites-enabled/000-default.conf && sed -i '/<Location \\/>/,/<\\/Location>/ s/ShibRequestSetting requireSession 1/ShibRequestSetting requireSession 0/' /etc/apache2/sites-enabled/000-default.conf && sed -i '/<Location \\/>/,/<\\/Location>/ s/require valid-user/Require all granted/' /etc/apache2/sites-enabled/000-default.conf && sed -i '/<\\/VirtualHost>/i Include /etc/apache2/conf-available/protected-routes.conf' /etc/apache2/sites-enabled/000-default.conf && sed -i '/<\\/VirtualHost>/i Include /etc/apache2/conf-available/shibboleth-headers.conf' /etc/apache2/sites-enabled/000-default.conf && service apache2 restart && service shibd start && tail -f /var/log/apache2/access.log -f /var/log/apache2/error.log -f /var/log/apache2/other_vhosts_access.log -f /var/log/shibboleth/shibd.log -f /var/log/shibboleth/shibd_warn.log -f /var/log/shibboleth/signature.log -f /var/log/shibboleth/transaction.log"]
+# 8. Proxy the Next.js dev hot-reload websocket to $SERVICE_TO_PROTECT:$SERVICE_PORT
+CMD ["/bin/sh", "-c", "ansible-playbook /opt/playbooks/shibboleth-playbook.yaml --diff && a2enmod headers proxy_wstunnel rewrite && sed -i \"s|__BACKEND__|${SERVICE_TO_PROTECT}:${SERVICE_PORT}|\" /etc/apache2/conf-available/dev-websocket.conf && sed -i '/ProxyPass \\/ http/i ProxyPass /Shibboleth.sso !' /etc/apache2/sites-enabled/000-default.conf && sed -i 's/ProxyPreserveHost Off/ProxyPreserveHost On/' /etc/apache2/sites-enabled/000-default.conf && sed -i '/<Location \\/>/,/<\\/Location>/ s/AuthType shibboleth/AuthType None/' /etc/apache2/sites-enabled/000-default.conf && sed -i '/<Location \\/>/,/<\\/Location>/ s/ShibRequestSetting requireSession 1/ShibRequestSetting requireSession 0/' /etc/apache2/sites-enabled/000-default.conf && sed -i '/<Location \\/>/,/<\\/Location>/ s/require valid-user/Require all granted/' /etc/apache2/sites-enabled/000-default.conf && sed -i '/<\\/VirtualHost>/i Include /etc/apache2/conf-available/protected-routes.conf' /etc/apache2/sites-enabled/000-default.conf && sed -i '/<\\/VirtualHost>/i Include /etc/apache2/conf-available/shibboleth-headers.conf' /etc/apache2/sites-enabled/000-default.conf && sed -i '/<\\/VirtualHost>/i Include /etc/apache2/conf-available/dev-websocket.conf' /etc/apache2/sites-enabled/000-default.conf && service apache2 restart && service shibd start && tail -f /var/log/apache2/access.log -f /var/log/apache2/error.log -f /var/log/apache2/other_vhosts_access.log -f /var/log/shibboleth/shibd.log -f /var/log/shibboleth/shibd_warn.log -f /var/log/shibboleth/signature.log -f /var/log/shibboleth/transaction.log"]

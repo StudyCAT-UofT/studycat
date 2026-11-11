@@ -429,6 +429,8 @@ With the services and Next.js app running, you can that the Shibboleth authentic
 If the authentication is successful, you'll be redirected back to <https://sp.studycat.local/>.
 You should now see the Catalyze application homepage and your name/role should appear in the UI.
 
+> **Develop through <https://sp.studycat.local>, not <http://localhost:3001>.** The SP proxies the Next.js dev server, including its hot-reload websocket (see `shibboleth/sp/config/dev-websocket.conf`), so hot reload works there. The app's session cookie belongs to `sp.studycat.local`, so after a Shibboleth login you are not logged in at `localhost:3001`. If the dev page at `sp.studycat.local` stays on "Checking session...", your SP image predates the websocket proxy; rebuild it with `docker compose --profile shibboleth up -d --build`.
+
 #### Additional check: Shibboleth Attributes
 
 After logging in, visit <https://sp.studycat.local/Shibboleth.sso/Session>.
