@@ -387,11 +387,9 @@ Update your `.env` file with the following values.
 AUTH_MODE=shibboleth
 NEXT_PUBLIC_AUTH_MODE=shibboleth
 ENABLE_MOCK_SHIBBOLETH=false
-
-SHIBBOLETH_SP_URL=https://sp.studycat.local
-SHIBBOLETH_LOGIN_URL=https://sp.studycat.local/Shibboleth.sso/Login
-SHIBBOLETH_LOGOUT_URL=https://sp.studycat.local/Shibboleth.sso/Logout
 ```
+
+`NEXT_PUBLIC_AUTH_MODE` is baked into the browser code at build time, so it must be set when the app is built (the dev container reads it on startup).
 
 If the web container is already running, restart it so it picks up the new values:
 

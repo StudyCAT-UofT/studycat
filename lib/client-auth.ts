@@ -1,5 +1,16 @@
 'use client'
 
+import { authConfig } from '@/lib/auth-config'
+
+// Use the Shibboleth SessionInitiator with a target parameter: it runs the SSO flow
+// (or reuses an existing SP session) and then returns to the callback URL
+export const redirectToShibbolethLogin = () => {
+  const callbackUrl = encodeURIComponent(authConfig.shibboleth.callbackPath)
+  // A full page load is required: /Shibboleth.sso/* is served by Apache, not by Next.js
+  // eslint-disable-next-line @next/next/no-location-assign-relative-destination
+  window.location.href = `${authConfig.shibboleth.loginUrl}?target=${callbackUrl}`
+}
+
 export interface User {
   userId: string
   username: string
