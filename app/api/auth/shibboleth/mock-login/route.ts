@@ -1,5 +1,6 @@
 // app/api/auth/shibboleth/mock-login/route.ts
 import { NextRequest, NextResponse } from 'next/server';
+import { relativeRedirect } from '@/lib/relative-redirect';
 
 export async function GET(request: NextRequest) {
   // This should ONLY work in development
@@ -14,9 +15,6 @@ export async function GET(request: NextRequest) {
   const utorid = searchParams.get('utorid') || 'testuser';
 
   // Redirect to the callback with mock UTORid
-  const callbackUrl = new URL('/api/auth/shibboleth/callback', request.url);
-  callbackUrl.searchParams.set('mock', 'true');
-  callbackUrl.searchParams.set('utorid', utorid);
-
-  return NextResponse.redirect(callbackUrl);
+  const params = new URLSearchParams({ mock: 'true', utorid });
+  return relativeRedirect(`/api/auth/shibboleth/callback?${params}`);
 }

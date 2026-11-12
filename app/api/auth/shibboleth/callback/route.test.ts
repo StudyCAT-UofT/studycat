@@ -18,8 +18,12 @@ vi.mock('@/lib/jwt', () => ({
   signToken: vi.fn(() => 'mock-jwt-token'),
 }))
 
+// request.url as Next.js reports it behind a reverse proxy: the server's own listen
+// address, not the public hostname the browser used
+const INTERNAL_URL = 'https://localhost:9000/api/auth/shibboleth/callback'
+
 function makeRequest(headers: Record<string, string> = {}, searchParams: Record<string, string> = {}) {
-  const url = new URL('https://sp.studycat.local/api/auth/shibboleth/callback')
+  const url = new URL(INTERNAL_URL)
   for (const [key, value] of Object.entries(searchParams)) {
     url.searchParams.set(key, value)
   }
@@ -36,7 +40,7 @@ describe('GET /api/auth/shibboleth/callback', () => {
     const response = await GET(request)
 
     expect(response.status).toBe(307)
-    expect(response.headers.get('location')).toContain('/login?error=missing_utorid')
+    expect(response.headers.get('location')).toBe('/login?error=missing_utorid')
   })
 
   it('redirects to /login?error=user_not_found when UTORid has no matching user in the database', async () => {
@@ -47,7 +51,7 @@ describe('GET /api/auth/shibboleth/callback', () => {
 
     expect(mockFindUnique).toHaveBeenCalledWith({ where: { username: 'unknownuser' } })
     expect(response.status).toBe(307)
-    expect(response.headers.get('location')).toContain('/login?error=user_not_found')
+    expect(response.headers.get('location')).toBe('/login?error=user_not_found')
   })
 
   it('sets session-token cookie and redirects on successful authentication', async () => {
@@ -57,9 +61,30 @@ describe('GET /api/auth/shibboleth/callback', () => {
     const response = await GET(request)
 
     expect(response.status).toBe(307)
+    expect(response.headers.get('location')).toBe('/')
     const cookie = response.cookies.get('session-token')
     expect(cookie?.value).toBe('mock-jwt-token')
     expect(cookie?.httpOnly).toBe(true)
+  })
+
+  it('redirects to /login?error=authentication_failed when the lookup throws', async () => {
+    mockFindUnique.mockRejectedValue(new Error('DB down'))
+
+    const response = await GET(makeRequest({ uid: 'testuser' }))
+
+    expect(response.status).toBe(307)
+    expect(response.headers.get('location')).toBe('/login?error=authentication_failed')
+  })
+
+  it('never redirects to the internal host from request.url, even with proxy headers', async () => {
+    mockFindUnique.mockResolvedValue({ id: 'user-123', username: 'testuser' })
+
+    const response = await GET(
+      makeRequest({ uid: 'testuser', 'x-forwarded-host': 'qa.example.org', 'x-forwarded-proto': 'https' })
+    )
+
+    expect(response.headers.get('location')).toBe('/')
+    expect(response.headers.get('location')).not.toContain('localhost')
   })
 
   it('extracts UTORid using uid > remote_user > eppn header priority', async () => {
