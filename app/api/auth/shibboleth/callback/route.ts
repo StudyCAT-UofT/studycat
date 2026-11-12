@@ -1,10 +1,12 @@
 // app/api/auth/shibboleth/callback/route.ts
-import { NextRequest } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { signToken } from '@/lib/jwt';
 import { logger } from '@/lib/logger';
-import { relativeRedirect } from '@/lib/relative-redirect';
 
+// Redirects use a relative Location header rather than a URL built from request.url:
+// Next.js derives request.url from the address the server listens on (e.g. localhost:9000),
+// not the public hostname, so behind Apache it would send the browser to the wrong host.
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
@@ -32,7 +34,7 @@ export async function GET(request: NextRequest) {
     // Validate UTORid exists
     if (!utorid) {
       logger.error('Missing UTORid from Shibboleth');
-      return relativeRedirect('/login?error=missing_utorid');
+      return new NextResponse(null, { status: 307, headers: { Location: '/login?error=missing_utorid' } });
     }
 
     // Find or create user in database
@@ -44,7 +46,7 @@ export async function GET(request: NextRequest) {
 
     if (!user) {
       logger.error({ utorid }, 'User not found');
-      return relativeRedirect('/login?error=user_not_found');
+      return new NextResponse(null, { status: 307, headers: { Location: '/login?error=user_not_found' } });
     }
 
     // Create session token using JWT function with full payload
@@ -55,9 +57,7 @@ export async function GET(request: NextRequest) {
 
     const token = signToken(tokenPayload);
 
-    // Relative redirect: the browser stays on the public host it used (e.g. behind
-    // Apache), rather than the server's internal address from request.url
-    const response = relativeRedirect('/');
+    const response = new NextResponse(null, { status: 307, headers: { Location: '/' } });
 
     // Set session cookie directly in the response (not using setSessionCookie)
     // because we need to ensure the cookie domain matches the browser domain
@@ -74,6 +74,6 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     logger.error({ err: error }, 'Shibboleth callback error');
-    return relativeRedirect('/login?error=authentication_failed');
+    return new NextResponse(null, { status: 307, headers: { Location: '/login?error=authentication_failed' } });
   }
 }
