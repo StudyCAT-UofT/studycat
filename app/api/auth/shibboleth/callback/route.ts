@@ -4,6 +4,9 @@ import { prisma } from '@/lib/prisma';
 import { signToken } from '@/lib/jwt';
 import { logger } from '@/lib/logger';
 
+// Redirects use a relative Location header rather than a URL built from request.url:
+// Next.js derives request.url from the address the server listens on (e.g. localhost:9000),
+// not the public hostname, so behind Apache it would send the browser to the wrong host.
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
@@ -31,9 +34,7 @@ export async function GET(request: NextRequest) {
     // Validate UTORid exists
     if (!utorid) {
       logger.error('Missing UTORid from Shibboleth');
-      return NextResponse.redirect(
-        new URL('/login?error=missing_utorid', request.url)
-      );
+      return new NextResponse(null, { status: 307, headers: { Location: '/login?error=missing_utorid' } });
     }
 
     // Find or create user in database
@@ -45,9 +46,7 @@ export async function GET(request: NextRequest) {
 
     if (!user) {
       logger.error({ utorid }, 'User not found');
-      return NextResponse.redirect(
-        new URL('/login?error=user_not_found', request.url)
-      );
+      return new NextResponse(null, { status: 307, headers: { Location: '/login?error=user_not_found' } });
     }
 
     // Create session token using JWT function with full payload
@@ -58,14 +57,7 @@ export async function GET(request: NextRequest) {
 
     const token = signToken(tokenPayload);
 
-    // Create redirect response using the forwarded host (sp.studycat.local)
-    // NOT the internal host (host.docker.internal)
-    // Always use HTTPS since the browser is on HTTPS (Apache forwards as http in dev)
-    // Without a proxy (e.g. mock mode), redirect to the app's own origin
-    const forwardedHost = request.headers.get('x-forwarded-host');
-    const redirectUrl = forwardedHost ? `https://${forwardedHost}/` : new URL('/', request.url);
-
-    const response = NextResponse.redirect(redirectUrl);
+    const response = new NextResponse(null, { status: 307, headers: { Location: '/' } });
 
     // Set session cookie directly in the response (not using setSessionCookie)
     // because we need to ensure the cookie domain matches the browser domain
@@ -82,8 +74,6 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     logger.error({ err: error }, 'Shibboleth callback error');
-    return NextResponse.redirect(
-      new URL('/login?error=authentication_failed', request.url)
-    );
+    return new NextResponse(null, { status: 307, headers: { Location: '/login?error=authentication_failed' } });
   }
 }

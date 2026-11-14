@@ -14,9 +14,10 @@ export async function GET(request: NextRequest) {
   const utorid = searchParams.get('utorid') || 'testuser';
 
   // Redirect to the callback with mock UTORid
-  const callbackUrl = new URL('/api/auth/shibboleth/callback', request.url);
-  callbackUrl.searchParams.set('mock', 'true');
-  callbackUrl.searchParams.set('utorid', utorid);
-
-  return NextResponse.redirect(callbackUrl);
+  // Relative Location, not a URL built from request.url (see the callback route)
+  const params = new URLSearchParams({ mock: 'true', utorid });
+  return new NextResponse(null, {
+    status: 307,
+    headers: { Location: `/api/auth/shibboleth/callback?${params}` },
+  });
 }

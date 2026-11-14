@@ -27,7 +27,7 @@ describe('GET /api/auth/shibboleth/mock-login', () => {
         const res = await GET(makeRequest())
         expect(res.status).toBe(307)
         const location = res.headers.get('location') ?? ''
-        expect(location).toContain('/api/auth/shibboleth/callback')
+        expect(location.startsWith('/api/auth/shibboleth/callback?')).toBe(true)
         expect(location).toContain('utorid=testuser')
     })
 
