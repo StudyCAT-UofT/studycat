@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
+import { requireOfferingRole, requireSession, STAFF_ROLES } from '@/lib/authz';
 
 export const POST = async (request: NextRequest) => {
   try {
+    const session = await requireSession();
+    if (!session.ok) return session.response;
+
     const body = await request.json();
     const { attemptId } = body;
 
@@ -19,6 +23,7 @@ export const POST = async (request: NextRequest) => {
     const attempt = await prisma.attempt.findUnique({
       where: { id: attemptId },
       include: {
+        enrollment: { select: { userId: true, offeringId: true } },
         responses: {
           orderBy: {
             answeredAt: 'asc',
@@ -32,6 +37,12 @@ export const POST = async (request: NextRequest) => {
         { error: 'Attempt not found' },
         { status: 404 }
       );
+    }
+
+    // The attempt's owner, or staff of its offering, may view the results
+    if (attempt.enrollment.userId !== session.session.userId) {
+      const auth = await requireOfferingRole(attempt.enrollment.offeringId, STAFF_ROLES);
+      if (!auth.ok) return auth.response;
     }
 
     // Calculate statistics

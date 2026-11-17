@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import * as xlsx from "xlsx";
 import { logger } from "@/lib/logger";
+import { requireCourseRole, STAFF_ROLES } from "@/lib/authz";
 
 export const runtime = "nodejs";
 
@@ -32,6 +33,9 @@ export async function GET(request: Request) {
                 { status: 400 }
             );
         }
+
+        const auth = await requireCourseRole(courseId, STAFF_ROLES);
+        if (!auth.ok) return auth.response;
 
         const items = await prisma.item.findMany({
             where: { courseId, ...(includeInactive ? {} : { active: true }) },

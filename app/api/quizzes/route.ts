@@ -4,6 +4,7 @@ import { getSession } from '@/lib/auth'
 import { Prisma } from '@prisma/client'
 import { feedbackLevels } from '@/types'
 import { logger } from '@/lib/logger'
+import { ANY_ROLE, requireOfferingRole, requireRole, STAFF_ROLES } from '@/lib/authz'
 
 export const runtime = 'nodejs'
 
@@ -32,13 +33,25 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Course offering ID is required' }, { status: 400 })
     }
 
+    // Staff see every quiz; other members of the offering (students) only see active ones
+    const staffAuth = await requireOfferingRole(courseOfferingId, STAFF_ROLES)
+    let isStaff = staffAuth.ok
+    if (!staffAuth.ok) {
+      if (staffAuth.response.status !== 403) return staffAuth.response
+      const memberAuth = await requireOfferingRole(courseOfferingId, ANY_ROLE)
+      if (!memberAuth.ok) return memberAuth.response
+      isStaff = false
+    }
+
     // Build where clause based on active parameter
     const whereClause: Prisma.QuizWhereInput = {
       offeringId: courseOfferingId,
     }
 
     // Add active filter if specified
-    if (activeParam !== null) {
+    if (!isStaff) {
+      whereClause.active = true
+    } else if (activeParam !== null) {
       whereClause.active = activeParam === 'true'
     }
 
@@ -200,6 +213,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Course offering ID, title, and at least one module are required' }, { status: 400 })
     }
 
+    const auth = await requireOfferingRole(courseOfferingId, STAFF_ROLES)
+    if (!auth.ok) return auth.response
+
     if (!fixedLength || fixedLength < 1) {
       return NextResponse.json({ error: 'Fixed length must be at least 1' }, { status: 400 })
     }
@@ -315,6 +331,9 @@ export async function DELETE(request: Request) {
     if (existingQuizzes.length !== ids.length) {
       return NextResponse.json({ error: 'One or more quizzes not found' }, { status: 404 })
     }
+
+    const auth = await requireRole({ offeringIds: existingQuizzes.map(q => q.offeringId) }, STAFF_ROLES)
+    if (!auth.ok) return auth.response
 
     // Delete the quizzes
     await prisma.quiz.deleteMany({

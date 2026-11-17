@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import * as xlsx from "xlsx";
 import { BloomCategory } from '@/types'
 import { logger } from '@/lib/logger'
+import { requireOfferingRole, requireSession, STAFF_ROLES } from '@/lib/authz'
 
 class UploadValidationError extends Error {}
 
@@ -39,6 +40,10 @@ export async function POST(request: Request) {
     const MAX_ANSWER_JUSTIFICATION_CHARS = 16384
 
     try {
+        // Reject anonymous requests before reading (possibly large) multipart bodies
+        const session = await requireSession();
+        if (!session.ok) return session.response;
+
         // Ensure Content-Type is form-data
         const contentType = request.headers.get("content-type") || "";
         if (!contentType.includes("multipart/form-data")) {
@@ -77,6 +82,19 @@ export async function POST(request: Request) {
 
         const courseId = String(courseIdRaw);
         const offeringId = String(offeringIdRaw);
+
+        const auth = await requireOfferingRole(offeringId, STAFF_ROLES);
+        if (!auth.ok) return auth.response;
+
+        // The item bank is per course: make sure the offering really belongs to courseId,
+        // so staff of one course cannot write into another course's bank
+        const offering = await prisma.courseOffering.findUnique({
+            where: { id: offeringId },
+            select: { courseId: true },
+        });
+        if (!offering || offering.courseId !== courseId) {
+            return NextResponse.json({ error: "Course offering not found for this course" }, { status: 404 });
+        }
 
         const rawRows = await parseUploadedFile(file);
 
@@ -546,12 +564,13 @@ export async function POST(request: Request) {
         if (deactivateIds !== null) {
             // Commit path: deactivate only the explicitly approved item IDs
             if (deactivateIds.length > 0 && !dryRun) {
+                // Scoped to courseId so a client cannot deactivate items in other courses
                 await prisma.item.updateMany({
-                    where: { id: { in: deactivateIds } },
+                    where: { id: { in: deactivateIds }, courseId },
                     data: { active: false },
                 });
                 const deactivated = await prisma.item.findMany({
-                    where: { id: { in: deactivateIds } },
+                    where: { id: { in: deactivateIds }, courseId },
                     select: { id: true, externalQuestionId: true, bloom: true, stem: true, module: { select: { name: true } } },
                 });
                 for (const item of deactivated) {

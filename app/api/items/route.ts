@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { BloomCategory, bloomCategories } from '@/types'
 import { logger } from '@/lib/logger'
+import { requireCourseRole, requireRole, STAFF_ROLES } from '@/lib/authz'
 
 export const runtime = 'nodejs'
 
@@ -30,6 +31,10 @@ export async function GET(request: Request) {
     if (!courseId) {
       return NextResponse.json({ error: 'Course ID is required' }, { status: 400 })
     }
+
+    // Items include the answer key, so only course staff may read them
+    const auth = await requireCourseRole(courseId, STAFF_ROLES)
+    if (!auth.ok) return auth.response
 
     // Fetch question items for the specified course
     const items = await prisma.item.findMany({
@@ -111,6 +116,9 @@ export async function POST(request: Request) {
         { status: 400 }
       )
     }
+
+    const auth = await requireCourseRole(courseId, STAFF_ROLES)
+    if (!auth.ok) return auth.response
 
     // Validate bloom category
     if (!bloomCategories.includes(bloom as BloomCategory)) {
@@ -290,6 +298,9 @@ export async function PATCH(request: Request) {
       )
     }
 
+    const auth = await authorizeItems(ids)
+    if (!auth.ok) return auth.response
+
     const result = await prisma.item.updateMany({
       where: { id: { in: ids } },
       data: { active }
@@ -342,6 +353,9 @@ export async function DELETE(request: Request) {
       )
     }
 
+    const auth = await authorizeItems(ids)
+    if (!auth.ok) return auth.response
+
     // Delete the items (options will be automatically deleted due to onDelete: Cascade)
     const result = await prisma.item.deleteMany({
       where: { id: { in: ids } }
@@ -357,4 +371,19 @@ export async function DELETE(request: Request) {
       { status: 500 }
     )
   }
+}
+
+/**
+ * Requires the user to be staff in the course of every item in `ids`.
+ * Unknown ids are rejected with 404 so callers cannot probe other courses.
+ */
+async function authorizeItems(ids: string[]) {
+  const items = await prisma.item.findMany({
+    where: { id: { in: ids } },
+    select: { id: true, courseId: true },
+  })
+  if (items.length !== new Set(ids).size) {
+    return { ok: false as const, response: NextResponse.json({ error: 'One or more items not found' }, { status: 404 }) }
+  }
+  return requireRole({ courseIds: items.map((item) => item.courseId) }, STAFF_ROLES)
 }

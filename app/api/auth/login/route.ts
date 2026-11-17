@@ -2,10 +2,20 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { createToken, setSessionCookie } from '@/lib/auth'
 import { logger } from '@/lib/logger'
+import { authConfig } from '@/lib/auth-config'
 
 export const runtime = 'nodejs'
 
+// Username-only ("simple") login has no password, so it must never be reachable in
+// production or when Shibboleth is the configured login method.
+const simpleLoginEnabled = () =>
+  authConfig.mode === 'simple' && process.env.NODE_ENV !== 'production'
+
 export async function POST(request: NextRequest) {
+  if (!simpleLoginEnabled()) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  }
+
   try {
     const { username } = await request.json()
     

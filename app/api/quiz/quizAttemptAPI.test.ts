@@ -4,6 +4,9 @@ import { NextRequest } from 'next/server'
 
 vi.mock('@/lib/auth', () => ({ getSession: vi.fn() }))
 
+// Access control is covered by lib/authz.test.ts and app/api/authorization.test.ts
+vi.mock('@/lib/authz', () => import('@/mocks/authz'))
+
 vi.mock('@/lib/prisma', () => ({
     prisma: {
         quiz: { findFirst: vi.fn() },

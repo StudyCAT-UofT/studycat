@@ -1,6 +1,10 @@
 // @vitest-environment node
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { NextRequest } from 'next/server'
+
+// Mutable so tests can switch between simple and Shibboleth login
+const mockAuthConfig = vi.hoisted(() => ({ mode: 'simple' as 'simple' | 'shibboleth' }))
+vi.mock('@/lib/auth-config', () => ({ authConfig: mockAuthConfig }))
 
 vi.mock('@/lib/prisma', () => ({
     prisma: {
@@ -59,6 +63,50 @@ describe('POST /api/auth/login', () => {
         expect(data.user.username).toBe('alice')
         expect(createToken).toHaveBeenCalledWith({ userId: 'user-1', username: 'alice' })
         expect(setSessionCookie).toHaveBeenCalledWith('mock-token')
+    })
+})
+
+// Logout
+
+describe('POST /api/auth/login (availability)', () => {
+    const alice = {
+        id: 'user-1',
+        username: 'alice',
+        givenName: 'Alice',
+        familyName: 'Smith',
+        isAdmin: true,
+        createdAt: new Date(),
+    }
+
+    beforeEach(() => {
+        vi.clearAllMocks()
+        vi.mocked(prisma.user.findUnique).mockResolvedValue(alice)
+    })
+
+    afterEach(() => {
+        mockAuthConfig.mode = 'simple'
+        vi.unstubAllEnvs()
+    })
+
+    it('returns 404 and issues no session when AUTH_MODE is shibboleth', async () => {
+        mockAuthConfig.mode = 'shibboleth'
+
+        const res = await loginRoute(makeLoginRequest({ username: 'alice' }))
+
+        expect(res.status).toBe(404)
+        expect(prisma.user.findUnique).not.toHaveBeenCalled()
+        expect(createToken).not.toHaveBeenCalled()
+        expect(setSessionCookie).not.toHaveBeenCalled()
+    })
+
+    it('returns 404 and issues no session in production, even in simple mode', async () => {
+        vi.stubEnv('NODE_ENV', 'production')
+
+        const res = await loginRoute(makeLoginRequest({ username: 'alice' }))
+
+        expect(res.status).toBe(404)
+        expect(prisma.user.findUnique).not.toHaveBeenCalled()
+        expect(setSessionCookie).not.toHaveBeenCalled()
     })
 })
 

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { BloomCategory, bloomCategories } from '@/types'
 import { logger } from '@/lib/logger'
+import { requireCourseRole, STAFF_ROLES } from '@/lib/authz'
 
 export const runtime = 'nodejs'
 
@@ -36,6 +37,9 @@ export async function DELETE(
         { status: 404 }
       )
     }
+
+    const auth = await requireCourseRole(existingItem.courseId, STAFF_ROLES)
+    if (!auth.ok) return auth.response
 
     // Delete the item (options will be automatically deleted due to onDelete: Cascade)
     await prisma.item.delete({
@@ -95,6 +99,9 @@ export async function PATCH(
         { status: 404 }
       )
     }
+
+    const auth = await requireCourseRole(existingItem.courseId, STAFF_ROLES)
+    if (!auth.ok) return auth.response
 
     const updatedItem = await prisma.item.update({
       where: { id },
@@ -198,6 +205,9 @@ export async function PUT(
         { status: 404 }
       )
     }
+
+    const auth = await requireCourseRole(existingItem.courseId, STAFF_ROLES)
+    if (!auth.ok) return auth.response
 
     // Check if module exists and belongs to a course offering for this course
     const existingModule = await prisma.module.findFirst({
