@@ -108,10 +108,10 @@ export interface StepAttemptRequest {
 
 export interface StepAttemptResponse {
     attemptId: string
-    /** Omitted when the quiz's feedbackVisibility is 'none', as it would reveal correctness */
-    theta?: Record<string, number>
-    /** Omitted when the quiz's feedbackVisibility is 'none', as it would reveal correctness */
-    mastery?: Record<string, boolean>
+    /** null when the quiz's feedbackVisibility is 'none', as it would reveal correctness */
+    theta: Record<string, number> | null
+    /** null when the quiz's feedbackVisibility is 'none', as it would reveal correctness */
+    mastery: Record<string, boolean> | null
     nextAction: string
     nextItem?: QuizItem
     /** Proof that nextItem was presented by the server; sent back with the answer to it */

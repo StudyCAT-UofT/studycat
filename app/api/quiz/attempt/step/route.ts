@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { fastApiClient, type FastAPIStepRequest } from '@/lib/fastapi-client';
-import type { StepAttemptRequest } from '@/types';
+import type { StepAttemptRequest, StepAttemptResponse } from '@/types';
 import { logger } from '@/lib/logger';
 import { requireSession } from '@/lib/authz';
 import { isPresentedItem, signPresentedItem } from '@/lib/presented-item';
@@ -170,7 +170,8 @@ export const POST = async (request: NextRequest) => {
     return NextResponse.json({
       attemptId: attempt.id,
       // Theta and mastery move with each answer, so they would reveal whether it was correct
-      ...(showsCorrectness(feedbackLevel) ? { theta: fastApiData.theta, mastery: fastApiData.mastery } : {}),
+      theta: showsCorrectness(feedbackLevel) ? fastApiData.theta : null,
+      mastery: showsCorrectness(feedbackLevel) ? fastApiData.mastery : null,
       nextAction: fastApiData.next_action,
       nextItem: presentedItemFor(feedbackLevel, fastApiData.next_item),
       // This answer is now recorded, so the next item is presented at position + 1
@@ -185,7 +186,7 @@ export const POST = async (request: NextRequest) => {
         isCorrect: isCorrect,
         justification: selectedOption?.justification || null,
       }),
-    });
+    } satisfies StepAttemptResponse);
 
   } catch (error) {
     logger.error({ err: error }, 'Error processing quiz step');

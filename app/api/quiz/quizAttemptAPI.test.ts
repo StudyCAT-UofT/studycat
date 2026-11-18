@@ -517,8 +517,8 @@ describe('feedback visibility', () => {
             expect(data.feedback).toEqual({
                 selectedAnswerIndex: 1, correctAnswerIndex: null, isCorrect: null, justification: null,
             })
-            expect(data).not.toHaveProperty('theta')
-            expect(data).not.toHaveProperty('mastery')
+            expect(data.theta).toBeNull()
+            expect(data.mastery).toBeNull()
             expect(data.nextItem.reference).toBeNull()
             expect(JSON.stringify(data)).not.toContain('Why ')
         })
