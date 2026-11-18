@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { logger } from '@/lib/logger';
 import { requireOfferingRole, requireSession, STAFF_ROLES } from '@/lib/authz';
+import { showsCorrectness, toFeedbackLevel } from '@/lib/feedback-visibility';
 
 export const POST = async (request: NextRequest) => {
   try {
@@ -24,6 +25,7 @@ export const POST = async (request: NextRequest) => {
       where: { id: attemptId },
       include: {
         enrollment: { select: { userId: true, offeringId: true } },
+        quiz: { select: { feedbackVisibility: true } },
         responses: {
           orderBy: {
             answeredAt: 'asc',
@@ -40,10 +42,15 @@ export const POST = async (request: NextRequest) => {
     }
 
     // The attempt's owner, or staff of its offering, may view the results
-    if (attempt.enrollment.userId !== session.session.userId) {
+    const isOwner = attempt.enrollment.userId === session.session.userId;
+    if (!isOwner) {
       const auth = await requireOfferingRole(attempt.enrollment.offeringId, STAFF_ROLES);
       if (!auth.ok) return auth.response;
     }
+
+    // Staff see everything; the student sees per-question correctness only if the quiz's
+    // feedback setting shows it (the overall score is always shown)
+    const showPerQuestionCorrectness = !isOwner || showsCorrectness(toFeedbackLevel(attempt.quiz.feedbackVisibility));
 
     // Calculate statistics
     const totalQuestions = attempt.responses.length;
@@ -61,7 +68,7 @@ export const POST = async (request: NextRequest) => {
         id: r.id,
         itemId: r.itemId,
         selectedLabel: r.selectedLabel,
-        isCorrect: r.isCorrect,
+        isCorrect: showPerQuestionCorrectness ? r.isCorrect : null,
         answeredAt: r.answeredAt,
       })),
     });

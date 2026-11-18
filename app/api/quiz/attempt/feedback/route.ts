@@ -4,6 +4,7 @@ import { getSession } from '@/lib/auth';
 import { thetaToPerformance } from '@/utils/thetaToPerformance';
 import type { FeedbackData, ModulePerformance, DetailedQuestionReview } from '@/types';
 import { logger } from '@/lib/logger';
+import { reviewQuestionsFor, toFeedbackLevel } from '@/lib/feedback-visibility';
 
 export const POST = async (request: NextRequest) => {
   try {
@@ -228,6 +229,7 @@ export const POST = async (request: NextRequest) => {
       continueReason = 'reached_limit';
     }
 
+    const feedbackLevel = toFeedbackLevel(attempt.quiz.feedbackVisibility);
     const feedbackData: FeedbackData = {
       attemptId: attempt.id,
       quizId: attempt.quizId,
@@ -236,14 +238,15 @@ export const POST = async (request: NextRequest) => {
       startedAt: attempt.startedAt.toISOString(),
       finishedAt: attempt.finishedAt?.toISOString() || null,
       totalTimeMs,
-      feedbackVisibility: attempt.quiz.feedbackVisibility,
+      feedbackVisibility: feedbackLevel,
       questionsAttempted,
       questionsCorrect,
       questionsIncorrect,
       percentage,
       fixedLength: attempt.fixedLengthN,
       modulePerformance,
-      questions,
+      // Only the review details the quiz's feedback setting allows
+      questions: reviewQuestionsFor(feedbackLevel, questions),
       canContinue,
       continueReason,
     };
