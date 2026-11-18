@@ -14,7 +14,8 @@ vi.mock('@/lib/prisma', () => ({
 }))
 
 // Mock JWT signing
-vi.mock('@/lib/jwt', () => ({
+vi.mock('@/lib/jwt', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/jwt')>()),
   signToken: vi.fn(() => 'mock-jwt-token'),
 }))
 
@@ -65,6 +66,7 @@ describe('GET /api/auth/shibboleth/callback', () => {
     const cookie = response.cookies.get('session-token')
     expect(cookie?.value).toBe('mock-jwt-token')
     expect(cookie?.httpOnly).toBe(true)
+    expect(cookie?.maxAge).toBe(24 * 60 * 60)
   })
 
   it('redirects to /login?error=authentication_failed when the lookup throws', async () => {

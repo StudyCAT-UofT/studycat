@@ -1,7 +1,7 @@
 // app/api/auth/shibboleth/callback/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { signToken } from '@/lib/jwt';
+import { SESSION_LIFETIME_SECONDS, signToken } from '@/lib/jwt';
 import { logger } from '@/lib/logger';
 
 // Redirects use a relative Location header rather than a URL built from request.url:
@@ -70,7 +70,7 @@ export async function GET(request: NextRequest) {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60, // 7 days
+      maxAge: SESSION_LIFETIME_SECONDS,
       path: '/',
     });
 

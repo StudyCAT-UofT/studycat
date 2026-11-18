@@ -311,6 +311,14 @@ describe('anonymous visitors', () => {
   })
 })
 
+describe('anonymous visitors to routes for any signed-in user', () => {
+  it('GET /api/enrollments returns 401', async () => {
+    become({ loggedIn: false })
+    const res = await enrollmentsRoute.GET()
+    expect(res.status).toBe(401)
+  })
+})
+
 describe('anonymous visitors to the quiz attempt routes', () => {
   const attemptRoutes = [
     { name: 'init', POST: initRoute.POST, body: { quizId: 'q1', offeringId: 'o1' } },

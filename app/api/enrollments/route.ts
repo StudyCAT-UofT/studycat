@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { verifyToken } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
-import { requireRole, STAFF_ROLES } from '@/lib/authz'
+import { requireRole, requireSession, STAFF_ROLES } from '@/lib/authz'
 
 /**
  * GET /api/enrollments
@@ -18,24 +17,15 @@ import { requireRole, STAFF_ROLES } from '@/lib/authz'
  * - 401: Missing or invalid session token
  * - 500: Server error
  */
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
-    // Extract and validate session token from cookies
-    const token = request.cookies.get('session-token')?.value
-    if (!token) {
-      return NextResponse.json({ error: 'No session found' }, { status: 401 })
-    }
-
-    // Verify the token and extract user information
-    const payload = verifyToken(token)
-    if (!payload) {
-      return NextResponse.json({ error: 'Invalid session' }, { status: 401 })
-    }
+    const auth = await requireSession()
+    if (!auth.ok) return auth.response
 
     // Fetch all enrollments for the authenticated user with related data
     const enrollments = await prisma.enrollment.findMany({
       where: {
-        userId: payload.userId, // Filter by authenticated user
+        userId: auth.session.userId, // Filter by authenticated user
       },
       include: {
         // Include course offering details
@@ -99,17 +89,8 @@ export async function GET(request: NextRequest) {
  */
 export async function DELETE(request: NextRequest) {
   try {
-    // Extract and validate session token from cookies
-    const token = request.cookies.get('session-token')?.value
-    if (!token) {
-      return NextResponse.json({ error: 'No session found' }, { status: 401 })
-    }
-
-    // Verify the token and extract user information
-    const payload = verifyToken(token)
-    if (!payload) {
-      return NextResponse.json({ error: 'Invalid session' }, { status: 401 })
-    }
+    const auth = await requireSession()
+    if (!auth.ok) return auth.response
 
     const body = await request.json()
     const { enrollmentIds } = body
@@ -167,15 +148,8 @@ export async function DELETE(request: NextRequest) {
  */
 export async function PATCH(request: NextRequest) {
   try {
-    const token = request.cookies.get('session-token')?.value
-    if (!token) {
-      return NextResponse.json({ error: 'No session found' }, { status: 401 })
-    }
-
-    const payload = verifyToken(token)
-    if (!payload) {
-      return NextResponse.json({ error: 'Invalid session' }, { status: 401 })
-    }
+    const auth = await requireSession()
+    if (!auth.ok) return auth.response
 
     const body = await request.json()
     const { enrollmentIds, hidden } = body

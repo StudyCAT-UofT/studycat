@@ -1,9 +1,9 @@
 // lib/jwt.ts
 import { createHmac } from 'crypto';
-import jwt, { SignOptions } from 'jsonwebtoken';
+import jwt from 'jsonwebtoken';
 
-// Cast this to any or the specific union type required by the library
-const JWT_EXPIRES_IN = (process.env.JWT_EXPIRES_IN || '7d') as SignOptions['expiresIn'];
+/** How long a session lasts after signing in, for both the token and its cookie. */
+export const SESSION_LIFETIME_SECONDS = 24 * 60 * 60;
 
 /** Used only outside production, when JWT_SECRET is not set. */
 const DEVELOPMENT_FALLBACK_SECRET = 'your-secret-key-change-in-production';
@@ -53,7 +53,7 @@ export interface JWTPayload {
 
 export function signToken(payload: JWTPayload): string {
   return jwt.sign(payload, getJwtSecret(), {
-    expiresIn: JWT_EXPIRES_IN,
+    expiresIn: SESSION_LIFETIME_SECONDS,
   });
 }
 
