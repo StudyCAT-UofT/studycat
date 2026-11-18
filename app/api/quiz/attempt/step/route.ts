@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { fastApiClient, type FastAPIStepRequest } from '@/lib/fastapi-client';
-import type { StepAttemptRequest } from '@/types';
+import type { StepAttemptRequest, StepAttemptResponse } from '@/types';
 import { logger } from '@/lib/logger';
 import { requireSession } from '@/lib/authz';
 import { isPresentedItem, signPresentedItem } from '@/lib/presented-item';
+import { answerFeedbackFor, presentedItemFor, showsCorrectness, toFeedbackLevel } from '@/lib/feedback-visibility';
 
 
 export const POST = async (request: NextRequest) => {
@@ -183,26 +184,28 @@ export const POST = async (request: NextRequest) => {
       },
     });
 
-    // Return response to frontend
+    // Return response to frontend, revealing only what the quiz's feedback setting allows
+    const feedbackLevel = toFeedbackLevel(attempt.quiz.feedbackVisibility);
     return NextResponse.json({
       attemptId: attempt.id,
-      theta: fastApiData.theta,
-      mastery: fastApiData.mastery,
+      // Theta and mastery move with each answer, so they would reveal whether it was correct
+      theta: showsCorrectness(feedbackLevel) ? fastApiData.theta : null,
+      mastery: showsCorrectness(feedbackLevel) ? fastApiData.mastery : null,
       nextAction: fastApiData.next_action,
-      nextItem: fastApiData.next_item,
+      nextItem: presentedItemFor(feedbackLevel, fastApiData.next_item),
       // This answer is now recorded, so the next item is presented at position + 1
       nextItemToken: fastApiData.next_item
         ? signPresentedItem({ attemptId: attempt.id, itemId: fastApiData.next_item.item_id, position: position + 1 })
         : undefined,
       isFinished: fastApiData.next_action === 'FINISH',
       allMastered: fastApiData.next_action === 'MASTERED',
-      feedback: {
+      feedback: answerFeedbackFor(feedbackLevel, {
         correctAnswerIndex: correctAnswerIndex,
         selectedAnswerIndex: answerIndex,
         isCorrect: isCorrect,
         justification: selectedOption?.justification || null,
-      },
-    });
+      }),
+    } satisfies StepAttemptResponse);
 
   } catch (error) {
     logger.error({ err: error }, 'Error processing quiz step');

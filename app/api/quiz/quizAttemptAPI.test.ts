@@ -502,3 +502,180 @@ describe('POST /api/quiz/attempt/results', () => {
         expect(data.percentage).toBe(50)
     })
 })
+
+// Feedback visibility is enforced in the API responses, not only in the UI
+
+describe('feedback visibility', () => {
+    const itemWithJustifications = {
+        ...mockItem,
+        options: mockItem.options.map((o) => ({ ...o, justification: `Why ${o.label}` })),
+    }
+    const nextItem = { item_id: 'item-2', skill: 'mod-1', stem: 'Next?', options: ['x', 'y'], reference: 'Chapter 3' }
+
+    beforeEach(() => {
+        vi.clearAllMocks()
+        asAuthenticated()
+        // The attempt has no responses yet
+        vi.mocked(prisma.response.count).mockResolvedValue(0)
+    })
+
+    /** Answers item-1 wrongly (B; A is correct) in a quiz with the given feedback level. */
+    const answerWrongly = async (feedbackVisibility: string) => {
+        vi.mocked(prisma.attempt.findFirst).mockResolvedValue(
+            { ...mockAttempt, quiz: { ...mockAttempt.quiz, feedbackVisibility } } as never,
+        )
+        vi.mocked(prisma.item.findUnique).mockResolvedValue(itemWithJustifications as never)
+        vi.mocked(prisma.response.create).mockResolvedValue({ id: 'resp-1' } as never)
+        vi.mocked(prisma.response.update).mockResolvedValue({} as never)
+        vi.mocked(fastApiClient.stepAttempt).mockResolvedValue({
+            attempt_id: 'attempt-1',
+            theta: { 'mod-1': -0.4 },
+            mastery: { 'mod-1': false },
+            next_action: 'CONTINUE',
+            next_item: nextItem,
+        })
+        const res = await stepRoute(makeRequest(stepBody({ answerIndex: 1 })))
+        expect(res.status).toBe(200)
+        return res.json()
+    }
+
+    describe('POST /api/quiz/attempt/step', () => {
+        it('full: returns correctness, the justification, theta and the next reference', async () => {
+            const data = await answerWrongly('full')
+            expect(data.feedback).toEqual({
+                selectedAnswerIndex: 1, correctAnswerIndex: 0, isCorrect: false, justification: 'Why B',
+            })
+            expect(data.theta).toEqual({ 'mod-1': -0.4 })
+            expect(data.mastery).toEqual({ 'mod-1': false })
+            expect(data.nextItem.reference).toBe('Chapter 3')
+        })
+
+        it('no-just: returns correctness but no justification or reference', async () => {
+            const data = await answerWrongly('no-just')
+            expect(data.feedback).toEqual({
+                selectedAnswerIndex: 1, correctAnswerIndex: 0, isCorrect: false, justification: null,
+            })
+            expect(data.nextItem.reference).toBeNull()
+        })
+
+        it('none: returns nothing that reveals whether the answer was correct', async () => {
+            const data = await answerWrongly('none')
+            expect(data.feedback).toEqual({
+                selectedAnswerIndex: 1, correctAnswerIndex: null, isCorrect: null, justification: null,
+            })
+            expect(data.theta).toBeNull()
+            expect(data.mastery).toBeNull()
+            expect(data.nextItem.reference).toBeNull()
+            expect(JSON.stringify(data)).not.toContain('Why ')
+        })
+
+        it('treats an unknown level as none', async () => {
+            const data = await answerWrongly('something-else')
+            expect(data.feedback.isCorrect).toBeNull()
+            expect(data.feedback.correctAnswerIndex).toBeNull()
+        })
+    })
+
+    describe('POST /api/quiz/attempt/init', () => {
+        it.each([
+            ['full', 'Chapter 3'],
+            ['no-just', null],
+            ['none', null],
+        ])('%s: the first item carries reference %j', async (feedbackVisibility, reference) => {
+            vi.mocked(prisma.quiz.findFirst).mockResolvedValue({ ...mockQuiz, feedbackVisibility } as never)
+            vi.mocked(prisma.enrollment.findFirst).mockResolvedValue(mockEnrollment as never)
+            vi.mocked(prisma.attempt.findFirst).mockResolvedValue(null)
+            vi.mocked(prisma.attempt.create).mockResolvedValue({ ...mockAttempt, startedAt: new Date() } as never)
+            vi.mocked(prisma.response.count).mockResolvedValue(0)
+            vi.mocked(fastApiClient.initAttempt).mockResolvedValue({
+                attempt_id: 'attempt-1', theta: {}, next_action: 'CONTINUE', next_item: nextItem,
+            })
+            vi.mocked(prisma.attempt.update).mockResolvedValue(mockAttempt as never)
+
+            const res = await initRoute(makeRequest({ quizId: 'quiz-1', offeringId: 'o1' }))
+
+            expect(res.status).toBe(200)
+            expect((await res.json()).nextItem.reference).toBe(reference)
+        })
+    })
+
+    describe('POST /api/quiz/attempt/feedback', () => {
+        const completedAttempt = (feedbackVisibility: string) => ({
+            ...mockAttempt,
+            status: 'COMPLETED',
+            finishedAt: new Date(),
+            enrollment: { userId: 'user-1', thetas: [] },
+            quiz: { ...mockAttempt.quiz, feedbackVisibility },
+            responses: [{
+                itemId: 'item-1',
+                selectedLabel: 'B',
+                isCorrect: false,
+                answeredAt: new Date(),
+                responseTimeMs: 1000,
+                item: itemWithJustifications,
+            }],
+        })
+
+        const fetchFeedback = async (feedbackVisibility: string) => {
+            vi.mocked(prisma.attempt.findUnique).mockResolvedValue(completedAttempt(feedbackVisibility) as never)
+            const res = await feedbackRoute(makeRequest({ attemptId: 'attempt-1' }))
+            expect(res.status).toBe(200)
+            return res.json()
+        }
+
+        it('full: the review includes correctness and justifications', async () => {
+            const data = await fetchFeedback('full')
+            expect(data.questions).toHaveLength(1)
+            expect(data.questions[0].options[0]).toMatchObject({ isCorrect: true, justification: 'Why A' })
+        })
+
+        it('no-just: the review includes correctness but no justifications', async () => {
+            const data = await fetchFeedback('no-just')
+            expect(data.questions[0].correctAnswerIndex).toBe(0)
+            expect(data.questions[0].options.map((o: { justification: unknown }) => o.justification))
+                .toEqual([null, null, null, null, null])
+        })
+
+        it('none: there is no review, only the overall score', async () => {
+            const data = await fetchFeedback('none')
+            expect(data.feedbackVisibility).toBe('none')
+            expect(data.questions).toEqual([])
+            expect(data.questionsCorrect).toBe(0)
+            expect(data.questionsAttempted).toBe(1)
+        })
+    })
+
+    describe('POST /api/quiz/attempt/results', () => {
+        const attemptWithResponses = (userId: string, feedbackVisibility: string) => ({
+            ...mockAttempt,
+            enrollment: { userId, offeringId: 'o1' },
+            quiz: { feedbackVisibility },
+            responses: [
+                { id: 'r1', itemId: 'item-1', selectedLabel: 'A', isCorrect: true, answeredAt: new Date() },
+                { id: 'r2', itemId: 'item-2', selectedLabel: 'B', isCorrect: false, answeredAt: new Date() },
+            ],
+        })
+
+        const isCorrectPerResponse = async () => {
+            const data = await (await resultsRoute(makeRequest({ attemptId: 'attempt-1' }))).json()
+            return { data, isCorrect: data.responses.map((r: { isCorrect: unknown }) => r.isCorrect) }
+        }
+
+        it('hides per-question correctness from the student when the level is none', async () => {
+            vi.mocked(prisma.attempt.findUnique).mockResolvedValue(attemptWithResponses('user-1', 'none') as never)
+            const { data, isCorrect } = await isCorrectPerResponse()
+            expect(isCorrect).toEqual([null, null])
+            expect(data.percentage).toBe(50)
+        })
+
+        it('shows per-question correctness to the student when the level shows it', async () => {
+            vi.mocked(prisma.attempt.findUnique).mockResolvedValue(attemptWithResponses('user-1', 'no-just') as never)
+            expect((await isCorrectPerResponse()).isCorrect).toEqual([true, false])
+        })
+
+        it('shows per-question correctness to staff whatever the level', async () => {
+            vi.mocked(prisma.attempt.findUnique).mockResolvedValue(attemptWithResponses('a-student', 'none') as never)
+            expect((await isCorrectPerResponse()).isCorrect).toEqual([true, false])
+        })
+    })
+})

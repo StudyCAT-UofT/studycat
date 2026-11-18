@@ -69,9 +69,12 @@ export interface QuizModule {
 
 // Quiz Attempt Interfaces
 export interface Feedback {
-    correctAnswerIndex: number
+    /** null when the quiz's feedbackVisibility hides correctness ('none') */
+    correctAnswerIndex: number | null
     selectedAnswerIndex: number
-    isCorrect: boolean
+    /** null when the quiz's feedbackVisibility hides correctness ('none') */
+    isCorrect: boolean | null
+    /** null when the quiz's feedbackVisibility hides justifications */
     justification: string | null
 }
 
@@ -105,8 +108,10 @@ export interface StepAttemptRequest {
 
 export interface StepAttemptResponse {
     attemptId: string
-    theta: Record<string, number>
-    mastery: Record<string, boolean>
+    /** null when the quiz's feedbackVisibility is 'none', as it would reveal correctness */
+    theta: Record<string, number> | null
+    /** null when the quiz's feedbackVisibility is 'none', as it would reveal correctness */
+    mastery: Record<string, boolean> | null
     nextAction: string
     nextItem?: QuizItem
     /** Proof that nextItem was presented by the server; sent back with the answer to it */
@@ -125,7 +130,8 @@ export interface AttemptResultsResponse {
         id: string
         itemId: string
         selectedLabel: string
-        isCorrect: boolean
+        /** null for the student when the quiz's feedbackVisibility is 'none' */
+        isCorrect: boolean | null
         answeredAt: string
     }>
 }

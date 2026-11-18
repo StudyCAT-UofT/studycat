@@ -5,6 +5,7 @@ import { getSession } from '@/lib/auth';
 import type { InitAttemptRequest } from '@/types';
 import { logger } from '@/lib/logger';
 import { signPresentedItem } from '@/lib/presented-item';
+import { presentedItemFor, toFeedbackLevel } from '@/lib/feedback-visibility';
 
 
 export const POST = async (request: NextRequest) => {
@@ -174,7 +175,7 @@ export const POST = async (request: NextRequest) => {
       quizId,
       enrollmentId: enrollment.id,
       theta: fastApiData.theta,
-      nextItem: fastApiData.next_item,
+      nextItem: presentedItemFor(toFeedbackLevel(quiz.feedbackVisibility), fastApiData.next_item),
       nextItemToken,
       nextAction: fastApiData.next_action,
       startedAt: attempt.startedAt,

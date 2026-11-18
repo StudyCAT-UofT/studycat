@@ -282,6 +282,7 @@ const setUpFixtures = (targetEnrollmentRole: Role = 'STUDENT') => {
   vi.mocked(prisma.attempt.findUnique).mockResolvedValue({
     id: 'a1',
     enrollment: { userId: 'victim', offeringId: 'o1' },
+    quiz: { feedbackVisibility: 'full' },
     responses: [],
   } as never)
 }
@@ -399,6 +400,7 @@ describe('the attempt owner', () => {
     vi.mocked(prisma.attempt.findUnique).mockResolvedValue({
       id: 'a1',
       enrollment: { userId: SESSION.userId, offeringId: 'o1' },
+      quiz: { feedbackVisibility: 'full' },
       responses: [],
     } as never)
 
