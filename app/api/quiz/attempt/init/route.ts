@@ -9,7 +9,9 @@ import { logger } from '@/lib/logger';
 export const POST = async (request: NextRequest) => {
   try {
     const body: InitAttemptRequest = await request.json();
-    const { quizId, offeringId, concepts, priorMu, priorSigma2 } = body;
+    // Only these two fields are read from the client. The engine's scope (modules) and
+    // prior come from the quiz and server config, never from the request body.
+    const { quizId, offeringId } = body;
 
     // Get user from session
     const session = await getSession();
@@ -126,9 +128,7 @@ export const POST = async (request: NextRequest) => {
     // Prepare request for FastAPI service
     const fastApiRequest: FastAPIInitRequest = {
       attempt_id: attempt.id,
-      concepts: concepts || moduleIds,
-      prior_mu: priorMu,
-      prior_sigma2: priorSigma2,
+      concepts: moduleIds,
     };
 
     // Call FastAPI service

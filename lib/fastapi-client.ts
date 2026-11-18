@@ -7,8 +7,6 @@ const FASTAPI_BASE_URL = process.env.FASTAPI_BASE_URL || 'http://localhost:8000/
 export interface FastAPIInitRequest {
   attempt_id: string;
   concepts?: string[];
-  prior_mu?: number;
-  prior_sigma2?: number;
 }
 
 export interface FastAPIInitResponse {
@@ -72,9 +70,9 @@ export class FastAPIClient {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
+        // prior_mu/prior_sigma2 are deliberately not sent: the engine then uses its
+        // configured prior, so a request can never choose a student's starting ability.
         modules: request.concepts,
-        prior_mu: request.prior_mu,
-        prior_sigma2: request.prior_sigma2,
       }),
     });
 

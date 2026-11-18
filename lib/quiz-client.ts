@@ -96,7 +96,7 @@ const client = new QuizClient();
 // Initialize a quiz attempt
 const initResponse = await client.initAttempt({
   quizId: 'quiz-123',
-  concepts: ['Module1', 'Module2'], // optional
+  offeringId: 'offering-456',
 });
 
 console.log('Quiz started:', initResponse);

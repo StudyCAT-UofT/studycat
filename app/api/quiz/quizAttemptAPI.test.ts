@@ -184,6 +184,31 @@ describe('POST /api/quiz/attempt/init', () => {
         expect(prisma.attempt.create).toHaveBeenCalled()
     })
 
+    it('ignores client-supplied concepts and prior, using the quiz modules and engine defaults', async () => {
+        asAuthenticated()
+        vi.mocked(prisma.quiz.findFirst).mockResolvedValue(mockQuiz as never)
+        vi.mocked(prisma.enrollment.findFirst).mockResolvedValue(mockEnrollment as never)
+        vi.mocked(prisma.attempt.findFirst).mockResolvedValue(mockAttempt as never)
+        vi.mocked(prisma.attempt.update).mockResolvedValue(mockAttempt as never)
+        vi.mocked(fastApiClient.initAttempt).mockResolvedValue({
+            attempt_id: 'attempt-1',
+            theta: { 'mod-1': 0 },
+            next_item: { item_id: 'item-1', skill: 'mod-1', stem: 'Test?', options: [] },
+            next_action: 'CONTINUE',
+        })
+
+        const res = await initRoute(makeRequest({
+            quizId: 'quiz-1',
+            offeringId: 'o1',
+            concepts: ['mod-from-another-quiz'],
+            priorMu: 10,
+            priorSigma2: 0.0001,
+        }))
+
+        expect(res.status).toBe(200)
+        expect(fastApiClient.initAttempt).toHaveBeenCalledWith({ attempt_id: 'attempt-1', concepts: ['mod-1'] })
+    })
+
     it('returns 500 and cleans up attempt when FastAPI fails', async () => {
         asAuthenticated()
         vi.mocked(prisma.quiz.findFirst).mockResolvedValue(mockQuiz as never)
