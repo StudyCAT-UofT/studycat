@@ -469,6 +469,8 @@ describe('feedback visibility', () => {
     beforeEach(() => {
         vi.clearAllMocks()
         asAuthenticated()
+        // The attempt has no responses yet
+        vi.mocked(prisma.response.count).mockResolvedValue(0)
     })
 
     /** Answers item-1 wrongly (B; A is correct) in a quiz with the given feedback level. */
