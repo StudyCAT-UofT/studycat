@@ -253,6 +253,20 @@ describe('POST /api/quiz/attempt/init', () => {
         expect(res.status).toBe(500)
         expect(prisma.attempt.delete).toHaveBeenCalledWith({ where: { id: 'attempt-1' } })
     })
+
+    it('returns 500 but keeps a resumed attempt and its answers when FastAPI fails', async () => {
+        asAuthenticated()
+        vi.mocked(prisma.quiz.findFirst).mockResolvedValue(mockQuiz as never)
+        vi.mocked(prisma.enrollment.findFirst).mockResolvedValue(mockEnrollment as never)
+        vi.mocked(prisma.attempt.findFirst).mockResolvedValue(mockAttempt as never)
+        vi.mocked(fastApiClient.initAttempt).mockRejectedValue(new Error('FastAPI down'))
+
+        const res = await initRoute(makeRequest({ quizId: 'quiz-1', offeringId: 'o1' }))
+
+        expect(res.status).toBe(500)
+        expect(prisma.attempt.create).not.toHaveBeenCalled()
+        expect(prisma.attempt.delete).not.toHaveBeenCalled()
+    })
 })
 
 // POST /api/quiz/attempt/step

@@ -103,6 +103,7 @@ export const POST = async (request: NextRequest) => {
     });
 
     // ensure we are not creating a new attempt if one already exists
+    const createdAttempt = !attempt;
     if (!attempt) {
       // Create attempt in database
       attempt = await prisma.attempt.create({
@@ -135,10 +136,14 @@ export const POST = async (request: NextRequest) => {
     try {
       fastApiData = await fastApiClient.initAttempt(fastApiRequest);
     } catch (error) {
-      // If FastAPI call fails, clean up the attempt
-      await prisma.attempt.delete({
-        where: { id: attempt.id },
-      });
+      // If FastAPI call fails, remove the attempt only if this request created it. A resumed
+      // attempt holds the student's earlier answers (deleting it cascades to its responses),
+      // so it is kept for them to resume once the engine is back.
+      if (createdAttempt) {
+        await prisma.attempt.delete({
+          where: { id: attempt.id },
+        });
+      }
 
       return NextResponse.json(
         { error: `FastAPI service error: ${error instanceof Error ? error.message : 'Unknown error'}` },
