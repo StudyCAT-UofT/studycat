@@ -4,6 +4,7 @@ import { fastApiClient, type FastAPIStepRequest } from '@/lib/fastapi-client';
 import type { StepAttemptRequest } from '@/types';
 import { logger } from '@/lib/logger';
 import { requireSession } from '@/lib/authz';
+import { isPresentedItem, signPresentedItem } from '@/lib/presented-item';
 
 
 export const POST = async (request: NextRequest) => {
@@ -12,12 +13,12 @@ export const POST = async (request: NextRequest) => {
     if (!auth.ok) return auth.response;
 
     const body: StepAttemptRequest = await request.json();
-    const { attemptId, itemId, answerIndex, responseTimeMs } = body;
+    const { attemptId, itemId, itemToken, answerIndex, responseTimeMs } = body;
 
     // Validate required fields
-    if (!attemptId || !itemId || answerIndex === undefined) {
+    if (!attemptId || !itemId || !itemToken || answerIndex === undefined) {
       return NextResponse.json(
-        { error: 'attemptId, itemId, and answerIndex are required' },
+        { error: 'attemptId, itemId, itemToken, and answerIndex are required' },
         { status: 400 }
       );
     }
@@ -31,6 +32,7 @@ export const POST = async (request: NextRequest) => {
       include: {
         quiz: true,
         enrollment: { select: { userId: true } },
+        _count: { select: { responses: true } },
         responses: {
           orderBy: {
             answeredAt: 'desc',
@@ -50,6 +52,16 @@ export const POST = async (request: NextRequest) => {
     // Only the student who owns the attempt may answer in it
     if (attempt.enrollment.userId !== auth.session.userId) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    // Only accept an answer to the item the server presented at this point in the attempt.
+    // Otherwise a student could pick which items they answer (and so their ability estimate).
+    const position = attempt._count.responses;
+    if (!isPresentedItem(itemToken, { attemptId: attempt.id, itemId, position })) {
+      return NextResponse.json(
+        { error: 'This question is not the one currently presented in this attempt', code: 'ITEM_NOT_PRESENTED' },
+        { status: 409 }
+      );
     }
 
     // Get the item to determine correctness
@@ -159,6 +171,10 @@ export const POST = async (request: NextRequest) => {
       mastery: fastApiData.mastery,
       nextAction: fastApiData.next_action,
       nextItem: fastApiData.next_item,
+      // This answer is now recorded, so the next item is presented at position + 1
+      nextItemToken: fastApiData.next_item
+        ? signPresentedItem({ attemptId: attempt.id, itemId: fastApiData.next_item.item_id, position: position + 1 })
+        : undefined,
       isFinished: fastApiData.next_action === 'FINISH',
       allMastered: fastApiData.next_action === 'MASTERED',
       feedback: {

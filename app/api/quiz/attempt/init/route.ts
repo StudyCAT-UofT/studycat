@@ -4,6 +4,7 @@ import { fastApiClient, type FastAPIInitRequest } from '@/lib/fastapi-client';
 import { getSession } from '@/lib/auth';
 import type { InitAttemptRequest } from '@/types';
 import { logger } from '@/lib/logger';
+import { signPresentedItem } from '@/lib/presented-item';
 
 
 export const POST = async (request: NextRequest) => {
@@ -153,6 +154,15 @@ export const POST = async (request: NextRequest) => {
       },
     });
 
+    // A resumed attempt may already have responses; the first item is presented after them
+    const nextItemToken = fastApiData.next_item
+      ? signPresentedItem({
+          attemptId: attempt.id,
+          itemId: fastApiData.next_item.item_id,
+          position: await prisma.response.count({ where: { attemptId: attempt.id } }),
+        })
+      : undefined;
+
     // Return response to frontend
     return NextResponse.json({
       attemptId: attempt.id,
@@ -160,6 +170,7 @@ export const POST = async (request: NextRequest) => {
       enrollmentId: enrollment.id,
       theta: fastApiData.theta,
       nextItem: fastApiData.next_item,
+      nextItemToken,
       nextAction: fastApiData.next_action,
       startedAt: attempt.startedAt,
       shuffled: quiz.shuffled,
