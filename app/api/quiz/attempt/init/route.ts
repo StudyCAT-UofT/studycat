@@ -9,8 +9,6 @@ import { logger } from '@/lib/logger';
 export const POST = async (request: NextRequest) => {
   try {
     const body: InitAttemptRequest = await request.json();
-    // Only these two fields are read from the client. The engine's scope (modules) and
-    // prior come from the quiz and server config, never from the request body.
     const { quizId, offeringId } = body;
 
     // Get user from session
@@ -31,7 +29,7 @@ export const POST = async (request: NextRequest) => {
         { status: 400 }
       );
     }
-    
+
     if (!offeringId) {
       return NextResponse.json(
         { error: 'offeringId is required' },

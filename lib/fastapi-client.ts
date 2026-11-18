@@ -70,8 +70,6 @@ export class FastAPIClient {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        // prior_mu/prior_sigma2 are deliberately not sent: the engine then uses its
-        // configured prior, so a request can never choose a student's starting ability.
         modules: request.concepts,
       }),
     });
