@@ -56,6 +56,7 @@ export const POST = async (request: NextRequest) => {
 
     // Only accept an answer to the item the server presented at this point in the attempt.
     // Otherwise a student could pick which items they answer (and so their ability estimate).
+    // This is a fast path without a lock; it is repeated under a lock before recording.
     const position = attempt._count.responses;
     if (!isPresentedItem(itemToken, { attemptId: attempt.id, itemId, position })) {
       return NextResponse.json(
@@ -104,19 +105,37 @@ export const POST = async (request: NextRequest) => {
       );
     }
 
-    // Create response record
-    const response = await prisma.response.create({
-      data: {
-        attemptId: attempt.id,
-        itemId: itemId,
-        selectedLabel: selectedLabel,
-        itemOptionId: selectedOption?.id,
-        isCorrect: isCorrect,
-        responseTimeMs: responseTimeMs || 0,
-        answeredAt: new Date(),
-        askedAt: new Date(), // This should ideally be set when the question was first shown
-      },
+    // Record the response, re-checking the position while holding a row lock on the attempt.
+    // The check above ran without a lock, so two concurrent requests carrying the same token
+    // (e.g. a resubmission, or one request per option) could both pass it; the lock makes
+    // them take turns, and every request after the first sees the new response count and
+    // is rejected.
+    const response = await prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM "Attempt" WHERE id = ${attempt.id}::uuid FOR UPDATE`;
+
+      const lockedPosition = await tx.response.count({ where: { attemptId: attempt.id } });
+      if (lockedPosition !== position) return null;
+
+      return tx.response.create({
+        data: {
+          attemptId: attempt.id,
+          itemId: itemId,
+          selectedLabel: selectedLabel,
+          itemOptionId: selectedOption?.id,
+          isCorrect: isCorrect,
+          responseTimeMs: responseTimeMs || 0,
+          answeredAt: new Date(),
+          askedAt: new Date(), // This should ideally be set when the question was first shown
+        },
+      });
     });
+
+    if (!response) {
+      return NextResponse.json(
+        { error: 'This question has already been answered in this attempt', code: 'ITEM_NOT_PRESENTED' },
+        { status: 409 }
+      );
+    }
 
     // Prepare request for FastAPI service
     const fastApiRequest: FastAPIStepRequest = {

@@ -105,6 +105,33 @@ describe('QuizQuestion', () => {
     expect(onAnswer).toHaveBeenCalledWith(2) // '4' is at index 2
   })
 
+  it('locks the answer after submitting, until feedback arrives', async () => {
+    const user = userEvent.setup()
+    const onAnswer = vi.fn()
+    renderWithProviders(
+      <QuizQuestion
+        item={defaultItem}
+        onAnswer={onAnswer}
+        feedback={null}
+        shuffled={false}
+        feedbackVisibility={feedbackLevels.FULL}
+      />
+    )
+
+    await user.click(screen.getByLabelText('4'))
+    await user.click(screen.getByRole('button', { name: /Submit Answer/i }))
+
+    // Feedback has not arrived yet: the answer cannot be changed or submitted again
+    for (const option of ['1', '2', '4', '8']) {
+      expect(screen.getByLabelText(option)).toBeDisabled()
+    }
+    expect(screen.getByRole('button', { name: /Submit Answer/i })).toBeDisabled()
+
+    await user.click(screen.getByLabelText('8'))
+    await user.click(screen.getByRole('button', { name: /Submit Answer/i }))
+    expect(onAnswer).toHaveBeenCalledTimes(1)
+  })
+
   // ─── Feedback mode ────────────────────────────────────────────────────────
 
   it('shows the Next button (not Submit) in feedback mode', () => {
