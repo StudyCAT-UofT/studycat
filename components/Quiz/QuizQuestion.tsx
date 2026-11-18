@@ -19,6 +19,8 @@ const QuizQuestion = ({ item, onAnswer, onNext, feedback, shuffled, feedbackVisi
     const [userSelectedIndex, setUserSelectedIndex] = useState<number | null>(null)
     const [submittedDisplayIndex, setSubmittedDisplayIndex] = useState<number | null>(null)
     const isFeedbackMode = feedback !== null && feedback !== undefined
+    // Answer sent, waiting for feedback: the answer can no longer be changed or resubmitted
+    const isAwaitingFeedback = !isFeedbackMode && submittedDisplayIndex !== null
     const figureUrl = typeof item.figure_url === 'string' && item.figure_url.trim().length > 0
         ? item.figure_url.trim()
         : null
@@ -129,7 +131,7 @@ const QuizQuestion = ({ item, onAnswer, onNext, feedback, shuffled, feedbackVisi
                                 >
                                     <Group justify="space-between" align="center">
                                         <Group align="center" gap="sm" wrap="nowrap">
-                                            <Radio value={displayIndex.toString()} size="md" disabled={isFeedbackMode} style={{ flex: 1 }} />
+                                            <Radio value={displayIndex.toString()} size="md" disabled={isFeedbackMode || isAwaitingFeedback} style={{ flex: 1 }} />
                                             <span dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(option)}} />
                                         </Group>
                                         {isCorrectOption && <IconCheck size={20} color="#22c55e" />}
@@ -180,7 +182,8 @@ const QuizQuestion = ({ item, onAnswer, onNext, feedback, shuffled, feedbackVisi
                         variant="filled"
                         color='dark'
                         onClick={handleSubmit}
-                        disabled={selectedIndex === null}
+                        disabled={selectedIndex === null || isAwaitingFeedback}
+                        loading={isAwaitingFeedback}
                         fullWidth
                         mt="lg"
                     >

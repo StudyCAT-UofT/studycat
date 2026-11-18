@@ -7,8 +7,11 @@ vi.mock('@/lib/auth', () => ({ getSession: vi.fn() }))
 // Access control is covered by lib/authz.test.ts and app/api/authorization.test.ts
 vi.mock('@/lib/authz', () => import('@/mocks/authz'))
 
-vi.mock('@/lib/prisma', () => ({
-    prisma: {
+vi.mock('@/lib/prisma', () => {
+    const prisma = {
+        // Interactive transactions run against the same mocked client
+        $transaction: vi.fn(async (fn: (tx: unknown) => unknown) => fn(prisma)),
+        $queryRaw: vi.fn(),
         quiz: { findFirst: vi.fn() },
         enrollment: { findFirst: vi.fn() },
         attempt: {
@@ -25,8 +28,9 @@ vi.mock('@/lib/prisma', () => ({
             update: vi.fn(),
             delete: vi.fn(),
         },
-    },
-}))
+    }
+    return { prisma }
+})
 
 vi.mock('@/lib/fastapi-client', () => ({
     fastApiClient: {
@@ -272,7 +276,11 @@ describe('POST /api/quiz/attempt/init', () => {
 // POST /api/quiz/attempt/step
 
 describe('POST /api/quiz/attempt/step', () => {
-    beforeEach(() => vi.clearAllMocks())
+    beforeEach(() => {
+        vi.clearAllMocks()
+        // No responses recorded yet when the attempt row is locked
+        vi.mocked(prisma.response.count).mockResolvedValue(0)
+    })
 
     it('returns 400 when required fields are missing', async () => {
         const res = await stepRoute(makeRequest({ attemptId: 'attempt-1' }))
@@ -358,6 +366,44 @@ describe('POST /api/quiz/attempt/step', () => {
         vi.mocked(prisma.item.findUnique).mockResolvedValue(mockItem as never)
 
         const res = await stepRoute(makeRequest(stepBody(overrides)))
+
+        expect(res.status).toBe(409)
+        expect((await res.json()).code).toBe('ITEM_NOT_PRESENTED')
+        expect(prisma.response.create).not.toHaveBeenCalled()
+        expect(fastApiClient.stepAttempt).not.toHaveBeenCalled()
+    })
+
+    it('locks the attempt row, then re-counts responses, before recording the answer', async () => {
+        vi.mocked(prisma.attempt.findFirst).mockResolvedValue(mockAttempt as never)
+        vi.mocked(prisma.item.findUnique).mockResolvedValue(mockItem as never)
+        vi.mocked(prisma.response.create).mockResolvedValue({ id: 'resp-1' } as never)
+        vi.mocked(fastApiClient.stepAttempt).mockResolvedValue({
+            attempt_id: 'attempt-1', theta: {}, mastery: {}, next_action: 'FINISH',
+        })
+
+        await stepRoute(makeRequest(stepBody()))
+
+        expect(prisma.$transaction).toHaveBeenCalledTimes(1)
+        const [sql, ...values] = vi.mocked(prisma.$queryRaw).mock.calls[0] as unknown as [TemplateStringsArray, ...unknown[]]
+        expect(sql.join('?')).toMatch(/SELECT id FROM "Attempt" WHERE id = \?::uuid FOR UPDATE/)
+        expect(values).toEqual(['attempt-1'])
+        expect(prisma.response.count).toHaveBeenCalledWith({ where: { attemptId: 'attempt-1' } })
+
+        const lockedAt = vi.mocked(prisma.$queryRaw).mock.invocationCallOrder[0]
+        const countedAt = vi.mocked(prisma.response.count).mock.invocationCallOrder[0]
+        const createdAt = vi.mocked(prisma.response.create).mock.invocationCallOrder[0]
+        expect(lockedAt).toBeLessThan(countedAt)
+        expect(countedAt).toBeLessThan(createdAt)
+    })
+
+    it('returns 409 and records nothing when a concurrent request answered first', async () => {
+        // The unlocked check saw no responses, but by the time the lock is held a
+        // concurrent request with the same token has recorded one
+        vi.mocked(prisma.attempt.findFirst).mockResolvedValue(mockAttempt as never)
+        vi.mocked(prisma.item.findUnique).mockResolvedValue(mockItem as never)
+        vi.mocked(prisma.response.count).mockResolvedValue(1)
+
+        const res = await stepRoute(makeRequest(stepBody()))
 
         expect(res.status).toBe(409)
         expect((await res.json()).code).toBe('ITEM_NOT_PRESENTED')
