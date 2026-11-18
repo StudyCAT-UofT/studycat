@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { logger } from '@/lib/logger'
+import { requireOfferingRole, STAFF_ROLES } from '@/lib/authz'
 
 export const runtime = 'nodejs'
 
@@ -48,6 +49,9 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
     if (!existingQuiz) {
       return NextResponse.json({ error: 'Quiz not found' }, { status: 404 })
     }
+
+    const auth = await requireOfferingRole(existingQuiz.offeringId, STAFF_ROLES)
+    if (!auth.ok) return auth.response
 
     // Validate includedModuleIds if provided
     let validModuleIds: string[] | undefined
@@ -136,6 +140,9 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
     if (!existingQuiz) {
       return NextResponse.json({ error: 'Quiz not found' }, { status: 404 })
     }
+
+    const auth = await requireOfferingRole(existingQuiz.offeringId, STAFF_ROLES)
+    if (!auth.ok) return auth.response
 
     // Delete the quiz
     await prisma.quiz.delete({

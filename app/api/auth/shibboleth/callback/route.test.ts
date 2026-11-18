@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { NextRequest } from 'next/server'
 import { GET } from './route'
 
@@ -111,5 +111,59 @@ describe('GET /api/auth/shibboleth/callback', () => {
     await GET(request2)
 
     expect(mockFindUnique).toHaveBeenCalledWith({ where: { username: 'remoteuser' } })
+  })
+})
+
+describe('GET /api/auth/shibboleth/callback (mock mode)', () => {
+  const mockParams = { mock: 'true', utorid: 'alice' }
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.stubEnv('ENABLE_MOCK_SHIBBOLETH', 'true')
+    mockFindUnique.mockResolvedValue({ id: 'user-alice', username: 'alice' })
+  })
+
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
+
+  it('logs in as the query-string utorid outside production when enabled', async () => {
+    vi.stubEnv('NODE_ENV', 'development')
+
+    const response = await GET(makeRequest({}, mockParams))
+
+    expect(mockFindUnique).toHaveBeenCalledWith({ where: { username: 'alice' } })
+    expect(response.headers.get('location')).toBe('/')
+    expect(response.cookies.get('session-token')?.value).toBe('mock-jwt-token')
+  })
+
+  it('ignores the query-string utorid when ENABLE_MOCK_SHIBBOLETH is not set', async () => {
+    vi.stubEnv('NODE_ENV', 'development')
+    vi.stubEnv('ENABLE_MOCK_SHIBBOLETH', '')
+
+    const response = await GET(makeRequest({}, mockParams))
+
+    expect(mockFindUnique).not.toHaveBeenCalled()
+    expect(response.headers.get('location')).toBe('/login?error=missing_utorid')
+  })
+
+  it('ignores the query-string utorid in production, even when ENABLE_MOCK_SHIBBOLETH=true', async () => {
+    vi.stubEnv('NODE_ENV', 'production')
+
+    const response = await GET(makeRequest({}, mockParams))
+
+    expect(mockFindUnique).not.toHaveBeenCalled()
+    expect(response.headers.get('location')).toBe('/login?error=missing_utorid')
+    expect(response.cookies.get('session-token')).toBeUndefined()
+  })
+
+  it('uses the Shibboleth identity, not the query string, in production', async () => {
+    vi.stubEnv('NODE_ENV', 'production')
+    mockFindUnique.mockResolvedValue({ id: 'user-bob', username: 'bob' })
+
+    await GET(makeRequest({ uid: 'bob' }, mockParams))
+
+    expect(mockFindUnique).toHaveBeenCalledTimes(1)
+    expect(mockFindUnique).toHaveBeenCalledWith({ where: { username: 'bob' } })
   })
 })

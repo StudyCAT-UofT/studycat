@@ -3,10 +3,14 @@ import { prisma } from '@/lib/prisma';
 import { fastApiClient, type FastAPIStepRequest } from '@/lib/fastapi-client';
 import type { StepAttemptRequest } from '@/types';
 import { logger } from '@/lib/logger';
+import { requireSession } from '@/lib/authz';
 
 
 export const POST = async (request: NextRequest) => {
   try {
+    const auth = await requireSession();
+    if (!auth.ok) return auth.response;
+
     const body: StepAttemptRequest = await request.json();
     const { attemptId, itemId, answerIndex, responseTimeMs } = body;
 
@@ -26,6 +30,7 @@ export const POST = async (request: NextRequest) => {
       },
       include: {
         quiz: true,
+        enrollment: { select: { userId: true } },
         responses: {
           orderBy: {
             answeredAt: 'desc',
@@ -40,6 +45,11 @@ export const POST = async (request: NextRequest) => {
         { error: 'Attempt not found or not in progress' },
         { status: 404 }
       );
+    }
+
+    // Only the student who owns the attempt may answer in it
+    if (attempt.enrollment.userId !== auth.session.userId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
     // Get the item to determine correctness

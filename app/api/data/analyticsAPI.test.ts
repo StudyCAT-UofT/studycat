@@ -1,6 +1,9 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
+// Access control is covered by lib/authz.test.ts and app/api/authorization.test.ts
+vi.mock('@/lib/authz', () => import('@/mocks/authz'))
+
 vi.mock('@/lib/prisma', () => ({
     prisma: {
         quiz: { findUnique: vi.fn() },

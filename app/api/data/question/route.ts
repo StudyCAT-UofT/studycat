@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { PrismaClient } from '@prisma/client'
 import { OptionLabel, optionLabels } from '@/types'
 import { logger } from '@/lib/logger'
+import { requireOfferingRole, STAFF_ROLES } from '@/lib/authz'
 
 export const runtime = 'nodejs'
 
@@ -39,12 +40,15 @@ export async function GET(request: Request) {
 
         const quiz = await prisma.quiz.findUnique({
             where: { id: String(quizId) },
-            select: { quizModules: {include: {module: {select: {id: true}}}} },
+            select: { offeringId: true, quizModules: {include: {module: {select: {id: true}}}} },
         });
 
         if (!quiz) {
-            throw new Error('Quiz not found');
+            return NextResponse.json({ error: 'Quiz not found' }, { status: 404 });
         }
+
+        const auth = await requireOfferingRole(quiz.offeringId, STAFF_ROLES);
+        if (!auth.ok) return auth.response;
 
         const includedModuleIds = quiz.quizModules.map(qm => qm.module.id)
 

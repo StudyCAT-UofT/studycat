@@ -1,6 +1,9 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
+// Access control is covered by lib/authz.test.ts and app/api/authorization.test.ts
+vi.mock('@/lib/authz', () => import('@/mocks/authz'))
+
 vi.mock('@/lib/prisma', () => ({
     prisma: {
         item: {
@@ -201,6 +204,10 @@ describe('PATCH /api/items', () => {
     })
 
     it('returns 200 on successful bulk update', async () => {
+        vi.mocked(prisma.item.findMany).mockResolvedValue([
+            { id: 'item-1', courseId: 'c1' },
+            { id: 'item-2', courseId: 'c1' },
+        ] as never)
         vi.mocked(prisma.item.updateMany).mockResolvedValue({ count: 2 })
         const res = await PATCH(makeRequest({ ids: ['item-1', 'item-2'], active: false }, 'PATCH'))
         expect(res.status).toBe(200)
@@ -218,6 +225,7 @@ describe('DELETE /api/items', () => {
     })
 
     it('returns 200 on successful bulk delete', async () => {
+        vi.mocked(prisma.item.findMany).mockResolvedValue([{ id: 'item-1', courseId: 'c1' }] as never)
         vi.mocked(prisma.item.deleteMany).mockResolvedValue({ count: 1 })
         const res = await DELETE(makeRequest({ ids: ['item-1'] }, 'DELETE'))
         expect(res.status).toBe(200)

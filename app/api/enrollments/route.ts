@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
+import { requireRole, STAFF_ROLES } from '@/lib/authz'
 
 /**
  * GET /api/enrollments
@@ -123,6 +124,9 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'All enrollment IDs must be strings' }, { status: 400 })
     }
 
+    const denied = await authorizeStudentEnrollments(enrollmentIds)
+    if (denied) return denied
+
     // Delete the enrollments
     const result = await prisma.enrollment.deleteMany({
       where: { id: { in: enrollmentIds } }
@@ -188,6 +192,9 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'hidden must be a boolean' }, { status: 400 })
     }
 
+    const denied = await authorizeStudentEnrollments(enrollmentIds)
+    if (denied) return denied
+
     const result = await prisma.enrollment.updateMany({
       where: { id: { in: enrollmentIds } },
       data: { hidden },
@@ -201,4 +208,29 @@ export async function PATCH(request: NextRequest) {
       { status: 500 }
     )
   }
+}
+
+/**
+ * Roster changes made through this route are limited to STUDENT enrollments in offerings
+ * where the user is staff; instructor/TA enrollments are managed through the admin pages.
+ * Returns an error response, or null when the change is allowed.
+ */
+async function authorizeStudentEnrollments(enrollmentIds: string[]): Promise<NextResponse | null> {
+  const enrollments = await prisma.enrollment.findMany({
+    where: { id: { in: enrollmentIds } },
+    select: { offeringId: true, offeringRole: true },
+  })
+
+  if (enrollments.length !== new Set(enrollmentIds).size) {
+    return NextResponse.json({ error: 'One or more enrollments not found' }, { status: 404 })
+  }
+
+  const auth = await requireRole({ offeringIds: enrollments.map((e) => e.offeringId) }, STAFF_ROLES)
+  if (!auth.ok) return auth.response
+
+  if (enrollments.some((e) => e.offeringRole !== 'STUDENT')) {
+    return NextResponse.json({ error: 'Only student enrollments can be changed here' }, { status: 403 })
+  }
+
+  return null
 }

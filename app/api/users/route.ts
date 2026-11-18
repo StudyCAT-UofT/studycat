@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
+import { requireAdminUser } from '@/lib/authz'
 
 export const runtime = 'nodejs'
 
@@ -8,7 +9,7 @@ export const runtime = 'nodejs'
  * GET /api/users
  * 
  * Fetches all users in the system, ordered by creation date (newest first).
- * This endpoint is typically used for administrative purposes.
+ * Admin only.
  * 
  * Returns:
  * - 200: Array of all users
@@ -16,6 +17,9 @@ export const runtime = 'nodejs'
  */
 export async function GET() {
   try {
+    const auth = await requireAdminUser()
+    if (!auth.ok) return auth.response
+
     // Fetch all users ordered by creation date (most recent first)
     const users = await prisma.user.findMany({ 
       orderBy: { createdAt: 'desc' } 
@@ -44,6 +48,9 @@ export async function GET() {
  */
 export async function POST(request: Request) {
   try {
+    const auth = await requireAdminUser()
+    if (!auth.ok) return auth.response
+
     // Parse request body to extract user data
     const { username } = await request.json()
     

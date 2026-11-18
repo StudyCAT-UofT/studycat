@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
+import { requireOfferingRole, STAFF_ROLES } from '@/lib/authz'
 
 export const runtime = 'nodejs'
 
@@ -28,6 +29,9 @@ export async function GET(request: Request) {
         if (!courseOfferingId) {
             return NextResponse.json({ error: 'Course offering ID is required' }, { status: 400 });
         }
+
+        const auth = await requireOfferingRole(courseOfferingId, STAFF_ROLES);
+        if (!auth.ok) return auth.response;
 
         const thetas = await prisma.theta.findMany({
             where: {

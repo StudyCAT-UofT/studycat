@@ -2,6 +2,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import * as xlsx from 'xlsx'
 
+// Access control is covered by lib/authz.test.ts and app/api/authorization.test.ts
+vi.mock('@/lib/authz', () => import('@/mocks/authz'))
+
 vi.mock('@/lib/prisma', () => ({
     prisma: {
         course: { findUnique: vi.fn() },
@@ -29,6 +32,7 @@ vi.mock('xlsx', () => ({
     },
 }))
 
+const { prisma } = await import('@/lib/prisma')
 const { POST } = await import('./route')
 
 describe('POST /api/upload', () => {
@@ -90,6 +94,8 @@ describe('POST /api/upload', () => {
                 SheetNames: ['Questions'], 
                 Sheets: { Questions: {} } 
             } as xlsx.WorkBook)
+            // Offering o1 belongs to course c1
+            vi.mocked(prisma.courseOffering.findUnique).mockResolvedValue({ courseId: 'c1' } as never)
         })
 
         it('skips the row when the question stem exceeds 16,161 characters', async () => {

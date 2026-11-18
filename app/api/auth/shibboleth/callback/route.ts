@@ -10,7 +10,12 @@ import { logger } from '@/lib/logger';
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
-    const isMockMode = searchParams.get('mock') === 'true' && process.env.ENABLE_MOCK_SHIBBOLETH === 'true';
+    // Mock mode trusts a utorid from the query string, so it is never honoured in production,
+    // whatever ENABLE_MOCK_SHIBBOLETH is set to.
+    const isMockMode =
+      searchParams.get('mock') === 'true' &&
+      process.env.ENABLE_MOCK_SHIBBOLETH === 'true' &&
+      process.env.NODE_ENV !== 'production';
 
     let utorid: string | null = null;
 

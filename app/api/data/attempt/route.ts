@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
+import { requireOfferingRole, STAFF_ROLES } from '@/lib/authz'
 
 export const runtime = 'nodejs'
 
@@ -40,6 +41,9 @@ export async function GET(request: Request) {
         if (!quiz) {
             return NextResponse.json({ error: 'Quiz not found' }, { status: 404 });
         }
+
+        const auth = await requireOfferingRole(quiz.offeringId, STAFF_ROLES);
+        if (!auth.ok) return auth.response;
 
         // Get total number of visible (non-hidden) students enrolled in the course offering
         const totalStudents = await prisma.enrollment.count({

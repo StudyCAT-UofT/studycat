@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
+import { requireOfferingRole, STAFF_ROLES } from '@/lib/authz'
 
 export const runtime = 'nodejs'
 
@@ -40,6 +41,9 @@ export async function GET(request: NextRequest) {
     if (!courseOfferingId) {
       return NextResponse.json({ error: 'Course offering ID is required' }, { status: 400 })
     }
+
+    const auth = await requireOfferingRole(courseOfferingId, STAFF_ROLES)
+    if (!auth.ok) return auth.response
 
     // Fetch all enrollments with STUDENT role for the specified course offering
     const enrollments = await prisma.enrollment.findMany({
@@ -161,6 +165,9 @@ export async function POST(request: NextRequest) {
     if (!courseOfferingId) {
       return NextResponse.json({ error: 'Course offering ID is required' }, { status: 400 })
     }
+
+    const auth = await requireOfferingRole(courseOfferingId, STAFF_ROLES)
+    if (!auth.ok) return auth.response
 
     if (!students || !Array.isArray(students) || students.length === 0) {
       return NextResponse.json({ error: 'At least one student is required' }, { status: 400 })

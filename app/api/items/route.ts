@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { BloomCategory, bloomCategories } from '@/types'
 import { logger } from '@/lib/logger'
+import { requireCourseRole, requireRole, STAFF_ROLES } from '@/lib/authz'
 
 export const runtime = 'nodejs'
 
@@ -30,6 +31,10 @@ export async function GET(request: Request) {
     if (!courseId) {
       return NextResponse.json({ error: 'Course ID is required' }, { status: 400 })
     }
+
+    // Items include the answer key, so only course staff may read them
+    const auth = await requireCourseRole(courseId, STAFF_ROLES)
+    if (!auth.ok) return auth.response
 
     // Fetch question items for the specified course
     const items = await prisma.item.findMany({
@@ -66,9 +71,9 @@ export async function GET(request: Request) {
 
 /**
  * POST /api/items
- * 
+ *
  * Creates a new question item with its options.
- * 
+ *
  * Request Body:
  * - courseId: string (required)
  * - externalQuestionId: string (required)
@@ -83,7 +88,7 @@ export async function GET(request: Request) {
  *     justification?: string
  *     isCorrect: boolean
  *   }> (required)
- * 
+ *
  * Returns:
  * - 201: Created item with options
  * - 400: Invalid request data
@@ -111,6 +116,9 @@ export async function POST(request: Request) {
         { status: 400 }
       )
     }
+
+    const auth = await requireCourseRole(courseId, STAFF_ROLES)
+    if (!auth.ok) return auth.response
 
     // Validate bloom category
     if (!bloomCategories.includes(bloom as BloomCategory)) {
@@ -142,7 +150,7 @@ export async function POST(request: Request) {
 
     // Check if module exists and belongs to a course offering for this course
     const existingModule = await prisma.module.findFirst({
-      where: { 
+      where: {
         id: moduleId,
         offering: {
           courseId: courseId
@@ -224,7 +232,7 @@ export async function POST(request: Request) {
 
       // Create options
       const newOptions = await Promise.all(
-        options.map(option => 
+        options.map(option =>
           tx.itemOption.create({
             data: {
               itemId: item.id,
@@ -290,6 +298,9 @@ export async function PATCH(request: Request) {
       )
     }
 
+    const auth = await authorizeItems(ids)
+    if (!auth.ok) return auth.response
+
     const result = await prisma.item.updateMany({
       where: { id: { in: ids } },
       data: { active }
@@ -312,10 +323,10 @@ export async function PATCH(request: Request) {
  * DELETE /api/items
  *
  * Deletes multiple question items and all their associated options.
- * 
+ *
  * Request Body:
  * - ids: Array of item IDs to delete (required)
- * 
+ *
  * Returns:
  * - 200: Success message with count of deleted items
  * - 400: Invalid request data
@@ -342,13 +353,16 @@ export async function DELETE(request: Request) {
       )
     }
 
+    const auth = await authorizeItems(ids)
+    if (!auth.ok) return auth.response
+
     // Delete the items (options will be automatically deleted due to onDelete: Cascade)
     const result = await prisma.item.deleteMany({
       where: { id: { in: ids } }
     })
 
-    return NextResponse.json({ 
-      message: `Successfully deleted ${result.count} item(s)` 
+    return NextResponse.json({
+      message: `Successfully deleted ${result.count} item(s)`
     })
   } catch (error) {
     logger.error({ err: error }, 'Failed to delete items')
@@ -357,4 +371,18 @@ export async function DELETE(request: Request) {
       { status: 500 }
     )
   }
+}
+
+/**
+ * Requires the user to be staff in the course of every item in `ids`.
+ */
+async function authorizeItems(ids: string[]) {
+  const items = await prisma.item.findMany({
+    where: { id: { in: ids } },
+    select: { id: true, courseId: true },
+  })
+  if (items.length !== new Set(ids).size) {
+    return { ok: false as const, response: NextResponse.json({ error: 'One or more items not found' }, { status: 404 }) }
+  }
+  return requireRole({ courseIds: items.map((item) => item.courseId) }, STAFF_ROLES)
 }

@@ -7,6 +7,9 @@ vi.mock('@/lib/auth', () => ({
     getSession: vi.fn(),
 }))
 
+// Access control is covered by lib/authz.test.ts and app/api/authorization.test.ts
+vi.mock('@/lib/authz', () => import('@/mocks/authz'))
+
 vi.mock('@/lib/prisma', () => ({
     prisma: {
         enrollment: {
@@ -211,6 +214,7 @@ describe('DELETE /api/enrollments', () => {
 
     it('returns 200 on successful bulk delete', async () => {
         vi.mocked(verifyToken).mockReturnValue(SESSION)
+        vi.mocked(prisma.enrollment.findMany).mockResolvedValue([mockEnrollment])
         vi.mocked(prisma.enrollment.deleteMany).mockResolvedValue({ count: 1 })
         const res = await deleteEnrollments(withToken('http://localhost/api/enrollments', 'DELETE', { enrollmentIds: ['e1'] }))
         expect(res.status).toBe(200)
@@ -235,6 +239,7 @@ describe('PATCH /api/enrollments', () => {
 
     it('returns 200 on successful update', async () => {
         vi.mocked(verifyToken).mockReturnValue(SESSION)
+        vi.mocked(prisma.enrollment.findMany).mockResolvedValue([mockEnrollment])
         vi.mocked(prisma.enrollment.updateMany).mockResolvedValue({ count: 1 })
         const res = await patchEnrollments(withToken('http://localhost/api/enrollments', 'PATCH', { enrollmentIds: ['e1'], hidden: true }))
         expect(res.status).toBe(200)
