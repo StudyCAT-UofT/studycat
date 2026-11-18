@@ -105,6 +105,7 @@ console.log('Quiz started:', initResponse);
 const stepResponse = await client.stepAttempt({
   attemptId: initResponse.attemptId,
   itemId: initResponse.nextItem?.item_id,
+  itemToken: initResponse.nextItemToken,
   answerIndex: 0, // 0 for A, 1 for B, etc.
   responseTimeMs: 5000, // optional
 });

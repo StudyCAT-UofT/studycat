@@ -222,7 +222,7 @@ const cases: Case[] = [
   // Another student's attempt (attempt a1 belongs to "victim")
   {
     name: 'POST /api/quiz/attempt/step',
-    call: () => stepRoute.POST(req('/api/quiz/attempt/step', 'POST', { attemptId: 'a1', itemId: 'i1', answerIndex: 0 })),
+    call: () => stepRoute.POST(req('/api/quiz/attempt/step', 'POST', { attemptId: 'a1', itemId: 'i1', itemToken: 't', answerIndex: 0 })),
     staffOnly: true,
   },
   {

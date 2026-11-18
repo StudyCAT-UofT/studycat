@@ -86,6 +86,8 @@ export interface InitAttemptResponse {
     enrollmentId: string
     theta: Record<string, number>
     nextItem?: QuizItem
+    /** Proof that nextItem was presented by the server; sent back with the answer to it */
+    nextItemToken?: string
     nextAction: string
     startedAt: string,
     shuffled: boolean,
@@ -95,6 +97,8 @@ export interface InitAttemptResponse {
 export interface StepAttemptRequest {
     attemptId: string
     itemId: string
+    /** The nextItemToken returned with this item by init or the previous step */
+    itemToken: string
     answerIndex: number
     responseTimeMs?: number
 }
@@ -105,6 +109,8 @@ export interface StepAttemptResponse {
     mastery: Record<string, boolean>
     nextAction: string
     nextItem?: QuizItem
+    /** Proof that nextItem was presented by the server; sent back with the answer to it */
+    nextItemToken?: string
     isFinished: boolean
     allMastered: boolean
     feedback?: Feedback

@@ -89,6 +89,7 @@ const mockInitResponse = {
     quizId: 'quiz-1',
     theta: { 'mod-1': 0 },
     nextItem: mockQuizItem,
+    nextItemToken: 'token-item-1',
     nextAction: 'CONTINUE',
     shuffled: false,
     feedbackVisibility: 'full' as const,
@@ -102,6 +103,7 @@ const mockStepResponse = {
     nextAction: 'CONTINUE',
     feedback: undefined,
     nextItem: makeQuizItem({ item_id: 'item-2', stem: 'What is 3 + 3?' }),
+    nextItemToken: 'token-item-2',
     isFinished: false,
     allMastered: false,
 }
@@ -166,6 +168,28 @@ describe('app/quiz/[id]/page.tsx', () => {
             expect(vi.mocked(quizClient.stepAttempt)).toHaveBeenCalledWith({
                 attemptId: 'attempt-1',
                 itemId: 'item-1',
+                itemToken: 'token-item-1',
+                answerIndex: 0,
+            })
+        })
+    })
+
+    it('answers the next question with the token returned for it', async () => {
+        vi.mocked(quizClient.initAttempt).mockResolvedValue(mockInitResponse)
+        vi.mocked(quizClient.stepAttempt).mockResolvedValue(mockStepResponse)
+        await renderPage()
+        await screen.findByTestId('quiz-question')
+
+        await userEvent.click(screen.getByRole('button', { name: 'Answer Option A' }))
+        await userEvent.click(screen.getByRole('button', { name: 'Next Question' }))
+        await waitFor(() => expect(screen.getByTestId('question-stem')).toHaveTextContent('What is 3 + 3?'))
+        await userEvent.click(screen.getByRole('button', { name: 'Answer Option A' }))
+
+        await waitFor(() => {
+            expect(vi.mocked(quizClient.stepAttempt)).toHaveBeenLastCalledWith({
+                attemptId: 'attempt-1',
+                itemId: 'item-2',
+                itemToken: 'token-item-2',
                 answerIndex: 0,
             })
         })

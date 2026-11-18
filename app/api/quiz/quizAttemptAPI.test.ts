@@ -20,6 +20,7 @@ vi.mock('@/lib/prisma', () => ({
         },
         item: { findUnique: vi.fn() },
         response: {
+            count: vi.fn(),
             create: vi.fn(),
             update: vi.fn(),
             delete: vi.fn(),
@@ -45,6 +46,7 @@ const { POST: initRoute } = await import('./attempt/init/route')
 const { POST: stepRoute } = await import('./attempt/step/route')
 const { POST: feedbackRoute } = await import('./attempt/feedback/route')
 const { POST: resultsRoute } = await import('./attempt/results/route')
+const { signPresentedItem, verifyPresentedItem } = await import('@/lib/presented-item')
 
 const asAuthenticated = () =>
     vi.mocked(getSession).mockResolvedValue({ userId: 'user-1', username: 'testuser' })
@@ -96,8 +98,18 @@ const mockAttempt = {
     scopeSnapshot: null,
     quiz: { id: 'quiz-1', title: 'Test Quiz', feedbackVisibility: 'full', quizModules: [], offering: { modules: [] } },
     responses: [],
+    _count: { responses: 0 },
     enrollment: { userId: 'user-1', thetas: [] },
 }
+
+/** A step request answering item-1, which the server presented as the attempt's first item. */
+const stepBody = (overrides: object = {}) => ({
+    attemptId: 'attempt-1',
+    itemId: 'item-1',
+    itemToken: signPresentedItem({ attemptId: 'attempt-1', itemId: 'item-1', position: 0 }),
+    answerIndex: 0,
+    ...overrides,
+})
 
 const mockItem = {
     id: 'item-1',
@@ -164,6 +176,26 @@ describe('POST /api/quiz/attempt/init', () => {
         expect(res.status).toBe(200)
         const data = await res.json()
         expect(data.attemptId).toBe('attempt-1')
+    })
+
+    it('returns a token for the first item, positioned after any existing responses', async () => {
+        asAuthenticated()
+        vi.mocked(prisma.quiz.findFirst).mockResolvedValue(mockQuiz as never)
+        vi.mocked(prisma.enrollment.findFirst).mockResolvedValue(mockEnrollment as never)
+        vi.mocked(prisma.attempt.findFirst).mockResolvedValue(mockAttempt as never)
+        vi.mocked(prisma.attempt.update).mockResolvedValue(mockAttempt as never)
+        vi.mocked(prisma.response.count).mockResolvedValue(2)
+        vi.mocked(fastApiClient.initAttempt).mockResolvedValue({
+            attempt_id: 'attempt-1',
+            theta: { 'mod-1': 0 },
+            next_item: { item_id: 'item-3', skill: 'mod-1', stem: 'Test?', options: [] },
+            next_action: 'CONTINUE',
+        })
+
+        const data = await (await initRoute(makeRequest({ quizId: 'quiz-1', offeringId: 'o1' }))).json()
+
+        expect(prisma.response.count).toHaveBeenCalledWith({ where: { attemptId: 'attempt-1' } })
+        expect(verifyPresentedItem(data.nextItemToken)).toEqual({ attemptId: 'attempt-1', itemId: 'item-3', position: 2 })
     })
 
     it('returns 200 and creates new attempt when none exists', async () => {
@@ -235,7 +267,7 @@ describe('POST /api/quiz/attempt/step', () => {
 
     it('returns 404 when attempt not found or not in progress', async () => {
         vi.mocked(prisma.attempt.findFirst).mockResolvedValue(null)
-        const res = await stepRoute(makeRequest({ attemptId: 'attempt-1', itemId: 'item-1', answerIndex: 0 }))
+        const res = await stepRoute(makeRequest(stepBody()))
         expect(res.status).toBe(404)
     })
 
@@ -263,10 +295,12 @@ describe('POST /api/quiz/attempt/step', () => {
         })
         vi.mocked(prisma.attempt.update).mockResolvedValue(mockAttempt as never)
         vi.mocked(prisma.response.update).mockResolvedValue({} as never)
-        const res = await stepRoute(makeRequest({ attemptId: 'attempt-1', itemId: 'item-1', answerIndex: 0 }))
+        const res = await stepRoute(makeRequest(stepBody()))
         expect(res.status).toBe(200)
         const data = await res.json()
         expect(data.feedback.isCorrect).toBe(true)
+        // The next item is presented after the answer just recorded
+        expect(verifyPresentedItem(data.nextItemToken)).toEqual({ attemptId: 'attempt-1', itemId: 'item-2', position: 1 })
     })
 
     it('marks attempt COMPLETED when FastAPI returns FINISH', async () => {
@@ -281,11 +315,40 @@ describe('POST /api/quiz/attempt/step', () => {
         })
         vi.mocked(prisma.attempt.update).mockResolvedValue({ ...mockAttempt, status: 'COMPLETED' } as never)
         vi.mocked(prisma.response.update).mockResolvedValue({} as never)
-        const res = await stepRoute(makeRequest({ attemptId: 'attempt-1', itemId: 'item-1', answerIndex: 0 }))
+        const res = await stepRoute(makeRequest(stepBody()))
         expect(res.status).toBe(200)
         expect(prisma.attempt.update).toHaveBeenCalledWith(
             expect.objectContaining({ data: expect.objectContaining({ status: 'COMPLETED' }) })
         )
+    })
+
+    it('returns 400 when itemToken is missing', async () => {
+        const res = await stepRoute(makeRequest(stepBody({ itemToken: undefined })))
+        expect(res.status).toBe(400)
+        expect(prisma.response.create).not.toHaveBeenCalled()
+    })
+
+    const presentedItem1 = signPresentedItem({ attemptId: 'attempt-1', itemId: 'item-1', position: 0 })
+
+    it.each([
+        ['an item other than the one presented', { itemId: 'easy-item' }, 0],
+        ['an item with a token from another attempt', {
+            itemToken: signPresentedItem({ attemptId: 'attempt-2', itemId: 'item-1', position: 0 }),
+        }, 0],
+        ['again, with the token used for an earlier answer', { itemToken: presentedItem1 }, 1],
+        ['an item with a forged token', { itemToken: 'eyJhIjoiYXR0ZW1wdC0xIn0.not-a-signature' }, 0],
+    ])('returns 409 and records nothing when answering %s', async (_name, overrides, responsesSoFar) => {
+        vi.mocked(prisma.attempt.findFirst).mockResolvedValue(
+            { ...mockAttempt, _count: { responses: responsesSoFar } } as never,
+        )
+        vi.mocked(prisma.item.findUnique).mockResolvedValue(mockItem as never)
+
+        const res = await stepRoute(makeRequest(stepBody(overrides)))
+
+        expect(res.status).toBe(409)
+        expect((await res.json()).code).toBe('ITEM_NOT_PRESENTED')
+        expect(prisma.response.create).not.toHaveBeenCalled()
+        expect(fastApiClient.stepAttempt).not.toHaveBeenCalled()
     })
 })
 

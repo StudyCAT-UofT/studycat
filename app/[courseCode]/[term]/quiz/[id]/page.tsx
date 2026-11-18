@@ -13,12 +13,15 @@ import { QuizItem, Feedback, QuizResults, FeedbackData, FeedbackLevel, feedbackL
 interface QuizState {
     attemptId: string
     currentItem?: QuizItem
+    // Server-signed proof that currentItem/nextItem were presented; sent back with each answer
+    currentItemToken?: string
     isFinished: boolean
     allMastered: boolean
     loading: boolean
     error?: string
     feedback?: Feedback | null
     nextItem?: QuizItem
+    nextItemToken?: string
     results?: QuizResults
     loadingResults: boolean
     showFeedback: boolean
@@ -115,6 +118,7 @@ const QuizContent = ({ quizId }: { quizId: string }) => {
                 setQuizState({
                     attemptId: response.attemptId,
                     currentItem: response.nextItem,
+                    currentItemToken: response.nextItemToken,
                     isFinished: false,
                     allMastered: false,
                     loading: false,
@@ -149,12 +153,13 @@ const QuizContent = ({ quizId }: { quizId: string }) => {
     }, [quizId, selectedCourseOffering?.id, selectedCourseOffering?.course.code, selectedCourseOffering?.term.name, user?.userId, isInitialized, showFeedbackScreen, router])
 
     const handleAnswer = async (answerIndex: number) => {
-        if (!quizState.attemptId || !quizState.currentItem) return
+        if (!quizState.attemptId || !quizState.currentItem || !quizState.currentItemToken) return
 
         try {
             const response = await quizClient.stepAttempt({
                 attemptId: quizState.attemptId,
                 itemId: quizState.currentItem.item_id,
+                itemToken: quizState.currentItemToken,
                 answerIndex,
             })
 
@@ -162,6 +167,7 @@ const QuizContent = ({ quizId }: { quizId: string }) => {
                 ...prev,
                 feedback: response.feedback || null,
                 nextItem: response.nextItem,
+                nextItemToken: response.nextItemToken,
                 isFinished: response.isFinished,
                 allMastered: response.allMastered
             }))
@@ -182,8 +188,10 @@ const QuizContent = ({ quizId }: { quizId: string }) => {
             setQuizState(prev => ({
                 ...prev,
                 currentItem: prev.nextItem,
+                currentItemToken: prev.nextItemToken,
                 feedback: null,
-                nextItem: undefined
+                nextItem: undefined,
+                nextItemToken: undefined
             }))
             
             if (quizState.currentItem?.item_id === quizState.nextItem?.item_id) {
