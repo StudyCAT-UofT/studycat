@@ -71,9 +71,9 @@ export async function GET(request: Request) {
 
 /**
  * POST /api/items
- * 
+ *
  * Creates a new question item with its options.
- * 
+ *
  * Request Body:
  * - courseId: string (required)
  * - externalQuestionId: string (required)
@@ -88,7 +88,7 @@ export async function GET(request: Request) {
  *     justification?: string
  *     isCorrect: boolean
  *   }> (required)
- * 
+ *
  * Returns:
  * - 201: Created item with options
  * - 400: Invalid request data
@@ -150,7 +150,7 @@ export async function POST(request: Request) {
 
     // Check if module exists and belongs to a course offering for this course
     const existingModule = await prisma.module.findFirst({
-      where: { 
+      where: {
         id: moduleId,
         offering: {
           courseId: courseId
@@ -232,7 +232,7 @@ export async function POST(request: Request) {
 
       // Create options
       const newOptions = await Promise.all(
-        options.map(option => 
+        options.map(option =>
           tx.itemOption.create({
             data: {
               itemId: item.id,
@@ -323,10 +323,10 @@ export async function PATCH(request: Request) {
  * DELETE /api/items
  *
  * Deletes multiple question items and all their associated options.
- * 
+ *
  * Request Body:
  * - ids: Array of item IDs to delete (required)
- * 
+ *
  * Returns:
  * - 200: Success message with count of deleted items
  * - 400: Invalid request data
@@ -361,8 +361,8 @@ export async function DELETE(request: Request) {
       where: { id: { in: ids } }
     })
 
-    return NextResponse.json({ 
-      message: `Successfully deleted ${result.count} item(s)` 
+    return NextResponse.json({
+      message: `Successfully deleted ${result.count} item(s)`
     })
   } catch (error) {
     logger.error({ err: error }, 'Failed to delete items')
@@ -375,7 +375,6 @@ export async function DELETE(request: Request) {
 
 /**
  * Requires the user to be staff in the course of every item in `ids`.
- * Unknown ids are rejected with 404 so callers cannot probe other courses.
  */
 async function authorizeItems(ids: string[]) {
   const items = await prisma.item.findMany({
