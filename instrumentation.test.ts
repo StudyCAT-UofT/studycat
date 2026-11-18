@@ -46,6 +46,25 @@ describe('server startup', () => {
     expect(exit).not.toHaveBeenCalled()
   })
 
+  it('exits in production when SESSION_LIFETIME_SECONDS is not a whole number of seconds', async () => {
+    vi.stubEnv('NODE_ENV', 'production')
+    vi.stubEnv('JWT_SECRET', STRONG)
+    vi.stubEnv('SESSION_LIFETIME_SECONDS', '24h')
+
+    await startServer()
+
+    expect(exit).toHaveBeenCalledWith(1)
+    expect(consoleError).toHaveBeenCalledWith(expect.stringMatching(/^Refusing to start: SESSION_LIFETIME_SECONDS/))
+  })
+
+  it('starts in production with a valid SESSION_LIFETIME_SECONDS', async () => {
+    vi.stubEnv('NODE_ENV', 'production')
+    vi.stubEnv('JWT_SECRET', STRONG)
+    vi.stubEnv('SESSION_LIFETIME_SECONDS', '3600')
+    await startServer()
+    expect(exit).not.toHaveBeenCalled()
+  })
+
   it('starts in development without a JWT_SECRET', async () => {
     vi.stubEnv('NODE_ENV', 'development')
     vi.stubEnv('JWT_SECRET', '')

@@ -14,7 +14,8 @@ vi.mock('@/lib/prisma', () => ({
 }))
 
 // Mock JWT signing
-vi.mock('@/lib/jwt', () => ({
+vi.mock('@/lib/jwt', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/lib/jwt')>()),
   signToken: vi.fn(() => 'mock-jwt-token'),
 }))
 
@@ -31,6 +32,10 @@ function makeRequest(headers: Record<string, string> = {}, searchParams: Record<
 }
 
 describe('GET /api/auth/shibboleth/callback', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs()
+  })
+
   beforeEach(() => {
     vi.clearAllMocks()
   })
@@ -65,6 +70,16 @@ describe('GET /api/auth/shibboleth/callback', () => {
     const cookie = response.cookies.get('session-token')
     expect(cookie?.value).toBe('mock-jwt-token')
     expect(cookie?.httpOnly).toBe(true)
+    expect(cookie?.maxAge).toBe(24 * 60 * 60)
+  })
+
+  it('sets the cookie lifetime from SESSION_LIFETIME_SECONDS', async () => {
+    vi.stubEnv('SESSION_LIFETIME_SECONDS', '3600')
+    mockFindUnique.mockResolvedValue({ id: 'user-123', username: 'testuser' })
+
+    const response = await GET(makeRequest({ uid: 'testuser' }))
+
+    expect(response.cookies.get('session-token')?.maxAge).toBe(3600)
   })
 
   it('redirects to /login?error=authentication_failed when the lookup throws', async () => {

@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { verifyToken } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { logger } from '@/lib/logger'
-import { requireOfferingRole, STAFF_ROLES } from '@/lib/authz'
+import { requireOfferingRole, requireSession, STAFF_ROLES } from '@/lib/authz'
 
 export const runtime = 'nodejs'
 
@@ -22,17 +21,8 @@ export const runtime = 'nodejs'
  */
 export async function GET(request: NextRequest) {
   try {
-    // Extract and validate session token from cookies
-    const token = request.cookies.get('session-token')?.value
-    if (!token) {
-      return NextResponse.json({ error: 'No session found' }, { status: 401 })
-    }
-
-    // Verify the token and extract user information
-    const payload = verifyToken(token)
-    if (!payload) {
-      return NextResponse.json({ error: 'Invalid session' }, { status: 401 })
-    }
+    const session = await requireSession()
+    if (!session.ok) return session.response
 
     const { searchParams } = new URL(request.url)
     const courseOfferingId = searchParams.get('courseOfferingId')
@@ -146,17 +136,8 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    // Extract and validate session token from cookies
-    const token = request.cookies.get('session-token')?.value
-    if (!token) {
-      return NextResponse.json({ error: 'No session found' }, { status: 401 })
-    }
-
-    // Verify the token and extract user information
-    const payload = verifyToken(token)
-    if (!payload) {
-      return NextResponse.json({ error: 'Invalid session' }, { status: 401 })
-    }
+    const session = await requireSession()
+    if (!session.ok) return session.response
 
     const body = await request.json()
     const { courseOfferingId, students } = body

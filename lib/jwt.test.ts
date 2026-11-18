@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { describe, it, expect, vi, afterEach } from 'vitest'
-import { getJwtSecret, jwtSecretProblem, signToken, verifyToken, deriveSigningKey } from './jwt'
+import jwt from 'jsonwebtoken'
+import { getJwtSecret, getSessionLifetimeSeconds, jwtSecretProblem, signToken, verifyToken, deriveSigningKey } from './jwt'
 
 const STRONG = 'k3Jq9vX2mP7rT4wZ8yB1nC6dF0gH5jL2sA9eQ3uV'
 
@@ -72,6 +73,47 @@ describe('session tokens', () => {
     expect(verifyToken(token)).toMatchObject({ userId: 'u1', username: 'alice' })
 
     vi.stubEnv('JWT_SECRET', STRONG.split('').reverse().join(''))
+    expect(verifyToken(token)).toBeNull()
+  })
+})
+
+describe('session lifetime', () => {
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  const lifetimeOf = (token: string) => {
+    const { iat, exp } = jwt.decode(token) as { iat: number; exp: number }
+    return exp - iat
+  }
+
+  it('signs session tokens that expire 24 hours after sign-in by default', () => {
+    vi.stubEnv('SESSION_LIFETIME_SECONDS', undefined)
+    expect(getSessionLifetimeSeconds()).toBe(24 * 60 * 60)
+    expect(lifetimeOf(signToken({ userId: 'u1', username: 'alice' }))).toBe(24 * 60 * 60)
+  })
+
+  it('uses SESSION_LIFETIME_SECONDS when set', () => {
+    vi.stubEnv('SESSION_LIFETIME_SECONDS', '3600')
+    expect(getSessionLifetimeSeconds()).toBe(3600)
+    expect(lifetimeOf(signToken({ userId: 'u1', username: 'alice' }))).toBe(3600)
+  })
+
+  it.each(['24h', '0', '-60', '1.5', ' 3600', 'abc'])('refuses to sign with SESSION_LIFETIME_SECONDS=%j', (value) => {
+    vi.stubEnv('SESSION_LIFETIME_SECONDS', value)
+    expect(() => getSessionLifetimeSeconds()).toThrow(/SESSION_LIFETIME_SECONDS must be a positive whole number/)
+    expect(() => signToken({ userId: 'u1', username: 'alice' })).toThrow(/SESSION_LIFETIME_SECONDS/)
+  })
+
+  it('accepts a token until it is 24 hours old, then rejects it', () => {
+    vi.stubEnv('SESSION_LIFETIME_SECONDS', undefined)
+    vi.useFakeTimers({ now: new Date('2026-11-18T09:00:00Z') })
+    const token = signToken({ userId: 'u1', username: 'alice' })
+
+    vi.setSystemTime(new Date('2026-11-19T08:59:59Z'))
+    expect(verifyToken(token)).toMatchObject({ userId: 'u1' })
+
+    vi.setSystemTime(new Date('2026-11-19T09:00:01Z'))
     expect(verifyToken(token)).toBeNull()
   })
 })
