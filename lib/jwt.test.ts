@@ -1,0 +1,77 @@
+// @vitest-environment node
+import { describe, it, expect, vi, afterEach } from 'vitest'
+import { getJwtSecret, jwtSecretProblem, signToken, verifyToken, deriveSigningKey } from './jwt'
+
+const STRONG = 'k3Jq9vX2mP7rT4wZ8yB1nC6dF0gH5jL2sA9eQ3uV'
+
+afterEach(() => {
+  vi.unstubAllEnvs()
+})
+
+describe('jwtSecretProblem', () => {
+  it.each([
+    ['unset', undefined, /not set/],
+    ['empty', '', /not set/],
+    ['the code fallback', 'your-secret-key-change-in-production', /placeholder/],
+    ['the .env.example placeholder', 'change-me-to-a-long-random-string', /placeholder/],
+    ['shorter than 32 characters', 'a'.repeat(31), /at least 32 characters/],
+  ])('rejects a secret that is %s', (_name, secret, message) => {
+    expect(jwtSecretProblem(secret)).toMatch(message)
+  })
+
+  it('accepts a long random secret', () => {
+    expect(jwtSecretProblem(STRONG)).toBeNull()
+  })
+})
+
+describe('getJwtSecret in production', () => {
+  it.each([undefined, '', 'change-me-to-a-long-random-string', 'short'])('throws for %j', (secret) => {
+    vi.stubEnv('NODE_ENV', 'production')
+    vi.stubEnv('JWT_SECRET', secret as string)
+    expect(() => getJwtSecret()).toThrow(/JWT_SECRET/)
+  })
+
+  it('returns a strong secret', () => {
+    vi.stubEnv('NODE_ENV', 'production')
+    vi.stubEnv('JWT_SECRET', STRONG)
+    expect(getJwtSecret()).toBe(STRONG)
+  })
+
+  it('makes signing, verifying and key derivation fail loudly rather than fall back', () => {
+    vi.stubEnv('NODE_ENV', 'development')
+    vi.stubEnv('JWT_SECRET', '')
+    const token = signToken({ userId: 'u1', username: 'alice' })
+
+    vi.stubEnv('NODE_ENV', 'production')
+    expect(() => signToken({ userId: 'u1', username: 'alice' })).toThrow(/JWT_SECRET/)
+    // Not a silent null: a misconfigured server must not look like "every session expired"
+    expect(() => verifyToken(token)).toThrow(/JWT_SECRET/)
+    expect(() => deriveSigningKey('purpose')).toThrow(/JWT_SECRET/)
+  })
+})
+
+describe('getJwtSecret outside production', () => {
+  it('falls back to a development secret when unset', () => {
+    vi.stubEnv('NODE_ENV', 'development')
+    vi.stubEnv('JWT_SECRET', '')
+    expect(getJwtSecret()).toBe('your-secret-key-change-in-production')
+  })
+
+  it('uses JWT_SECRET when set, even a weak one', () => {
+    vi.stubEnv('NODE_ENV', 'development')
+    vi.stubEnv('JWT_SECRET', 'change-me-to-a-long-random-string')
+    expect(getJwtSecret()).toBe('change-me-to-a-long-random-string')
+  })
+})
+
+describe('session tokens', () => {
+  it('only verify with the secret that signed them', () => {
+    vi.stubEnv('NODE_ENV', 'production')
+    vi.stubEnv('JWT_SECRET', STRONG)
+    const token = signToken({ userId: 'u1', username: 'alice' })
+    expect(verifyToken(token)).toMatchObject({ userId: 'u1', username: 'alice' })
+
+    vi.stubEnv('JWT_SECRET', STRONG.split('').reverse().join(''))
+    expect(verifyToken(token)).toBeNull()
+  })
+})

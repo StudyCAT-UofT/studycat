@@ -110,7 +110,7 @@ The following environment variables are read from your `.env` file. After changi
 | `DATABASE_URL` | PostgreSQL connection string. Overridden by `docker-compose.yml` inside Docker. | `postgresql://catalyze:...@localhost:5432/catalyze?schema=public` |
 | `AUTH_MODE` | Authentication mode. Use `shibboleth` for SSO or `simple` for username-only local login. **Defaults to `simple` if not set.** | `shibboleth` |
 | `NEXT_PUBLIC_AUTH_MODE` | Authentication mode (for client-side authentication detection). **Read at build time:** `next build` bakes it into the browser code, so set it in the build environment and rebuild after changing it. Setting it only at runtime (e.g. in a systemd unit) has no effect. | `shibboleth` |
-| `JWT_SECRET` | Secret key used to sign session tokens. **Must be set to a strong, random value in any non-trivial environment.** Falls back to an insecure placeholder if omitted. | `change-me-to-a-long-random-string` |
+| `JWT_SECRET` | Secret key used to sign session tokens. **Required in production:** the server refuses to start if it is unset, shorter than 32 characters, or one of the placeholder values in this repository. Generate one with `openssl rand -base64 48`. Outside production it falls back to an insecure placeholder if omitted. | `change-me-to-a-long-random-string` |
 | `JWT_EXPIRES_IN` | How long a session token remains valid. Defaults to `7d` if not set. | `7d` |
 | `ENABLE_MOCK_SHIBBOLETH` | Set to `true` to enable the `/mock-shibboleth` login page for local development without the full Shibboleth stack | `true` |
 | `FASTAPI_BASE_URL` | Base URL of the quiz engine service. Defaults to `http://localhost:8000/v1` if not set. | `http://localhost:8000/v1` |
