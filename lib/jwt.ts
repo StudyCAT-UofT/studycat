@@ -2,8 +2,28 @@
 import { createHmac } from 'crypto';
 import jwt from 'jsonwebtoken';
 
-/** How long a session lasts after signing in, for both the token and its cookie. */
-export const SESSION_LIFETIME_SECONDS = 24 * 60 * 60;
+export const DEFAULT_SESSION_LIFETIME_SECONDS = 24 * 60 * 60;
+
+/** Why a SESSION_LIFETIME_SECONDS value is unusable, or null if it is fine (unset means the default). */
+export function sessionLifetimeProblem(value: string | undefined): string | null {
+  if (value === undefined || value === '') return null;
+  if (!/^[1-9]\d*$/.test(value)) {
+    return `SESSION_LIFETIME_SECONDS must be a positive whole number of seconds, not "${value}"`;
+  }
+  return null;
+}
+
+/**
+ * How long a session lasts after signing in, for both the token and its cookie. Set by
+ * SESSION_LIFETIME_SECONDS, default 24 hours. Read on each call, like getJwtSecret(); an
+ * invalid value throws rather than silently falling back.
+ */
+export function getSessionLifetimeSeconds(): number {
+  const value = process.env.SESSION_LIFETIME_SECONDS;
+  const problem = sessionLifetimeProblem(value);
+  if (problem) throw new Error(problem);
+  return value ? Number(value) : DEFAULT_SESSION_LIFETIME_SECONDS;
+}
 
 /** Used only outside production, when JWT_SECRET is not set. */
 const DEVELOPMENT_FALLBACK_SECRET = 'your-secret-key-change-in-production';
@@ -53,7 +73,7 @@ export interface JWTPayload {
 
 export function signToken(payload: JWTPayload): string {
   return jwt.sign(payload, getJwtSecret(), {
-    expiresIn: SESSION_LIFETIME_SECONDS,
+    expiresIn: getSessionLifetimeSeconds(),
   });
 }
 

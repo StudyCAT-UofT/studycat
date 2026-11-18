@@ -1,6 +1,6 @@
 import { cookies } from 'next/headers'
 import { prisma } from './prisma'
-import { verifyToken, signToken, JWTPayload, SESSION_LIFETIME_SECONDS } from './jwt'
+import { verifyToken, signToken, JWTPayload, getSessionLifetimeSeconds } from './jwt'
 
 // Re-export JWTPayload as UserSession for backwards compatibility
 export type UserSession = JWTPayload
@@ -31,7 +31,7 @@ export const setSessionCookie = async (token: string) => {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
-    maxAge: SESSION_LIFETIME_SECONDS,
+    maxAge: getSessionLifetimeSeconds(),
     path: '/'
   })
 }
