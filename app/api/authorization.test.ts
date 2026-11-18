@@ -83,7 +83,9 @@ const quizzesRoute = await import('./quizzes/route')
 const quizRoute = await import('./quizzes/[id]/route')
 const studentsRoute = await import('./students/route')
 const enrollmentsRoute = await import('./enrollments/route')
+const initRoute = await import('./quiz/attempt/init/route')
 const stepRoute = await import('./quiz/attempt/step/route')
+const feedbackRoute = await import('./quiz/attempt/feedback/route')
 const resultsRoute = await import('./quiz/attempt/results/route')
 
 // ─── Request builders ──────────────────────────────────────────────────────────
@@ -306,6 +308,32 @@ describe('anonymous visitors', () => {
     const res = await call()
     expect(res.status).toBe(401)
     for (const write of writeMocks()) expect(write).not.toHaveBeenCalled()
+  })
+})
+
+describe('anonymous visitors to the quiz attempt routes', () => {
+  const attemptRoutes = [
+    { name: 'init', POST: initRoute.POST, body: { quizId: 'q1', offeringId: 'o1' } },
+    { name: 'step', POST: stepRoute.POST, body: { attemptId: 'a1', itemId: 'i1', itemToken: 't', answerIndex: 0 } },
+    { name: 'feedback', POST: feedbackRoute.POST, body: { attemptId: 'a1' } },
+    { name: 'results', POST: resultsRoute.POST, body: { attemptId: 'a1' } },
+  ]
+
+  it.each(attemptRoutes)('POST /api/quiz/attempt/$name returns 401', async ({ name, POST, body }) => {
+    become({ loggedIn: false })
+    const res = await POST(req(`/api/quiz/attempt/${name}`, 'POST', body))
+    expect(res.status).toBe(401)
+  })
+
+  // The session is checked before the body is parsed, so a malformed body gets a 401, not a 500
+  it.each(attemptRoutes)('POST /api/quiz/attempt/$name returns 401 for a malformed body', async ({ name, POST }) => {
+    become({ loggedIn: false })
+    const res = await POST(new NextRequest(`${BASE}/api/quiz/attempt/${name}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: '{not json',
+    }))
+    expect(res.status).toBe(401)
   })
 })
 

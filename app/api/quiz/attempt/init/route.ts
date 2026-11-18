@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { fastApiClient, type FastAPIInitRequest } from '@/lib/fastapi-client';
-import { getSession } from '@/lib/auth';
+import { requireSession } from '@/lib/authz';
 import type { InitAttemptRequest } from '@/types';
 import { logger } from '@/lib/logger';
 import { signPresentedItem } from '@/lib/presented-item';
@@ -10,19 +10,12 @@ import { presentedItemFor, toFeedbackLevel } from '@/lib/feedback-visibility';
 
 export const POST = async (request: NextRequest) => {
   try {
+    const auth = await requireSession();
+    if (!auth.ok) return auth.response;
+    const userId = auth.session.userId;
+
     const body: InitAttemptRequest = await request.json();
     const { quizId, offeringId } = body;
-
-    // Get user from session
-    const session = await getSession();
-    if (!session) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-
-    const userId = session.userId;
 
     // Validate required fields
     if (!quizId) {

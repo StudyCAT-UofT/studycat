@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getSession } from '@/lib/auth';
+import { requireSession } from '@/lib/authz';
 import { thetaToPerformance } from '@/utils/thetaToPerformance';
 import type { FeedbackData, ModulePerformance, DetailedQuestionReview } from '@/types';
 import { logger } from '@/lib/logger';
@@ -8,19 +8,12 @@ import { reviewQuestionsFor, toFeedbackLevel } from '@/lib/feedback-visibility';
 
 export const POST = async (request: NextRequest) => {
   try {
+    const auth = await requireSession();
+    if (!auth.ok) return auth.response;
+    const userId = auth.session.userId;
+
     const body = await request.json();
     const { attemptId } = body;
-
-    // Get user from session
-    const session = await getSession();
-    if (!session) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-
-    const userId = session.userId;
 
     // Validate required fields
     if (!attemptId) {

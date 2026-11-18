@@ -54,7 +54,6 @@ const { signPresentedItem, verifyPresentedItem } = await import('@/lib/presented
 
 const asAuthenticated = () =>
     vi.mocked(getSession).mockResolvedValue({ userId: 'user-1', username: 'testuser' })
-const asUnauthenticated = () => vi.mocked(getSession).mockResolvedValue(null)
 
 const makeRequest = (body: object): NextRequest =>
     new NextRequest('http://localhost', {
@@ -136,12 +135,6 @@ const mockItem = {
 
 describe('POST /api/quiz/attempt/init', () => {
     beforeEach(() => vi.clearAllMocks())
-
-    it('returns 401 when unauthenticated', async () => {
-        asUnauthenticated()
-        const res = await initRoute(makeRequest({ quizId: 'quiz-1' }))
-        expect(res.status).toBe(401)
-    })
 
     it('returns 400 when quizId is missing', async () => {
         asAuthenticated()
@@ -416,12 +409,6 @@ describe('POST /api/quiz/attempt/step', () => {
 
 describe('POST /api/quiz/attempt/feedback', () => {
     beforeEach(() => vi.clearAllMocks())
-
-    it('returns 401 when unauthenticated', async () => {
-        asUnauthenticated()
-        const res = await feedbackRoute(makeRequest({ attemptId: 'attempt-1' }))
-        expect(res.status).toBe(401)
-    })
 
     it('returns 400 when attemptId is missing', async () => {
         asAuthenticated()
