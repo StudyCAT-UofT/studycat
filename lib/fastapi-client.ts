@@ -7,8 +7,6 @@ const FASTAPI_BASE_URL = process.env.FASTAPI_BASE_URL || 'http://localhost:8000/
 export interface FastAPIInitRequest {
   attempt_id: string;
   concepts?: string[];
-  prior_mu?: number;
-  prior_sigma2?: number;
 }
 
 export interface FastAPIInitResponse {
@@ -73,8 +71,6 @@ export class FastAPIClient {
       },
       body: JSON.stringify({
         modules: request.concepts,
-        prior_mu: request.prior_mu,
-        prior_sigma2: request.prior_sigma2,
       }),
     });
 
